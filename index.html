@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字 App - AI 智慧多語言版 (v2026.09.20-2300)</title>
+  <title>背單字 App - AI 智慧多語言版 (v2026.09.20-2309)</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -41,10 +41,10 @@
 </head>
 <body>
 
-  <!-- 狀態列含版本號 (以檔案最後更新時間命名) -->
+  <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
     <span>✅ App 已就緒！資料 100% 存於本機</span>
-    <span class="version-tag">Ver: 2026.09.20-2300</span>
+    <span class="version-tag">Ver: 2026.09.20-2309</span>
   </div>
 
   <!-- 分頁導覽 -->
@@ -146,6 +146,12 @@
       ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
     </div>
 
+    <!-- 錯誤與重試區域 -->
+    <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+      <p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
+      <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
+    </div>
+
     <div id="ai-result-area" class="hidden">
       <h3>🔍 AI 解讀出的原始文字：</h3>
       <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
@@ -210,6 +216,7 @@
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
     let tempParsedAiWords = [];
+    let lastCapturedFile = null; // 暫存最後一次上傳的圖片檔案供 Retry 使用
 
     window.onload = function() {
       loadLanguagePreferences();
@@ -386,13 +393,25 @@
       }
     }
 
-    async function handleImageCapture(event) {
+    /* AI 相機辨識 (帶有 Retry 機制) */
+    function handleImageCapture(event) {
       const file = event.target.files[0];
       if (!file) return;
+      lastCapturedFile = file; // 暫存起來供 Retry 使用
+      processImageFile(file);
+    }
+
+    function retryAiCapture() {
+      if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新拍照！');
+      processImageFile(lastCapturedFile);
+    }
+
+    async function processImageFile(file) {
       const apiKey = localStorage.getItem('gemini_api_key');
       if (!apiKey) return alert('請先至設定頁面填寫 Gemini API Key！');
 
       document.getElementById('ai-loading').classList.remove('hidden');
+      document.getElementById('ai-error-area').classList.add('hidden');
       document.getElementById('ai-result-area').classList.add('hidden');
 
       const reader = new FileReader();
@@ -415,10 +434,14 @@
             })
           });
           const data = await response.json();
+          document.getElementById('ai-loading').classList.add('hidden');
+
           if (data.error) {
-            document.getElementById('ai-loading').classList.add('hidden');
-            return alert('AI 辨識錯誤: ' + data.error.message);
+            document.getElementById('ai-error-msg').innerText = `❌ AI 辨識錯誤: ${data.error.message}`;
+            document.getElementById('ai-error-area').classList.remove('hidden');
+            return;
           }
+
           const text = data.candidates[0].content.parts[0].text;
           const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
           const parsed = JSON.parse(cleaned);
@@ -432,11 +455,11 @@
             </div>
           `).join('');
 
-          document.getElementById('ai-loading').classList.add('hidden');
           document.getElementById('ai-result-area').classList.remove('hidden');
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
-          alert('AI 辨識失敗，請確認 API Key 或圖片清晰度。');
+          document.getElementById('ai-error-msg').innerText = `❌ 網路或解析失敗：${e.message}`;
+          document.getElementById('ai-error-area').classList.remove('hidden');
         }
       };
       reader.readAsDataURL(file);
