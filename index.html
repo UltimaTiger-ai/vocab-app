@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>背單字 App</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Dictionary_icon.svg/512px-Dictionary_icon.svg.png">
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
+    body { margin: 0; padding: 15px; background-color: #f8f9fa; color: #333; }
+    .status-bar { padding: 10px; font-size: 14px; background: #e9ecef; color: #495057; text-align: center; font-weight: bold; margin-bottom: 15px; border-radius: 8px; }
+    .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
+    h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
+    input, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+    button { background-color: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
+    button:active { opacity: 0.8; }
+    .btn-danger { background-color: #dc3545; }
+    .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .nav { display: flex; gap: 10px; margin-bottom: 15px; }
+    .nav button { background-color: #e9ecef; color: #495057; }
+    .nav button.active { background-color: #1a73e8; color: white; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <div id="sw-status" class="status-bar">⏳ 正在快取離線檔案...</div>
+
+  <div class="nav">
+    <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
+    <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 開始測驗</button>
+    <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
+  </div>
+
+  <div id="page-list" class="card">
+    <h2>➕ 新增英文單字</h2>
+    <input type="text" id="input-word" placeholder="英文單字">
+    <input type="text" id="input-meaning" placeholder="中文解釋">
+    <button onclick="addWord()">加入單字庫</button>
+    <h2 style="margin-top: 20px;">📖 我的單字清單 (<span id="word-count">0</span>)</h2>
+    <div id="word-list"></div>
+  </div>
+
+  <div id="page-quiz" class="card hidden">
+    <h2>✍️ 單字拼寫測驗</h2>
+    <div id="quiz-box">
+      <p style="font-size: 20px; font-weight: bold;" id="quiz-question">請先新增單字！</p>
+      <input type="text" id="quiz-answer" placeholder="請輸入英文單字...">
+      <button onclick="checkAnswer()">提交答案</button>
+      <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
+    </div>
+  </div>
+
+  <div id="page-settings" class="card hidden">
+    <h2>🔑 Gemini API Key</h2>
+    <input type="password" id="input-api-key" placeholder="貼上你的 API Key">
+    <button onclick="saveApiKey()">儲存設定</button>
+  </div>
+
+  <script>
+    // 註冊離線快取
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(reg => {
+        document.getElementById('sw-status').innerText = '✅ App 已就緒！可斷網使用';
+        document.getElementById('sw-status').style.background = '#d4edda';
+        document.getElementById('sw-status').style.color = '#155724';
+      });
+    }
+
+    let words = JSON.parse(localStorage.getItem('vocab_words') || '[]');
+    let currentQuizIndex = -1;
+
+    function addWord() {
+      const wInput = document.getElementById('input-word');
+      const mInput = document.getElementById('input-meaning');
+      if (!wInput.value || !mInput.value) return alert('請完整輸入！');
+      words.push({ word: wInput.value.trim(), meaning: mInput.value.trim() });
+      localStorage.setItem('vocab_words', JSON.stringify(words));
+      wInput.value = ''; mInput.value = '';
+      renderList();
+    }
+
+    function deleteWord(index) {
+      words.splice(index, 1);
+      localStorage.setItem('vocab_words', JSON.stringify(words));
+      renderList();
+    }
+
+    function speakWord(text) {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      window.speechSynthesis.speak(u);
+    }
+
+    function renderList() {
+      document.getElementById('word-count').innerText = words.length;
+      document.getElementById('word-list').innerHTML = words.map((item, index) => `
+        <div class="word-item">
+          <div><strong>${item.word}</strong> <span style="color:#666;">(${item.meaning})</span></div>
+          <div>
+            <button style="width:auto; padding:5px; margin:0;" onclick="speakWord('${item.word}')">🔊</button>
+            <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function switchTab(tab) {
+      ['list', 'quiz', 'settings'].forEach(t => {
+        document.getElementById(`page-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('active');
+      });
+      document.getElementById(`page-${tab}`).classList.remove('hidden');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      if (tab === 'quiz') startQuiz();
+    }
+
+    function startQuiz() {
+      if (words.length === 0) return document.getElementById('quiz-question').innerText = '請先新增單字！';
+      currentQuizIndex = Math.floor(Math.random() * words.length);
+      document.getElementById('quiz-question').innerText = words[currentQuizIndex].meaning;
+      document.getElementById('quiz-result').innerText = '';
+      document.getElementById('quiz-answer').value = '';
+    }
+
+    function checkAnswer() {
+      if (currentQuizIndex === -1) return;
+      const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
+      const realAns = words[currentQuizIndex].word.trim().toLowerCase();
+      const res = document.getElementById('quiz-result');
+      if (userAns === realAns) {
+        res.style.color = 'green'; res.innerText = '🎉 答對了！';
+        speakWord(realAns);
+        setTimeout(startQuiz, 1200);
+      } else {
+        res.style.color = 'red'; res.innerText = '❌ 正確答案：' + realAns;
+        speakWord(realAns);
+      }
+    }
+
+    function saveApiKey() {
+      localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value);
+      alert('儲存成功！');
+    }
+
+    renderList();
+  </script>
+</body>
+</html>

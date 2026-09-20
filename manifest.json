@@ -1,0 +1,15 @@
+{
+  "name": "背單字 App",
+  "short_name": "背單字",
+  "display": "standalone",
+  "start_url": "./",
+  "background_color": "#ffffff",
+  "theme_color": "#1a73e8",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Dictionary_icon.svg/512px-Dictionary_icon.svg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
