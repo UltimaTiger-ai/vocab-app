@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字 App - AI 智慧多語言版</title>
+  <title>背單字 App - AI 智慧多語言版 (v2026.09.20-2300)</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,7 +11,8 @@
   <style>
     * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { margin: 0; padding: 15px; background-color: #f8f9fa; color: #333; }
-    .status-bar { padding: 10px; font-size: 14px; background: #d4edda; color: #155724; text-align: center; font-weight: bold; margin-bottom: 15px; border-radius: 8px; }
+    .status-bar { padding: 10px; font-size: 13px; background: #d4edda; color: #155724; text-align: center; font-weight: bold; margin-bottom: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .version-tag { font-size: 11px; background: #155724; color: white; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
     .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
     h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
     h3 { font-size: 16px; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; margin-top: 20px;}
@@ -40,7 +41,11 @@
 </head>
 <body>
 
-  <div id="sw-status" class="status-bar">✅ App 已就緒！資料 100% 存於手機本機</div>
+  <!-- 狀態列含版本號 (以檔案最後更新時間命名) -->
+  <div id="sw-status" class="status-bar">
+    <span>✅ App 已就緒！資料 100% 存於本機</span>
+    <span class="version-tag">Ver: 2026.09.20-2300</span>
+  </div>
 
   <!-- 分頁導覽 -->
   <div class="nav">
@@ -223,7 +228,6 @@
       localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value.trim());
     }
 
-    /* 儲存與讀取語言選單偏好 */
     function saveLanguagePreferences() {
       const qLang = document.getElementById('input-q-lang').value;
       const aLang = document.getElementById('input-a-lang').value;
@@ -308,7 +312,6 @@
       }
     }
 
-    /* 測試 Gemini API 連線是否正常 */
     async function testGeminiConnection() {
       const apiKey = document.getElementById('input-api-key').value.trim();
       const resElem = document.getElementById('test-result');
@@ -350,7 +353,6 @@
       }
     }
 
-    /* AI 智慧建議答案（已整合目標答案語言設定） */
     async function aiSuggestAnswer() {
       const apiKey = localStorage.getItem('gemini_api_key');
       const q = document.getElementById('input-question').value.trim();
@@ -384,7 +386,6 @@
       }
     }
 
-    /* AI 相機辨識 */
     async function handleImageCapture(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -495,7 +496,6 @@
       if (tab === 'stats') renderStats();
     }
 
-    /* 測驗邏輯 */
     function initQuizSession() {
       const selected = document.getElementById('quiz-deck-select').value;
       let pool = [];
@@ -589,7 +589,6 @@
       saveData();
     }
 
-    /* 統計邏輯 */
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
       const targetDecks = selected === 'all' ? decks : decks.filter(d => d.id === selected);
