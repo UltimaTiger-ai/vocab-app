@@ -68,7 +68,7 @@
     <div class="row-group">
       <div>
         <label style="font-size:12px; color:#666;">題目語言</label>
-        <select id="input-q-lang">
+        <select id="input-q-lang" onchange="saveLanguagePreferences()">
           <option value="en-US">英文 (English)</option>
           <option value="ja-JP">日文 (日本語)</option>
           <option value="zh-TW">中文 (繁體)</option>
@@ -78,7 +78,7 @@
       </div>
       <div>
         <label style="font-size:12px; color:#666;">答案語言</label>
-        <select id="input-a-lang">
+        <select id="input-a-lang" onchange="saveLanguagePreferences()">
           <option value="zh-TW">中文 (繁體)</option>
           <option value="ja-JP">日文 (日本語)</option>
           <option value="en-US">英文 (English)</option>
@@ -207,6 +207,7 @@
     let tempParsedAiWords = [];
 
     window.onload = function() {
+      loadLanguagePreferences();
       renderUI();
     };
 
@@ -220,6 +221,21 @@
       quizLimit = parseInt(document.getElementById('setting-quiz-limit').value);
       localStorage.setItem('vocab_quiz_limit', quizLimit);
       localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value.trim());
+    }
+
+    /* 儲存與讀取語言選單偏好 */
+    function saveLanguagePreferences() {
+      const qLang = document.getElementById('input-q-lang').value;
+      const aLang = document.getElementById('input-a-lang').value;
+      localStorage.setItem('vocab_q_lang', qLang);
+      localStorage.setItem('vocab_a_lang', aLang);
+    }
+
+    function loadLanguagePreferences() {
+      const savedQLang = localStorage.getItem('vocab_q_lang');
+      const savedALang = localStorage.getItem('vocab_a_lang');
+      if (savedQLang) document.getElementById('input-q-lang').value = savedQLang;
+      if (savedALang) document.getElementById('input-a-lang').value = savedALang;
     }
 
     function getCurrentDeck() { return decks.find(d => d.id === currentDeckId) || decks[0]; }
@@ -334,11 +350,12 @@
       }
     }
 
-    /* AI 智慧建議答案 */
+    /* AI 智慧建議答案（已整合目標答案語言設定） */
     async function aiSuggestAnswer() {
       const apiKey = localStorage.getItem('gemini_api_key');
       const q = document.getElementById('input-question').value.trim();
       const qLang = document.getElementById('input-q-lang').value;
+      const aLang = document.getElementById('input-a-lang').value;
       if (!apiKey || !q) return;
 
       try {
@@ -349,7 +366,7 @@
             'x-goog-api-key': apiKey
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: `請針對題目 "${q}" (語言類型: ${qLang})，給出對應的翻譯或解釋。請嚴格回傳 JSON 格式：{"ans1": "主要答案", "ans2": "備用答案或同義詞"}` }] }]
+            contents: [{ parts: [{ text: `請針對題目 "${q}" (題目語言類型: ${qLang})，給出對應翻譯或解釋，答案的語言必須是 "${aLang}"。請嚴格回傳 JSON 格式：{"ans1": "主要答案", "ans2": "備用答案或同義詞"}` }] }]
           })
         });
         const data = await response.json();
