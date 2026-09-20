@@ -168,8 +168,10 @@
     </div>
 
     <div class="setting-group">
-      <label>🔑 Gemini API Key (AI 建議與相機辨識必要)</label>
+      <label>🔑 Gemini API Key</label>
       <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()">
+      <button type="button" class="btn-secondary" style="margin-top: 8px;" onclick="testGeminiConnection()">🧪 測試 Gemini 連線狀態</button>
+      <p id="test-result" style="font-size: 14px; margin-top: 8px; font-weight: bold;"></p>
     </div>
   </div>
 
@@ -626,8 +628,92 @@
           </div>
         `).join('');
     }
+	
+	/* 測試 Gemini API 連線是否正常 */
+    async function testGeminiConnection() {
+      const apiKey = document.getElementById('input-api-key').value.trim();
+      const resElem = document.getElementById('test-result');
+      
+      if (!apiKey) {
+        resElem.style.color = 'red';
+        resElem.innerText = '❌ 請先輸入 API Key！';
+        return;
+      }
+
+      resElem.style.color = '#1a73e8';
+      resElem.innerText = '⏳ 正在測試連線中...';
+
+      try {
+        const response = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+        const resp = await fetch(response, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: '請回覆「OK」' }] }]
+          })
+        });
+
+        const data = await resp.json();
+        
+        if (data.error) {
+          resElem.style.color = 'red';
+          resElem.innerText = `❌ 連線失敗：${data.error.message}`;
+        } else {
+          resElem.style.color = 'green';
+          resElem.innerText = '✅ API Key 連線成功！AI 功能已完全生效。';
+        }
+      } catch (e) {
+        resElem.style.color = 'red';
+        resElem.innerText = `❌ 網路或請求異常：${e.message}`;
+      }
+    }
+
+	/* 自動顯示檔案更新時間 */
+    function displayAppInfo() {
+      const updateTimeSpan = document.getElementById('app-update-time');
+      if (updateTimeSpan) {
+        // 抓取網頁最後修改時間 (Last-Modified)，如果抓不到則顯示當前讀取時間
+        let lastMod = document.lastModified;
+        if (!lastMod || lastMod === "") {
+          const now = new Date();
+          lastMod = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        }
+        updateTimeSpan.innerText = lastMod;
+      }
+    }
+
+    /* 手動強制檢查更新並清除快取重新載入 */
+    async function checkForUpdates() {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.update();
+          await registration.unregister();
+        }
+      }
+      if (caches) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(key => caches.delete(key)));
+      }
+      alert('已清除舊快取，即將重新載入最新版本！');
+      window.location.reload();
+    }
+
+    // 頁面載入時執行
+    displayAppInfo();
 
     renderUI();
   </script>
+  
+  <!-- 檔案更新時間與強制作業區塊 -->
+  <div style="text-align: center; font-size: 12px; color: #888; margin-top: 30px; margin-bottom: 20px;">
+    <span>檔案更新時間：<span id="app-update-time">載入中...</span></span>
+    <br>
+    <button onclick="checkForUpdates()" style="background: none; border: none; color: #1a73e8; font-size: 12px; text-decoration: underline; cursor: pointer; width: auto; padding: 5px; margin-top: 5px;">🔄 檢查最新版本</button>
+  </div>
+  
 </body>
 </html>
