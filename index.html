@@ -375,8 +375,13 @@
             'x-goog-api-key': apiKey
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: `請針對題目 "${q}" (題目語言類型: ${qLang})，給出對應翻譯或解釋，答案的語言必須是 "${aLang}"。請嚴格回傳 JSON 格式：{"ans1": "主要答案", "ans2": "備用答案或同義詞"}` }] }]
-          })
+			  contents: [{ parts: [{ text: `請針對題目 "${q}" (題目語言類型: ${qLang})，給出對應翻譯或解釋。
+	特別注意：如果答案是日文，請務必遵循以下規則：
+	1. 「ans1」請填寫【漢字混用形式】（例如：食べる、日本語）。
+	2. 「ans2」請填寫【完全純平假名形式】（例如：たべる、にほんご）。
+	如果題目本身就是日文或其他語言，請確保 ans1 為主要標準寫法，ans2 為同義或替代寫法。
+	請嚴格回傳 JSON 格式：{"ans1": "主要答案", "ans2": "備用答案"}` }] }]
+			})
         });
         const data = await response.json();
         if (data.error) {
