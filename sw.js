@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vocab-v1';
+const CACHE_NAME = 'vocab-v2';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -18,9 +18,24 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((res) => {
-      return res || fetch(event.request).catch(() => caches.match('./'));
-    })
-  );
+  // 針對網頁與主程式，改用「網路優先 (Network-First)」
+  if (event.request.mode === 'navigate' || event.request.url.endsWith('index.html') || event.request.url.endsWith('/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          return caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          });
+        })
+        .catch(() => caches.match(event.request))
+    );
+  } else {
+    // 其他靜態資源維持快取優先
+    event.respondWith(
+      caches.match(event.request).then((res) => {
+        return res || fetch(event.request);
+      })
+    );
+  }
 });

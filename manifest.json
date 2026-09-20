@@ -1,9 +1,9 @@
 {
   "name": "背單字 App",
   "short_name": "背單字",
+  "start_url": "./index.html",
   "display": "standalone",
-  "start_url": "./",
-  "background_color": "#ffffff",
+  "background_color": "#f8f9fa",
   "theme_color": "#1a73e8",
   "icons": [
     {
