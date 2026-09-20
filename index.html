@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字 App</title>
+  <title>背單字 App - 統計分析版</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,142 +11,351 @@
   <style>
     * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
     body { margin: 0; padding: 15px; background-color: #f8f9fa; color: #333; }
-    .status-bar { padding: 10px; font-size: 14px; background: #e9ecef; color: #495057; text-align: center; font-weight: bold; margin-bottom: 15px; border-radius: 8px; }
+    .status-bar { padding: 10px; font-size: 14px; background: #d4edda; color: #155724; text-align: center; font-weight: bold; margin-bottom: 15px; border-radius: 8px; }
     .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
     h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
-    input, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+    h3 { font-size: 16px; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; margin-top: 20px;}
+    input, select, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
     button { background-color: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
     button:active { opacity: 0.8; }
     .btn-danger { background-color: #dc3545; }
+    .btn-secondary { background-color: #6c757d; }
     .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-    .nav { display: flex; gap: 10px; margin-bottom: 15px; }
-    .nav button { background-color: #e9ecef; color: #495057; }
+    .nav { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
+    .nav button { flex: 1; background-color: #e9ecef; color: #495057; margin: 0; font-size: 14px; padding: 10px 5px; }
     .nav button.active { background-color: #1a73e8; color: white; }
     .hidden { display: none; }
+    .deck-header { display: flex; gap: 8px; margin-bottom: 15px; }
+    .setting-group { margin-bottom: 15px; }
+    .setting-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #555; }
+    .stats-box { background: #f1f3f5; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    .stats-box p { margin: 5px 0; font-weight: bold; display: flex; justify-content: space-between; }
+    .text-green { color: #28a745; }
+    .text-red { color: #dc3545; }
   </style>
 </head>
 <body>
 
-  <div id="sw-status" class="status-bar">⏳ 正在快取離線檔案...</div>
+  <div id="sw-status" class="status-bar">✅ App 已就緒！資料 100% 存於手機本機</div>
 
+  <!-- 分頁導覽 -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
-    <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 開始測驗</button>
+    <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 測驗</button>
+    <button id="tab-stats" onclick="switchTab('stats')">📊 統計</button>
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
+  <!-- 1. 單字庫管理頁面 -->
   <div id="page-list" class="card">
-    <h2>➕ 新增英文單字</h2>
+    <h2>📁 選擇單字庫</h2>
+    <div class="deck-header">
+      <select id="deck-select" onchange="changeCurrentDeck()"></select>
+    </div>
+    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+      <input type="text" id="new-deck-name" placeholder="新單字庫名稱" style="margin-top:0;">
+      <button onclick="createDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增</button>
+    </div>
+
+    <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
+
+    <h2>➕ 新增單字至「<span id="current-deck-title"></span>」</h2>
     <input type="text" id="input-word" placeholder="英文單字">
     <input type="text" id="input-meaning" placeholder="中文解釋">
-    <button onclick="addWord()">加入單字庫</button>
-    <h2 style="margin-top: 20px;">📖 我的單字清單 (<span id="word-count">0</span>)</h2>
+    <button onclick="addWord()">加入此單字庫</button>
+
+    <h2 style="margin-top: 20px;">📖 單字清單 (<span id="word-count">0</span>)</h2>
     <div id="word-list"></div>
   </div>
 
+  <!-- 2. 測驗頁面 -->
   <div id="page-quiz" class="card hidden">
     <h2>✍️ 單字拼寫測驗</h2>
-    <div id="quiz-box">
-      <p style="font-size: 20px; font-weight: bold;" id="quiz-question">請先新增單字！</p>
-      <input type="text" id="quiz-answer" placeholder="請輸入英文單字...">
-      <button onclick="checkAnswer()">提交答案</button>
+    <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
+    <button onclick="initQuizSession()" class="btn-secondary" style="margin-bottom: 15px;">開始新測驗</button>
+
+    <div id="quiz-box" style="border-top: 1px solid #eee; padding-top: 15px;">
+      <p style="font-size: 14px; color: #666; margin-bottom: 5px;" id="quiz-progress"></p>
+      <p style="font-size: 20px; font-weight: bold;" id="quiz-question">請點擊上方「開始新測驗」！</p>
+      <input type="text" id="quiz-answer" placeholder="請輸入英文單字..." autocomplete="off">
+      <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
     </div>
   </div>
 
+  <!-- 3. 統計頁面 -->
+  <div id="page-stats" class="card hidden">
+    <h2>📊 學習數據分析</h2>
+    <select id="stats-deck-select" style="margin-bottom: 15px;" onchange="renderStats()"></select>
+    
+    <div class="stats-box">
+      <p>📈 歷史通過率 <span id="stat-all-time">--</span></p>
+      <p>📅 近一個月通過率 <span id="stat-month">--</span></p>
+    </div>
+
+    <h3>⚠️ 單字錯誤率排行 (由高到低)</h3>
+    <div id="stats-word-list"></div>
+  </div>
+
+  <!-- 4. 設定頁面 -->
   <div id="page-settings" class="card hidden">
-    <h2>🔑 Gemini API Key</h2>
-    <input type="password" id="input-api-key" placeholder="貼上你的 API Key">
-    <button onclick="saveApiKey()">儲存設定</button>
+    <h2>⚙️ 偏好與 API 設定</h2>
+    
+    <div class="setting-group">
+      <label>🎯 每次測驗題數</label>
+      <select id="setting-quiz-limit" onchange="saveSettings()">
+        <option value="5">5 題</option>
+        <option value="10" selected>10 題</option>
+        <option value="20">20 題</option>
+        <option value="30">30 題</option>
+        <option value="0">全部單字集</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label>🔑 Gemini API Key</label>
+      <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()">
+    </div>
   </div>
 
   <script>
-    // 註冊離線快取
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(reg => {
-        document.getElementById('sw-status').innerText = '✅ App 已就緒！可斷網使用';
-        document.getElementById('sw-status').style.background = '#d4edda';
-        document.getElementById('sw-status').style.color = '#155724';
-      });
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+    let decks = JSON.parse(localStorage.getItem('vocab_decks') || JSON.stringify([{ id: 'default_1', name: '預設單字庫', words: [], history: [] }]));
+    let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
+    let quizLimit = parseInt(localStorage.getItem('vocab_quiz_limit') || '10');
+
+    let quizQueue = [], currentQuizItem = null;
+    let sessionResults = []; // 紀錄本次測驗成績
+    let totalAnswered = 0, targetLimit = 10;
+
+    function saveData() {
+      localStorage.setItem('vocab_decks', JSON.stringify(decks));
+      localStorage.setItem('vocab_current_deck', currentDeckId);
+      renderUI();
     }
 
-    let words = JSON.parse(localStorage.getItem('vocab_words') || '[]');
-    let currentQuizIndex = -1;
+    function saveSettings() {
+      quizLimit = parseInt(document.getElementById('setting-quiz-limit').value);
+      localStorage.setItem('vocab_quiz_limit', quizLimit);
+      localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value.trim());
+    }
+
+    function getCurrentDeck() { return decks.find(d => d.id === currentDeckId) || decks[0]; }
+
+    function createDeck() {
+      const name = document.getElementById('new-deck-name').value.trim();
+      if (!name) return alert('請輸入單字庫名稱！');
+      decks.push({ id: 'deck_' + Date.now(), name: name, words: [], history: [] });
+      currentDeckId = decks[decks.length - 1].id;
+      document.getElementById('new-deck-name').value = '';
+      saveData();
+    }
+
+    function changeCurrentDeck() {
+      currentDeckId = document.getElementById('deck-select').value;
+      saveData();
+    }
 
     function addWord() {
-      const wInput = document.getElementById('input-word');
-      const mInput = document.getElementById('input-meaning');
-      if (!wInput.value || !mInput.value) return alert('請完整輸入！');
-      words.push({ word: wInput.value.trim(), meaning: mInput.value.trim() });
-      localStorage.setItem('vocab_words', JSON.stringify(words));
+      const wInput = document.getElementById('input-word'), mInput = document.getElementById('input-meaning');
+      if (!wInput.value.trim() || !mInput.value.trim()) return alert('請完整輸入！');
+      const deck = getCurrentDeck();
+      deck.words.push({ word: wInput.value.trim(), meaning: mInput.value.trim(), attempts: 0, errors: 0 });
       wInput.value = ''; mInput.value = '';
-      renderList();
+      saveData();
     }
 
-    function deleteWord(index) {
-      words.splice(index, 1);
-      localStorage.setItem('vocab_words', JSON.stringify(words));
-      renderList();
-    }
+    function deleteWord(index) { getCurrentDeck().words.splice(index, 1); saveData(); }
+    function speakWord(text) { const u = new SpeechSynthesisUtterance(text); u.lang = 'en-US'; window.speechSynthesis.speak(u); }
 
-    function speakWord(text) {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      window.speechSynthesis.speak(u);
-    }
+    function renderUI() {
+      const deckSelect = document.getElementById('deck-select');
+      const quizDeckSelect = document.getElementById('quiz-deck-select');
+      const statsDeckSelect = document.getElementById('stats-deck-select');
+      
+      const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
+      deckSelect.innerHTML = deckOptions;
+      
+      const allOption = `<option value="all">🌟 全部單字庫綜合</option>`;
+      quizDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name} (${d.words.length}字)</option>`).join('');
+      statsDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name}</option>`).join('');
 
-    function renderList() {
-      document.getElementById('word-count').innerText = words.length;
-      document.getElementById('word-list').innerHTML = words.map((item, index) => `
-        <div class="word-item">
-          <div><strong>${item.word}</strong> <span style="color:#666;">(${item.meaning})</span></div>
-          <div>
-            <button style="width:auto; padding:5px; margin:0;" onclick="speakWord('${item.word}')">🔊</button>
-            <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
+      const deck = getCurrentDeck();
+      document.getElementById('current-deck-title').innerText = deck.name;
+      document.getElementById('word-count').innerText = deck.words.length;
+      document.getElementById('word-list').innerHTML = deck.words.length === 0 
+        ? '<p style="color:#888;">此單字庫目前沒有單字。</p>'
+        : deck.words.map((item, index) => `
+          <div class="word-item">
+            <div><strong>${item.word}</strong> <span style="color:#666;">(${item.meaning})</span></div>
+            <div>
+              <button style="width:auto; padding:5px; margin:0;" onclick="speakWord('${item.word}')">🔊</button>
+              <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
+            </div>
           </div>
-        </div>
-      `).join('');
+        `).join('');
+
+      document.getElementById('setting-quiz-limit').value = quizLimit;
+      if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
     }
 
     function switchTab(tab) {
-      ['list', 'quiz', 'settings'].forEach(t => {
+      ['list', 'quiz', 'stats', 'settings'].forEach(t => {
         document.getElementById(`page-${t}`).classList.add('hidden');
         document.getElementById(`tab-${t}`).classList.remove('active');
       });
       document.getElementById(`page-${tab}`).classList.remove('hidden');
       document.getElementById(`tab-${tab}`).classList.add('active');
-      if (tab === 'quiz') startQuiz();
+      if (tab === 'stats') renderStats();
     }
 
-    function startQuiz() {
-      if (words.length === 0) return document.getElementById('quiz-question').innerText = '請先新增單字！';
-      currentQuizIndex = Math.floor(Math.random() * words.length);
-      document.getElementById('quiz-question').innerText = words[currentQuizIndex].meaning;
-      document.getElementById('quiz-result').innerText = '';
+    /* 測驗邏輯 */
+    function initQuizSession() {
+      const selected = document.getElementById('quiz-deck-select').value;
+      let pool = [];
+      if (selected === 'all') {
+        pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
+      } else {
+        const target = decks.find(d => d.id === selected);
+        if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
+      }
+
+      if (pool.length === 0) {
+        document.getElementById('quiz-question').innerText = '無單字可測驗！';
+        return;
+      }
+
+      pool.sort(() => Math.random() - 0.5);
+      targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
+      quizQueue = pool.slice(0, targetLimit);
+      sessionResults = [];
+      totalAnswered = 0;
+      nextQuizQuestion();
+    }
+
+    function nextQuizQuestion() {
+      if (quizQueue.length === 0) {
+        endQuizSession();
+        return;
+      }
+      document.getElementById('quiz-answer').style.display = 'block';
+      document.getElementById('btn-submit-ans').style.display = 'block';
+      currentQuizItem = quizQueue.shift();
+      totalAnswered++;
+      document.getElementById('quiz-progress').innerText = `進度：第 ${totalAnswered} / ${targetLimit} 題`;
+      document.getElementById('quiz-question').innerText = currentQuizItem.meaning;
       document.getElementById('quiz-answer').value = '';
+      document.getElementById('quiz-result').innerText = '';
     }
 
     function checkAnswer() {
-      if (currentQuizIndex === -1) return;
+      if (!currentQuizItem) return;
       const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
-      const realAns = words[currentQuizIndex].word.trim().toLowerCase();
+      const realAns = currentQuizItem.word.trim().toLowerCase();
+      const isCorrect = (userAns === realAns);
+      
+      // 記錄成績與更新單字屬性
+      sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
+      const deck = decks.find(d => d.id === currentQuizItem.deckId);
+      if (deck) {
+        const w = deck.words.find(w => w.word === currentQuizItem.word);
+        if (w) {
+          w.attempts = (w.attempts || 0) + 1;
+          if (!isCorrect) w.errors = (w.errors || 0) + 1;
+        }
+      }
+      saveData();
+
       const res = document.getElementById('quiz-result');
-      if (userAns === realAns) {
+      if (isCorrect) {
         res.style.color = 'green'; res.innerText = '🎉 答對了！';
         speakWord(realAns);
-        setTimeout(startQuiz, 1200);
+        setTimeout(nextQuizQuestion, 1000);
       } else {
         res.style.color = 'red'; res.innerText = '❌ 正確答案：' + realAns;
         speakWord(realAns);
+        setTimeout(nextQuizQuestion, 1800);
       }
     }
 
-    function saveApiKey() {
-      localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value);
-      alert('儲存成功！');
+    function endQuizSession() {
+      const correctCount = sessionResults.filter(r => r.correct).length;
+      document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
+      document.getElementById('quiz-question').innerText = `恭喜完成！\n總題數：${totalAnswered} 題\n答對：${correctCount} 題`;
+      document.getElementById('quiz-answer').style.display = 'none';
+      document.getElementById('btn-submit-ans').style.display = 'none';
+      document.getElementById('quiz-result').innerText = '';
+      
+      // 結算寫入單字庫歷史 (供統計使用)
+      const deckStats = {};
+      sessionResults.forEach(r => {
+        if (!deckStats[r.deckId]) deckStats[r.deckId] = { correct: 0, total: 0 };
+        deckStats[r.deckId].total++;
+        if (r.correct) deckStats[r.deckId].correct++;
+      });
+      for (let dId in deckStats) {
+        const d = decks.find(d => d.id === dId);
+        if (d) {
+          d.history = d.history || [];
+          d.history.push({ timestamp: Date.now(), correct: deckStats[dId].correct, total: deckStats[dId].total });
+        }
+      }
+      saveData();
     }
 
-    renderList();
+    /* 統計邏輯 */
+    function renderStats() {
+      const selected = document.getElementById('stats-deck-select').value;
+      const targetDecks = selected === 'all' ? decks : decks.filter(d => d.id === selected);
+      
+      let allTotal = 0, allCorrect = 0, monthTotal = 0, monthCorrect = 0;
+      const now = Date.now(), oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+      let wordsStats = [];
+
+      targetDecks.forEach(d => {
+        (d.history || []).forEach(h => {
+          allTotal += h.total;
+          allCorrect += h.correct;
+          if (now - h.timestamp <= oneMonthMs) {
+            monthTotal += h.total;
+            monthCorrect += h.correct;
+          }
+        });
+        (d.words || []).forEach(w => {
+          if (w.attempts > 0) {
+            const errRate = w.errors / w.attempts;
+            wordsStats.push({ ...w, deckName: d.name, errorRate: errRate });
+          }
+        });
+      });
+
+      const calcRate = (c, t) => t > 0 ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:#666;">(${c}/${t}題)</span>` : '<span style="color:#888;">尚無紀錄</span>';
+      
+      document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
+      document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
+
+      wordsStats.sort((a, b) => b.errorRate - a.errorRate);
+      
+      document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
+        ? '<p style="color:#888;">尚未有足夠的測驗紀錄。</p>' 
+        : wordsStats.map(w => `
+          <div class="word-item" style="display:flex; justify-content:space-between;">
+            <div>
+              <strong>${w.word}</strong> <span style="font-size:14px; color:#666;">(${w.meaning})</span><br>
+              <span style="font-size:12px; color:#888;">📁 ${w.deckName}</span>
+            </div>
+            <div style="text-align:right;">
+              <span class="${w.errorRate > 0.5 ? 'text-red' : (w.errorRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
+                ${Math.round(w.errorRate * 100)}%
+              </span><br>
+              <span style="font-size:12px; color:#666;">錯 ${w.errors} / 考 ${w.attempts}</span>
+            </div>
+          </div>
+        `).join('');
+    }
+
+    renderUI();
   </script>
 </body>
 </html>
