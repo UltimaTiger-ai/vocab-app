@@ -387,31 +387,37 @@
 	  const apiKey = localStorage.getItem('gemini_api_key');
 	  const q = document.getElementById('input-question').value.trim();
 	  const qLang = document.getElementById('input-q-lang') ? document.getElementById('input-q-lang').value : 'auto';
-	  const aLang = document.getElementById('input-a-lang') ? document.getElementById('input-a-lang').value : '繁體中文';
+	  const aLang = document.getElementById('input-a-lang') ? document.getElementById('input-a-lang').value : 'zh-TW';
 	  
 	  if (!apiKey) return alert('請先到設定頁面設定 API Key！');
 	  if (!q) return alert('請先輸入題目！');
 
-	  // 若你有設定按鈕 ID，可在這裡讓按鈕變色或反灰防止重複點擊
 	  const btn = document.getElementById('btn-ai-suggest') || document.querySelector('button[onclick="aiSuggestAnswer()"]');
-	  const originalText = btn ? btn.innerText : 'AI 建議答案';
+	  const originalText = btn ? btn.innerText : '✨ AI 智慧建議答案';
 	  if (btn) {
 		btn.innerText = '⏳ AI 思考中...';
 		btn.disabled = true;
 	  }
 
 	  try {
-		// 推薦使用 gemini-1.5-flash，速度快且支援度高
-		const url = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$){apiKey}`;
+		const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 		
-		const promptText = `請翻譯或解釋以下內容：
+		const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
 	題目："${q}"
 	題目語言：${qLang}
-	目標翻譯語言：${aLang}
+	目標答案語言：${aLang}
 
-	特別規則：若答案為日文，ans1 填寫「漢字混用」，ans2 填寫「純平假名」。
-	請嚴格回傳 JSON 格式，絕對不要包含任何其他文字或 Markdown 標記 (如 \`\`\`json)：
-	{"ans1": "主要答案", "ans2": "備用答案"}`;
+	【嚴格遵守語言規則】：
+	若「目標答案語言」為日文（ja-JP 或含日文）：
+	1. "ans1" 必須【完全不可包含任何漢字】，只能是純假名/平假名（例如：にほんご、たべる、かんじ）。
+	2. "ans2" 必須是【包含漢字】的標準寫法（例如：日本語、食べる、漢字）。
+
+	若為其他語言：
+	1. "ans1" 為主要標準翻譯。
+	2. "ans2" 為同義詞或備用翻譯。
+
+	請嚴格回傳純 JSON 格式（絕對不要包含任何 Markdown 標記，如 \`\`\`json）：
+	{"ans1": "答案一", "ans2": "答案二"}`;
 
 		const response = await fetch(url, {
 		  method: 'POST',
@@ -423,13 +429,9 @@
 		
 		const data = await response.json();
 		
-		if (data.error) {
-		  throw new Error(data.error.message);
-		}
+		if (data.error) throw new Error(data.error.message);
 		
 		let text = data.candidates[0].content.parts[0].text;
-		
-		// 強制清理可能出現的 Markdown 標記與多餘空白
 		text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
 		
 		const parsed = JSON.parse(text);
@@ -439,7 +441,7 @@
 		
 	  } catch (e) {
 		console.error('AI 建議失敗:', e);
-		alert('AI 建議失敗，原因: ' + e.message + '\n\n(提示：請檢查 API Key 是否正確，或開啟 F12 查看主控台)');
+		alert('AI 建議失敗，原因: ' + e.message);
 	  } finally {
 		if (btn) {
 		  btn.innerText = originalText;
