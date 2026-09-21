@@ -41,11 +41,12 @@
 </head>
 <body>
 
-  <!-- 狀態列含版本號 -->
-  <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機</span>
-    <span class="version-tag">Ver: 2026.09.20-2309</span>
-  </div>
+	<!-- 狀態列含版本號 -->
+	<div id="sw-status" class="status-bar">
+	  <span>✅ App 已就緒！資料 100% 存於本機</span>
+	  <!-- 加上 id="app-version"，讓 JS 可以自動更新內容 -->
+	  <span id="app-version" class="version-tag">Ver: 載入中...</span>
+	</div>
 
   <!-- 分頁導覽 -->
   <div class="nav">
@@ -92,26 +93,6 @@
       </div>
     </div>
 
-	<!-- 📍 位置：放在 input-question (題目輸入框) 的正上方 -->
-	<div class="ai-vision-container" style="margin-bottom: 15px; padding: 12px; border: 2px dashed #4A90E2; border-radius: 8px; background-color: #f9fbfd; text-align: center;">
-	  <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #333;">📸 AI 圖片/拍照辨識單字</label>
-	  
-	  <!-- 隱藏的檔案選擇器（手機上點擊會自動跳出：拍照 / 選相簿） -->
-	  <input type="file" id="ai-image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-	  
-	  <button type="button" class="btn-primary" onclick="document.getElementById('ai-image-input').click()" style="padding: 8px 16px; cursor: pointer;">
-		📷 拍照 或 選擇相簿照片
-	  </button>
-	  
-	  <!-- 圖片預覽圖 -->
-	  <img id="ai-image-preview" style="max-width: 100%; max-height: 180px; display: none; margin: 10px auto 0; border-radius: 6px; border: 1px solid #ddd;">
-	  
-	  <!-- 分析按鈕 -->
-	  <button type="button" id="btn-ai-vision" class="btn-success" style="display: none; margin-top: 10px; width: 100%; padding: 8px;" onclick="processImageWithAI()">
-		✨ 開始分析圖片填入單字
-	  </button>
-	</div>
-
     <input type="text" id="input-question" placeholder="題目 (例如: 食べる)" onblur="aiSuggestAnswer()">
     <div style="display: flex; gap: 5px;">
       <button type="button" class="btn-warning" style="font-size: 12px; padding: 6px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
@@ -156,32 +137,33 @@
   </div>
 
   <!-- 4. AI 拍照辨識頁面 -->
-  <div id="page-ai" class="card hidden">
-    <h2>📸 Gemini 智慧相機辨識</h2>
-    <p style="font-size: 14px; color: #666;">拍攝課本或筆記照片，AI 將自動辨識內容並解析為單字加入目前單字庫！</p>
-    
-    <input type="file" id="camera-input" accept="image/*" capture="environment" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
-    
-    <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
-    </div>
+	<div id="page-ai" class="card hidden">
+	  <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
+	  <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字加入目前單字庫！</p>
+	  
+	  <!-- 移除 capture="environment"，即可同時支援拍照與相簿 -->
+	  <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
+	  
+	  <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
+		⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
+	  </div>
 
-    <!-- 錯誤與重試區域 -->
-    <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-      <p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
-      <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
-    </div>
+	  <!-- 錯誤與重試區域 -->
+	  <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+		<p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
+		<button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
+	  </div>
 
-    <div id="ai-result-area" class="hidden">
-      <h3>🔍 AI 解讀出的原始文字：</h3>
-      <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
+	  <div id="ai-result-area" class="hidden">
+		<h3>🔍 AI 解讀出的原始文字：</h3>
+		<textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
 
-      <h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
-      <div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
+		<h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
+		<div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
 
-      <button onclick="confirmImportAiWords()" class="btn-success">確認並批量加入單字庫</button>
-    </div>
-  </div>
+		<button onclick="confirmImportAiWords()" class="btn-success">確認並批量加入單字庫</button>
+	  </div>
+	</div>
 
   <!-- 5. 設定頁面 -->
   <div id="page-settings" class="card hidden">
@@ -239,9 +221,30 @@
     let lastCapturedFile = null; // 暫存最後一次上傳的圖片檔案供 Retry 使用
 
     window.onload = function() {
+	  updateAppVersion();
       loadLanguagePreferences();
       renderUI();
     };
+
+	// 📍 位置：放在 <script> 裡面的任意獨立函式區塊
+	function updateAppVersion() {
+	  const lastMod = new Date(document.lastModified);
+	  
+	  // 格式化年月日時分 (例如: 2026.09.21-1930)
+	  const yyyy = lastMod.getFullYear();
+	  const mm = String(lastMod.getMonth() + 1).padStart(2, '0');
+	  const dd = String(lastMod.getDate()).padStart(2, '0');
+	  const hh = String(lastMod.getHours()).padStart(2, '0');
+	  const min = String(lastMod.getMinutes()).padStart(2, '0');
+	  
+	  const verStr = `Ver: ${yyyy}.${mm}.${dd}-${hh}${min}`;
+	  
+	  // 自動更新 DOM 顯示
+	  const verElem = document.getElementById('app-version');
+	  if (verElem) {
+		verElem.innerText = verStr;
+	  }
+	}
 
     function saveData() {
       localStorage.setItem('vocab_decks', JSON.stringify(decks));
