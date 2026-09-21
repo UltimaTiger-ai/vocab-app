@@ -140,6 +140,12 @@
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
+
+    <!-- 可選填表格提示框 -->
+    <div style="margin-bottom: 12px; background: #eef5ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff;">
+      <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
+      <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px; background: white;">
+    </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
     
@@ -151,6 +157,16 @@
     <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
       <p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
       <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
+    </div>
+
+    <!-- 階段 2：欄位對應（Column Mapping）區域 -->
+    <div id="ai-column-mapping-area" class="hidden" style="background:#f8f9fa; border:1px solid #dee2e6; padding:15px; border-radius:10px; margin-bottom:15px;">
+      <h3 style="margin-top:0; color:#1a73e8; font-size:16px;">📌 請為表格欄位選擇對應角色：</h3>
+      <p style="font-size:13px; color:#666; margin-bottom:12px;">查看下方欄位的範例資料，並選擇每一欄的角色（題目、答案或忽略）：</p>
+      
+      <div id="ai-col-mapping-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:12px;"></div>
+
+      <button type="button" onclick="applyColumnMapping()" class="btn-success">✅ 確認對應並生成單字預覽</button>
     </div>
 
     <div id="ai-result-area" class="hidden">
@@ -259,17 +275,16 @@
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
     let tempParsedAiWords = [];
+    let rawParsedRows = []; // 儲存 AI 回傳的二維陣列
     let lastCapturedFile = null;
 
     // 預設模型名單
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
 
-    // 取得目前設定的模型名稱
     function getGeminiModel() {
       return localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
     }
 
-    // 取得本機快取的 ListModels 結果
     function getCachedGenerateModels() {
       const saved = localStorage.getItem('gemini_cached_models');
       return saved ? JSON.parse(saved) : DEFAULT_MODELS;
@@ -586,7 +601,7 @@
       }
     }
 
-    /* AI 相機/圖片辨識 */
+    /* AI 相機/圖片辨識 (兩階段欄位對應) */
     function handleImageCapture(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -607,7 +622,27 @@
 
       document.getElementById('ai-loading').classList.remove('hidden');
       document.getElementById('ai-error-area').classList.add('hidden');
+      document.getElementById('ai-column-mapping-area').classList.add('hidden');
       document.getElementById('ai-result-area').classList.add('hidden');
+
+      const userHint = document.getElementById('ai-user-hint') ? document.getElementById('ai-user-hint').value.trim() : '';
+      const hintPrompt = userHint ? `\n【使用者提供的表格格式說明】：${userHint}\n` : '';
+
+      const promptText = `你是一個專業的二維表格與 OCR 解析助手。
+請讀取圖片中的內容，並將其整理為二維陣列 (Rows & Columns)。
+
+解析規則：
+1. 請保留表格原本的欄位順序，將每一列 (Row) 解析為包含所有欄位字串的陣列。
+2. 自動忽略頁碼或無關圖樣，但表格內所有欄位（如序號、單字、詞性、例句、中文）請完整保留在對應欄位中。
+${hintPrompt}
+請嚴格回傳純 JSON 格式：
+{
+  "raw_text": "圖片完整 OCR 原始文字",
+  "rows": [
+    ["1", "apple", "n.", "蘋果", "I eat an apple."],
+    ["2", "banana", "n.", "香蕉", "Bananas are yellow."]
+  ]
+}`;
 
       const reader = new FileReader();
       reader.onload = async function() {
@@ -621,13 +656,11 @@
             body: JSON.stringify({
               contents: [{
                 parts: [
-                  { text: "請先讀出圖片中的所有文字(OCR)，然後將其整理成單字清單。若包含日文，請讓 ans1 為純假名（無漢字），ans2 為包含漢字的寫法。必須回傳 JSON 格式：\n{\n  \"raw_text\": \"圖片原始文字\",\n  \"words\": [\n    {\"question\": \"題目\", \"ans1\": \"答案1\", \"ans2\": \"答案2\", \"qLang\": \"en-US\", \"aLang\": \"zh-TW\"}\n  ]\n}" },
+                  { text: promptText },
                   { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data } }
                 ]
               }],
-              generationConfig: {
-                responseMimeType: "application/json"
-              }
+              generationConfig: { responseMimeType: "application/json" }
             })
           });
 
@@ -646,10 +679,20 @@
           const parsed = JSON.parse(cleaned);
 
           document.getElementById('ai-raw-text').value = parsed.raw_text || '';
-          tempParsedAiWords = parsed.words || [];
+          rawParsedRows = parsed.rows || [];
 
-          renderAiPreview();
-          document.getElementById('ai-result-area').classList.remove('hidden');
+          if (rawParsedRows.length > 0) {
+            renderColumnMappingUI();
+            document.getElementById('ai-column-mapping-area').classList.remove('hidden');
+          } else if (parsed.words && parsed.words.length > 0) {
+            // 若 AI 直接回傳單字物件（備用向下相容）
+            tempParsedAiWords = parsed.words;
+            renderAiPreview();
+            document.getElementById('ai-result-area').classList.remove('hidden');
+          } else {
+            alert('無法從照片中解析出有效的表格內容，請嘗試重新拍照或補充說明。');
+          }
+
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
           document.getElementById('ai-error-msg').innerText = `❌ 網路或解析失敗 (${currentModel})：${e.message}`;
@@ -657,6 +700,95 @@
         }
       };
       reader.readAsDataURL(file);
+    }
+
+    // 渲染欄位對應 UI
+    function renderColumnMappingUI() {
+      const container = document.getElementById('ai-col-mapping-container');
+      if (!rawParsedRows || rawParsedRows.length === 0) return;
+
+      const maxCols = Math.max(...rawParsedRows.map(r => r.length));
+      let html = '';
+
+      for (let i = 0; i < maxCols; i++) {
+        const samples = rawParsedRows.slice(0, 3).map(r => r[i] || '').filter(Boolean);
+        
+        // 智慧預測欄位角色
+        let defaultRole = 'ignore';
+        if (maxCols === 2) {
+          defaultRole = i === 0 ? 'question' : 'ans1';
+        } else {
+          if (i === 0) {
+            const firstSample = samples[0] || '';
+            defaultRole = /^\d+$/.test(firstSample.trim()) ? 'ignore' : 'question';
+          } else if (i === 1) {
+            const col0IsNum = /^\d+$/.test((rawParsedRows[0][0] || '').trim());
+            defaultRole = col0IsNum ? 'question' : 'ans1';
+          } else if (i === 2) {
+            defaultRole = 'ans1';
+          }
+        }
+
+        html += `
+          <div style="border: 1px solid #ced4da; background: white; padding: 10px; border-radius: 8px; min-width: 140px; flex: 1 0 140px;">
+            <div style="font-weight: bold; font-size: 13px; color: #1a73e8; margin-bottom: 6px;">第 ${i + 1} 欄</div>
+            <select class="col-map-select" data-col="${i}" style="margin-top:0; padding:6px; font-size:13px;">
+              <option value="ignore" ${defaultRole === 'ignore' ? 'selected' : ''}>❌ 忽略 (序號/詞性/例句)</option>
+              <option value="question" ${defaultRole === 'question' ? 'selected' : ''}>📖 設為題目</option>
+              <option value="ans1" ${defaultRole === 'ans1' ? 'selected' : ''}>💡 設為答案一</option>
+              <option value="ans2" ${defaultRole === 'ans2' ? 'selected' : ''}>📝 設為答案二</option>
+            </select>
+            <div style="margin-top:8px; font-size:11px; color:#555; background:#f8f9fa; padding:6px; border-radius:4px; max-height:80px; overflow-y:auto;">
+              <strong>範例資料：</strong><br>
+              ${samples.map(s => `• ${escapeHtml(s)}`).join('<br>') || '<span style="color:#aaa;">(空白)</span>'}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // 將二維矩陣依據使用者的欄位指定轉換為單字庫
+    function applyColumnMapping() {
+      const selects = document.querySelectorAll('.col-map-select');
+      let qCol = -1, a1Col = -1, a2Col = -1;
+
+      selects.forEach(s => {
+        const colIdx = parseInt(s.getAttribute('data-col'));
+        if (s.value === 'question') qCol = colIdx;
+        if (s.value === 'ans1') a1Col = colIdx;
+        if (s.value === 'ans2') a2Col = colIdx;
+      });
+
+      if (qCol === -1 || a1Col === -1) {
+        return alert('請至少指定一個「📖 設為題目」欄位與一個「💡 設為答案一」欄位！');
+      }
+
+      tempParsedAiWords = rawParsedRows.map(row => {
+        const q = row[qCol] ? String(row[qCol]).trim() : '';
+        const a1 = row[a1Col] ? String(row[a1Col]).trim() : '';
+        const a2 = (a2Col !== -1 && row[a2Col]) ? String(row[a2Col]).trim() : '';
+        return {
+          question: q,
+          ans1: a1,
+          ans2: a2,
+          qLang: 'en-US',
+          aLang: 'zh-TW'
+        };
+      }).filter(w => w.question && w.ans1);
+
+      if (tempParsedAiWords.length === 0) {
+        return alert('轉換失敗，未能從您指定的欄位中導出有效單字，請重新確認欄位設定。');
+      }
+
+      renderAiPreview();
+      document.getElementById('ai-result-area').classList.remove('hidden');
+      document.getElementById('ai-result-area').scrollIntoView({ behavior: 'smooth' });
     }
 
     // 渲染 AI 解析預覽列表
@@ -727,7 +859,6 @@
         const a1Clean = (w.ans1 || '').trim().toLowerCase();
         const a2Clean = (w.ans2 || '').trim().toLowerCase();
 
-        // 檢查目標單字庫中是否已有相同題目或相同答案 (ans1/ans2)
         const isDuplicate = targetDeck.words.some(existing => {
           const exQ = (existing.question || '').trim().toLowerCase();
           const exA1 = (existing.ans1 || '').trim().toLowerCase();
@@ -941,7 +1072,7 @@
       document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
         ? '<p style="color:#888;">尚未有足夠的測驗紀錄。</p>' 
         : wordsStats.map(w => `
-          <div class="word-item" style="display:flex; justify-content:space-between;">
+          <div class="word-item" style="display:flex; justify-style:space-between;">
             <div>
               <strong>${w.question}</strong> <span style="font-size:14px; color:#666;">(${w.ans1})</span><br>
               <span style="font-size:12px; color:#888;">📁 ${w.deckName}</span>
