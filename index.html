@@ -953,27 +953,49 @@ ${hintPrompt}
     }
 
     function initQuizSession() {
-      const selected = document.getElementById('quiz-deck-select').value;
-      let pool = [];
-      if (selected === 'all') {
-        pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
-      } else {
-        const target = decks.find(d => d.id === selected);
-        if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
-      }
+	  const selected = document.getElementById('quiz-deck-select').value;
+	  let pool = [];
+	  if (selected === 'all') {
+		pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
+	  } else {
+		const target = decks.find(d => d.id === selected);
+		if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
+	  }
 
-      if (pool.length === 0) {
-        document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
-        return;
-      }
+	  if (pool.length === 0) {
+		document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
+		return;
+	  }
 
-      pool.sort(() => Math.random() - 0.5);
-      targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-      quizQueue = pool.slice(0, targetLimit);
-      sessionResults = [];
-      totalAnswered = 0;
-      nextQuizQuestion();
-    }
+	  // 💡 智慧排序邏輯：未考過/少考過優先 -> 錯誤率高優先 -> 同分隨機打亂
+	  pool.sort((a, b) => {
+		const aAttempts = a.attempts || 0;
+		const bAttempts = b.attempts || 0;
+
+		// 1. 測驗次數少的優先（0 次會排最前面，再來是 1 次、2 次...）
+		if (aAttempts !== bAttempts) {
+		  return aAttempts - bAttempts;
+		}
+
+		// 2. 測驗次數相同且 > 0 時，錯誤率高者優先 (errors / attempts)
+		if (aAttempts > 0) {
+		  const aErrRate = (a.errors || 0) / aAttempts;
+		  const bErrRate = (b.errors || 0) / bAttempts;
+		  if (aErrRate !== bErrRate) {
+			return bErrRate - aErrRate; // 錯誤率高的排前面
+		  }
+		}
+
+		// 3. 條件完全相同時隨機打亂，避免每次出題順序僵化
+		return Math.random() - 0.5;
+	  });
+
+	  targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
+	  quizQueue = pool.slice(0, targetLimit);
+	  sessionResults = [];
+	  totalAnswered = 0;
+	  nextQuizQuestion();
+	}
 
     function nextQuizQuestion() {
       if (quizQueue.length === 0) {
