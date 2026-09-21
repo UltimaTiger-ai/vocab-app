@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字 App - AI 智慧多語言版 (v2026.09.20-2309)</title>
+  <title>背單字 App - AI 智慧多語言版</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -41,12 +41,11 @@
 </head>
 <body>
 
-	<!-- 狀態列含版本號 -->
-	<div id="sw-status" class="status-bar">
-	  <span>✅ App 已就緒！資料 100% 存於本機</span>
-	  <!-- 加上 id="app-version"，讓 JS 可以自動更新內容 -->
-	  <span id="app-version" class="version-tag">Ver: 載入中...</span>
-	</div>
+  <!-- 狀態列含版本號 -->
+  <div id="sw-status" class="status-bar">
+    <span>✅ App 已就緒！資料 100% 存於本機</span>
+    <span id="app-version" class="version-tag">Ver: 載入中...</span>
+  </div>
 
   <!-- 分頁導覽 -->
   <div class="nav">
@@ -95,11 +94,11 @@
 
     <input type="text" id="input-question" placeholder="題目 (例如: 食べる)" onblur="aiSuggestAnswer()">
     <div style="display: flex; gap: 5px;">
-      <button type="button" class="btn-warning" style="font-size: 12px; padding: 6px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
+      <button type="button" id="btn-ai-suggest" class="btn-warning" style="font-size: 12px; padding: 6px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
     </div>
 
-    <input type="text" id="input-ans1" placeholder="答案一 (主要，例如: たべる)">
-    <input type="text" id="input-ans2" placeholder="答案二 (備用/同義，例如: 吃)">
+    <input type="text" id="input-ans1" placeholder="答案一 (無漢字/純假名/主要答案)">
+    <input type="text" id="input-ans2" placeholder="答案二 (含漢字寫法/備用答案)">
     <button onclick="addWord()" class="btn-success">加入此單字庫</button>
 
     <h2 style="margin-top: 20px;">📖 單字清單 (<span id="word-count">0</span>)</h2>
@@ -137,33 +136,32 @@
   </div>
 
   <!-- 4. AI 拍照辨識頁面 -->
-	<div id="page-ai" class="card hidden">
-	  <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-	  <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字加入目前單字庫！</p>
-	  
-	  <!-- 移除 capture="environment"，即可同時支援拍照與相簿 -->
-	  <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
-	  
-	  <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-		⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
-	  </div>
+  <div id="page-ai" class="card hidden">
+    <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
+    <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字加入目前單字庫！</p>
+    
+    <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
+    
+    <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
+      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
+    </div>
 
-	  <!-- 錯誤與重試區域 -->
-	  <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-		<p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
-		<button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
-	  </div>
+    <!-- 錯誤與重試區域 -->
+    <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+      <p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
+      <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
+    </div>
 
-	  <div id="ai-result-area" class="hidden">
-		<h3>🔍 AI 解讀出的原始文字：</h3>
-		<textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
+    <div id="ai-result-area" class="hidden">
+      <h3>🔍 AI 解讀出的原始文字：</h3>
+      <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
 
-		<h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
-		<div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
+      <h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
+      <div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
 
-		<button onclick="confirmImportAiWords()" class="btn-success">確認並批量加入單字庫</button>
-	  </div>
-	</div>
+      <button onclick="confirmImportAiWords()" class="btn-success">確認並批量加入單字庫</button>
+    </div>
+  </div>
 
   <!-- 5. 設定頁面 -->
   <div id="page-settings" class="card hidden">
@@ -209,7 +207,8 @@
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
-    const GEMINI_MODEL = 'gemini-3.6-flash';
+    // 修正為正確的官方模型名稱
+    const GEMINI_MODEL = 'gemini-1.5-flash';
 
     let decks = JSON.parse(localStorage.getItem('vocab_decks') || JSON.stringify([{ id: 'default_1', name: '預設單字庫', words: [], history: [] }]));
     let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
@@ -218,33 +217,26 @@
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
     let tempParsedAiWords = [];
-    let lastCapturedFile = null; // 暫存最後一次上傳的圖片檔案供 Retry 使用
+    let lastCapturedFile = null;
 
     window.onload = function() {
-	  updateAppVersion();
+      updateAppVersion();
       loadLanguagePreferences();
       renderUI();
     };
 
-	// 📍 位置：放在 <script> 裡面的任意獨立函式區塊
-	function updateAppVersion() {
-	  const lastMod = new Date(document.lastModified);
-	  
-	  // 格式化年月日時分 (例如: 2026.09.21-1930)
-	  const yyyy = lastMod.getFullYear();
-	  const mm = String(lastMod.getMonth() + 1).padStart(2, '0');
-	  const dd = String(lastMod.getDate()).padStart(2, '0');
-	  const hh = String(lastMod.getHours()).padStart(2, '0');
-	  const min = String(lastMod.getMinutes()).padStart(2, '0');
-	  
-	  const verStr = `Ver: ${yyyy}.${mm}.${dd}-${hh}${min}`;
-	  
-	  // 自動更新 DOM 顯示
-	  const verElem = document.getElementById('app-version');
-	  if (verElem) {
-		verElem.innerText = verStr;
-	  }
-	}
+    function updateAppVersion() {
+      const lastMod = new Date(document.lastModified);
+      const yyyy = lastMod.getFullYear();
+      const mm = String(lastMod.getMonth() + 1).padStart(2, '0');
+      const dd = String(lastMod.getDate()).padStart(2, '0');
+      const hh = String(lastMod.getHours()).padStart(2, '0');
+      const min = String(lastMod.getMinutes()).padStart(2, '0');
+      
+      const verStr = `Ver: ${yyyy}.${mm}.${dd}-${hh}${min}`;
+      const verElem = document.getElementById('app-version');
+      if (verElem) verElem.innerText = verStr;
+    }
 
     function saveData() {
       localStorage.setItem('vocab_decks', JSON.stringify(decks));
@@ -356,13 +348,10 @@
       resElem.innerText = '⏳ 正在測試連線中...';
 
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
           method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: '請回覆「OK」' }] }]
           })
@@ -384,82 +373,81 @@
     }
 
     async function aiSuggestAnswer() {
-	  const apiKey = localStorage.getItem('gemini_api_key');
-	  const q = document.getElementById('input-question').value.trim();
-	  const qLang = document.getElementById('input-q-lang') ? document.getElementById('input-q-lang').value : 'auto';
-	  const aLang = document.getElementById('input-a-lang') ? document.getElementById('input-a-lang').value : 'zh-TW';
-	  
-	  if (!apiKey) return alert('請先到設定頁面設定 API Key！');
-	  if (!q) return alert('請先輸入題目！');
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const q = document.getElementById('input-question').value.trim();
+      const qLang = document.getElementById('input-q-lang') ? document.getElementById('input-q-lang').value : 'auto';
+      const aLang = document.getElementById('input-a-lang') ? document.getElementById('input-a-lang').value : 'zh-TW';
+      
+      if (!apiKey) return alert('請先到設定頁面設定 API Key！');
+      if (!q) return alert('請先輸入題目！');
 
-	  const btn = document.getElementById('btn-ai-suggest') || document.querySelector('button[onclick="aiSuggestAnswer()"]');
-	  const originalText = btn ? btn.innerText : '✨ AI 智慧建議答案';
-	  if (btn) {
-		btn.innerText = '⏳ AI 思考中...';
-		btn.disabled = true;
-	  }
+      const btn = document.getElementById('btn-ai-suggest');
+      const originalText = btn ? btn.innerText : '✨ AI 智慧建議答案';
+      if (btn) {
+        btn.innerText = '⏳ AI 思考中...';
+        btn.disabled = true;
+      }
 
-	  try {
-		const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-		
-		const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
-	題目："${q}"
-	題目語言：${qLang}
-	目標答案語言：${aLang}
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        
+        const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
+題目："${q}"
+題目語言：${qLang}
+目標答案語言：${aLang}
 
-	【嚴格遵守語言規則】：
-	若「目標答案語言」為日文（ja-JP 或含日文）：
-	1. "ans1" 必須【完全不可包含任何漢字】，只能是純假名/平假名（例如：にほんご、たべる、かんじ）。
-	2. "ans2" 必須是【包含漢字】的標準寫法（例如：日本語、食べる、漢字）。
+【嚴格遵守語言規則】：
+若「目標答案語言」為日文（ja-JP 或含日文）：
+1. "ans1" 必須【完全不可包含任何漢字】，只能是純假名/平假名（例如：にほんご、たべる、かんじ）。
+2. "ans2" 必須是【包含漢字】的標準寫法（例如：日本語、食べる、漢字）。
 
-	若為其他語言：
-	1. "ans1" 為主要標準翻譯。
-	2. "ans2" 為同義詞或備用翻譯。
+若為其他語言：
+1. "ans1" 為主要標準翻譯。
+2. "ans2" 為同義詞或備用翻譯。
 
-	請嚴格回傳純 JSON 格式（絕對不要包含任何 Markdown 標記，如 \`\`\`json）：
-	{"ans1": "答案一", "ans2": "答案二"}`;
+請嚴格回傳純 JSON 格式（絕對不要包含任何 Markdown 標記，如 \`\`\`json）：
+{"ans1": "答案一", "ans2": "答案二"}`;
 
-		const response = await fetch(url, {
-		  method: 'POST',
-		  headers: { 'Content-Type': 'application/json' },
-		  body: JSON.stringify({
-			contents: [{ parts: [{ text: promptText }] }]
-		  })
-		});
-		
-		const data = await response.json();
-		
-		if (data.error) throw new Error(data.error.message);
-		
-		let text = data.candidates[0].content.parts[0].text;
-		text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-		
-		const parsed = JSON.parse(text);
-		
-		if (parsed.ans1) document.getElementById('input-ans1').value = parsed.ans1;
-		if (parsed.ans2) document.getElementById('input-ans2').value = parsed.ans2;
-		
-	  } catch (e) {
-		console.error('AI 建議失敗:', e);
-		alert('AI 建議失敗，原因: ' + e.message);
-	  } finally {
-		if (btn) {
-		  btn.innerText = originalText;
-		  btn.disabled = false;
-		}
-	  }
-	}
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }]
+          })
+        });
+        
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+        
+        let text = data.candidates[0].content.parts[0].text;
+        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        
+        const parsed = JSON.parse(text);
+        
+        if (parsed.ans1) document.getElementById('input-ans1').value = parsed.ans1;
+        if (parsed.ans2) document.getElementById('input-ans2').value = parsed.ans2;
+        
+      } catch (e) {
+        console.error('AI 建議失敗:', e);
+        alert('AI 建議失敗，原因: ' + e.message);
+      } finally {
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
+      }
+    }
 
-    /* AI 相機辨識 (帶有 Retry 機制) */
+    /* AI 相機/圖片辨識 */
     function handleImageCapture(event) {
       const file = event.target.files[0];
       if (!file) return;
-      lastCapturedFile = file; // 暫存起來供 Retry 使用
+      lastCapturedFile = file;
       processImageFile(file);
     }
 
     function retryAiCapture() {
-      if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新拍照！');
+      if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新選擇！');
       processImageFile(lastCapturedFile);
     }
 
@@ -475,16 +463,14 @@
       reader.onload = async function() {
         const base64Data = reader.result.split(',')[1];
         try {
-          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+          const response = await fetch(url, {
             method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'x-goog-api-key': apiKey
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               contents: [{
                 parts: [
-                  { text: "請先讀出圖片中的所有文字(OCR)，然後將其整理成單字清單。必須回傳 JSON 格式：\n{\n  \"raw_text\": \"圖片原始文字\",\n  \"words\": [\n    {\"question\": \"題目\", \"ans1\": \"答案1\", \"ans2\": \"答案2\", \"qLang\": \"en-US\", \"aLang\": \"zh-TW\"}\n  ]\n}" },
+                  { text: "請先讀出圖片中的所有文字(OCR)，然後將其整理成單字清單。若包含日文，請讓 ans1 為純假名（無漢字），ans2 為包含漢字的寫法。必須回傳 JSON 格式：\n{\n  \"raw_text\": \"圖片原始文字\",\n  \"words\": [\n    {\"question\": \"題目\", \"ans1\": \"答案1\", \"ans2\": \"答案2\", \"qLang\": \"en-US\", \"aLang\": \"zh-TW\"}\n  ]\n}" },
                   { inline_data: { mime_type: file.type, data: base64Data } }
                 ]
               }]
@@ -500,7 +486,7 @@
           }
 
           const text = data.candidates[0].content.parts[0].text;
-          const cleaned = text.replace(/```json/g, '').replace(/```/g, '').trim();
+          const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
           const parsed = JSON.parse(cleaned);
 
           document.getElementById('ai-raw-text').value = parsed.raw_text || '';
@@ -718,90 +704,6 @@
           </div>
         `).join('');
     }
-	
-	// 📍 位置：放在 <script> 標籤內部的最下方
-	let currentImageBase64 = null;
-
-	// 1. 處理照片選擇與預覽
-	function handleImageUpload(event) {
-	  const file = event.target.files[0];
-	  if (!file) return;
-
-	  const reader = new FileReader();
-	  reader.onload = function(e) {
-		currentImageBase64 = e.target.result.split(',')[1]; // 取得 Base64 編碼
-		
-		const preview = document.getElementById('ai-image-preview');
-		preview.src = e.target.result;
-		preview.style.display = 'block';
-		
-		document.getElementById('btn-ai-vision').style.display = 'block';
-	  };
-	  reader.readAsDataURL(file);
-	}
-
-	// 2. 呼叫 Gemini 視覺 API 進行辨識
-	async function processImageWithAI() {
-	  const apiKey = localStorage.getItem('gemini_api_key');
-	  if (!apiKey) return alert('請先到設定頁面輸入 API Key！');
-	  if (!currentImageBase64) return alert('請先選擇或拍攝圖片！');
-
-	  const btn = document.getElementById('btn-ai-vision');
-	  const originalText = btn.innerText;
-	  btn.innerText = '⏳ AI 正在辨識圖片中...';
-	  btn.disabled = true;
-
-	  try {
-		const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-		const promptText = `請辨識這張圖片中的主要外語單字或句子。
-	請幫我整理出最核心的一個單字或短句。
-	請嚴格以 JSON 格式回傳，格式如下：
-	{"q": "圖片中的單字或句子", "ans1": "主要的中文翻譯", "ans2": "其他備用翻譯(若無可留空)"}
-	不要包含 markdown 標記。`;
-
-		const response = await fetch(url, {
-		  method: 'POST',
-		  headers: { 'Content-Type': 'application/json' },
-		  body: JSON.stringify({
-			contents: [{
-			  parts: [
-				{ text: promptText },
-				{
-				  inlineData: {
-					mimeType: "image/jpeg",
-					data: currentImageBase64
-				  }
-				}
-			  ]
-			}]
-		  })
-		});
-
-		const data = await response.json();
-		if (data.error) throw new Error(data.error.message);
-
-		let text = data.candidates[0].content.parts[0].text;
-		text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-		
-		const result = JSON.parse(text);
-		
-		// 自動填入輸入框
-		if (result.q) document.getElementById('input-question').value = result.q;
-		if (result.ans1) document.getElementById('input-ans1').value = result.ans1;
-		if (result.ans2) document.getElementById('input-ans2').value = result.ans2;
-		
-		alert('✅ 辨識成功！已自動填入單字與答案。');
-
-	  } catch (e) {
-		console.error('圖片辨識失敗', e);
-		alert('圖片辨識失敗，原因: ' + e.message);
-	  } finally {
-		btn.innerText = originalText;
-		btn.disabled = false;
-	  }
-	}
-
   </script>
 </body>
 </html>
