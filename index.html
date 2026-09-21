@@ -43,7 +43,7 @@
 
   <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機</span>
+    <span>✅ UltimaTiger 的 App 已就緒！資料 100% 存於本機</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
@@ -93,7 +93,7 @@
       </div>
     </div>
 
-    <input type="text" id="input-question" placeholder="題目 (例如: 食べる)" onblur="aiSuggestAnswer()">
+    <input type="text" id="input-question" placeholder="題目 (例如: 食べる)">
     <div style="display: flex; gap: 5px;">
       <button type="button" id="btn-ai-suggest" class="btn-warning" style="font-size: 12px; padding: 6px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
     </div>
@@ -241,7 +241,7 @@
     let tempParsedAiWords = [];
     let lastCapturedFile = null;
 
-    // 預設可備用的模型名單（當使用者尚未執行 ListModels 時顯示）
+    // 預設模型名單
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
 
     // 取得目前設定的模型名稱
@@ -292,7 +292,6 @@
       }
     }
 
-    // 動態更新設定頁面的下拉選單
     function updateModelDropdown() {
       const availableModels = getCachedGenerateModels();
       const currentModel = getGeminiModel();
@@ -389,7 +388,6 @@
       }
     }
 
-    /* 3. 如何手動查詢你帳號支援的模型 (ListModels) */
     async function fetchAvailableModels() {
       const apiKey = localStorage.getItem('gemini_api_key') || document.getElementById('input-api-key').value.trim();
       const container = document.getElementById('models-list-container');
@@ -403,7 +401,6 @@
       if (container) container.innerHTML = '<p style="color:#1a73e8; font-weight:bold;">⏳ 正在呼叫 ModelService.ListModels API...<br><code style="font-size:12px; font-weight:normal;">https://generativelanguage.googleapis.com/v1beta/models</code></p>';
 
       try {
-        // 呼叫 ListModels API Endpoint
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
         const resp = await fetch(url);
         const data = await resp.json();
@@ -416,24 +413,19 @@
         const rawModels = data.models || [];
         const currentModel = getGeminiModel();
 
-        // 篩選出支援 generateContent 的模型，去頭去尾只留純名稱 (例如 models/gemini-1.5-flash -> gemini-1.5-flash)
         const generateContentModelNames = rawModels
           .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
           .map(m => m.name.replace('models/', ''));
 
-        // 將查詢到的模型清單快取至本機
         if (generateContentModelNames.length > 0) {
           localStorage.setItem('gemini_cached_models', JSON.stringify(generateContentModelNames));
-          // 如果目前選取的模型不在查詢結果中，預設帶入第一個
           if (!generateContentModelNames.includes(currentModel)) {
             localStorage.setItem('gemini_selected_model', generateContentModelNames[0]);
           }
         }
 
-        // 動態更新設定頁面選單
         updateModelDropdown();
 
-        // 渲染 ListModels 頁面
         if (container) {
           container.innerHTML = rawModels.map(m => {
             const cleanName = m.name.replace('models/', '');
@@ -455,7 +447,7 @@
           }).join('');
         }
 
-        alert(`✅ ListModels 查詢成功！已為你更新設定頁面的模型選擇清單 (共找到 ${generateContentModelNames.length} 個可用生成模型)`);
+        alert(`✅ ListModels 查詢成功！已更新模型選擇清單 (共找到 ${generateContentModelNames.length} 個可用生成模型)`);
 
       } catch (e) {
         if (container) container.innerHTML = `<p style="color:red;">❌ 網路或請求發生錯誤：${e.message}</p>`;
@@ -525,10 +517,7 @@
         btn.disabled = true;
       }
 
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-        
-        const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
+      const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
 題目："${q}"
 題目語言：${qLang}
 目標答案語言：${aLang}
@@ -542,31 +531,33 @@
 1. "ans1" 為主要標準翻譯。
 2. "ans2" 為同義詞或備用翻譯。
 
-請嚴格回傳純 JSON 格式（絕對不要包含任何 Markdown 標記，如 \`\`\`json）：
+請嚴格回傳純 JSON 格式：
 {"ans1": "答案一", "ans2": "答案二"}`;
 
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
         const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }]
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: { responseMimeType: "application/json" }
           })
         });
-        
+
         const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-        
+        if (data.error) throw new Error(`[${currentModel}] ${data.error.message}`);
+
         let text = data.candidates[0].content.parts[0].text;
-        text = text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        
-        const parsed = JSON.parse(text);
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
         
         if (parsed.ans1) document.getElementById('input-ans1').value = parsed.ans1;
         if (parsed.ans2) document.getElementById('input-ans2').value = parsed.ans2;
-        
       } catch (e) {
         console.error('AI 建議失敗:', e);
-        alert('AI 建議失敗，原因: ' + e.message);
+        alert('AI 建議失敗: ' + e.message);
       } finally {
         if (btn) {
           btn.innerText = originalText;
@@ -601,6 +592,7 @@
       const reader = new FileReader();
       reader.onload = async function() {
         const base64Data = reader.result.split(',')[1];
+
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
           const response = await fetch(url, {
@@ -610,11 +602,15 @@
               contents: [{
                 parts: [
                   { text: "請先讀出圖片中的所有文字(OCR)，然後將其整理成單字清單。若包含日文，請讓 ans1 為純假名（無漢字），ans2 為包含漢字的寫法。必須回傳 JSON 格式：\n{\n  \"raw_text\": \"圖片原始文字\",\n  \"words\": [\n    {\"question\": \"題目\", \"ans1\": \"答案1\", \"ans2\": \"答案2\", \"qLang\": \"en-US\", \"aLang\": \"zh-TW\"}\n  ]\n}" },
-                  { inline_data: { mime_type: file.type, data: base64Data } }
+                  { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data } }
                 ]
-              }]
+              }],
+              generationConfig: {
+                responseMimeType: "application/json"
+              }
             })
           });
+
           const data = await response.json();
           document.getElementById('ai-loading').classList.add('hidden');
 
@@ -625,7 +621,8 @@
           }
 
           const text = data.candidates[0].content.parts[0].text;
-          const cleaned = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, '').replace(/```/g, '').trim();
           const parsed = JSON.parse(cleaned);
 
           document.getElementById('ai-raw-text').value = parsed.raw_text || '';
@@ -640,7 +637,7 @@
           document.getElementById('ai-result-area').classList.remove('hidden');
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
-          document.getElementById('ai-error-msg').innerText = `❌ 網路或解析失敗：${e.message}`;
+          document.getElementById('ai-error-msg').innerText = `❌ 網路或解析失敗 (${currentModel})：${e.message}`;
           document.getElementById('ai-error-area').classList.remove('hidden');
         }
       };
