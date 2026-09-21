@@ -139,7 +139,7 @@
   <!-- 4. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字加入目前單字庫！</p>
+    <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
     
@@ -157,8 +157,13 @@
       <h3>🔍 AI 解讀出的原始文字：</h3>
       <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
 
-      <h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
-      <div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:200px; overflow-y:auto;"></div>
+      <h3 style="margin-top:15px;">📋 解析出的單字預覽 (可編輯/刪除)：</h3>
+      <div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:250px; overflow-y:auto;"></div>
+
+      <div style="margin-bottom: 15px;">
+        <label style="font-weight:bold; font-size:14px; color:#555;">📥 選擇要匯入的單字庫：</label>
+        <select id="ai-target-deck-select" style="margin-top:5px;"></select>
+      </div>
 
       <button onclick="confirmImportAiWords()" class="btn-success">確認並批量加入單字庫</button>
     </div>
@@ -211,7 +216,7 @@
     </div>
   </div>
 
-  <!-- 編輯單字彈窗 -->
+  <!-- 編輯一般單字彈窗 -->
   <div id="edit-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: white;">
     <h2>✏️ 編輯單字</h2>
     <input type="hidden" id="edit-index">
@@ -226,6 +231,21 @@
     <div style="display:flex; gap:10px; margin-top:15px;">
       <button onclick="saveEditedWord()" class="btn-success">儲存修改</button>
       <button onclick="closeEditModal()" class="btn-secondary">取消</button>
+    </div>
+  </div>
+
+  <!-- 編輯 AI 辨識單字彈窗 -->
+  <div id="edit-ai-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: white;">
+    <h2>✏️ 編輯 AI 辨識單字</h2>
+    <input type="hidden" id="edit-ai-index">
+    <label>題目</label>
+    <input type="text" id="edit-ai-question">
+    <label style="margin-top:10px; display:block;">答案一 / 答案二</label>
+    <input type="text" id="edit-ai-ans1" placeholder="答案一">
+    <input type="text" id="edit-ai-ans2" placeholder="答案二">
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button type="button" onclick="saveEditedAiWord()" class="btn-success">儲存修改</button>
+      <button type="button" onclick="closeEditAiModal()" class="btn-secondary">取消</button>
     </div>
   </div>
 
@@ -628,12 +648,7 @@
           document.getElementById('ai-raw-text').value = parsed.raw_text || '';
           tempParsedAiWords = parsed.words || [];
 
-          document.getElementById('ai-parsed-preview').innerHTML = tempParsedAiWords.map(w => `
-            <div style="padding:5px 0; border-bottom:1px solid #ddd;">
-              <strong>${w.question}</strong> ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}
-            </div>
-          `).join('');
-
+          renderAiPreview();
           document.getElementById('ai-result-area').classList.remove('hidden');
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
@@ -644,14 +659,105 @@
       reader.readAsDataURL(file);
     }
 
+    // 渲染 AI 解析預覽列表
+    function renderAiPreview() {
+      const previewDiv = document.getElementById('ai-parsed-preview');
+      if (!tempParsedAiWords || tempParsedAiWords.length === 0) {
+        previewDiv.innerHTML = '<p style="color:#888;">目前沒有解析出的單字。</p>';
+        return;
+      }
+      previewDiv.innerHTML = tempParsedAiWords.map((w, index) => `
+        <div class="word-item" style="border-bottom:1px solid #ddd; padding:8px 0;">
+          <div style="flex:1; margin-right:10px;">
+            <strong>${w.question}</strong> ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}
+          </div>
+          <div style="display:flex; gap:5px; flex-shrink:0;">
+            <button type="button" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" onclick="openEditAiWordModal(${index})">編輯</button>
+            <button type="button" class="btn-danger" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" onclick="deleteAiWord(${index})">刪除</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 刪除特定的 AI 解析單字
+    function deleteAiWord(index) {
+      tempParsedAiWords.splice(index, 1);
+      renderAiPreview();
+    }
+
+    // 開啟編輯 AI 解析單字彈窗
+    function openEditAiWordModal(index) {
+      const w = tempParsedAiWords[index];
+      document.getElementById('edit-ai-index').value = index;
+      document.getElementById('edit-ai-question').value = w.question || '';
+      document.getElementById('edit-ai-ans1').value = w.ans1 || '';
+      document.getElementById('edit-ai-ans2').value = w.ans2 || '';
+      document.getElementById('edit-ai-modal').classList.remove('hidden');
+    }
+
+    function closeEditAiModal() {
+      document.getElementById('edit-ai-modal').classList.add('hidden');
+    }
+
+    function saveEditedAiWord() {
+      const idx = parseInt(document.getElementById('edit-ai-index').value);
+      if (!isNaN(idx) && tempParsedAiWords[idx]) {
+        tempParsedAiWords[idx].question = document.getElementById('edit-ai-question').value.trim();
+        tempParsedAiWords[idx].ans1 = document.getElementById('edit-ai-ans1').value.trim();
+        tempParsedAiWords[idx].ans2 = document.getElementById('edit-ai-ans2').value.trim();
+      }
+      closeEditAiModal();
+      renderAiPreview();
+    }
+
+    // 確認匯入單字至選擇的單字庫 (包含重複檢查)
     function confirmImportAiWords() {
-      if (tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
-      const deck = getCurrentDeck();
+      if (!tempParsedAiWords || tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
+      
+      const targetDeckId = document.getElementById('ai-target-deck-select').value;
+      const targetDeck = decks.find(d => d.id === targetDeckId);
+      
+      if (!targetDeck) return alert('找不到目標單字庫！');
+
+      let addedCount = 0;
+      let skippedCount = 0;
+
       tempParsedAiWords.forEach(w => {
-        deck.words.push({ question: w.question, ans1: w.ans1, ans2: w.ans2 || '', qLang: w.qLang || 'en-US', aLang: w.aLang || 'zh-TW', attempts: 0, errors: 0 });
+        const qClean = (w.question || '').trim().toLowerCase();
+        const a1Clean = (w.ans1 || '').trim().toLowerCase();
+        const a2Clean = (w.ans2 || '').trim().toLowerCase();
+
+        // 檢查目標單字庫中是否已有相同題目或相同答案 (ans1/ans2)
+        const isDuplicate = targetDeck.words.some(existing => {
+          const exQ = (existing.question || '').trim().toLowerCase();
+          const exA1 = (existing.ans1 || '').trim().toLowerCase();
+          const exA2 = (existing.ans2 || '').trim().toLowerCase();
+
+          const sameQuestion = qClean && exQ && (qClean === exQ);
+          const sameAns1 = a1Clean && (a1Clean === exA1 || (exA2 && a1Clean === exA2));
+          const sameAns2 = a2Clean && (a2Clean === exA1 || (exA2 && a2Clean === exA2));
+
+          return sameQuestion || sameAns1 || sameAns2;
+        });
+
+        if (isDuplicate) {
+          skippedCount++;
+        } else {
+          targetDeck.words.push({
+            question: w.question,
+            ans1: w.ans1,
+            ans2: w.ans2 || '',
+            qLang: w.qLang || 'en-US',
+            aLang: w.aLang || 'zh-TW',
+            attempts: 0,
+            errors: 0
+          });
+          addedCount++;
+        }
       });
+
       saveData();
-      alert(`成功匯入 ${tempParsedAiWords.length} 個單字至「${deck.name}」！`);
+      alert(`匯入結果結算：\n✅ 成功匯入 ${addedCount} 個單字\n⚠️ 略過 ${skippedCount} 個重複單字 (與「${targetDeck.name}」中已有題目/答案相同)`);
       switchTab('list');
     }
 
@@ -659,10 +765,15 @@
       const deckSelect = document.getElementById('deck-select');
       const quizDeckSelect = document.getElementById('quiz-deck-select');
       const statsDeckSelect = document.getElementById('stats-deck-select');
+      const aiTargetSelect = document.getElementById('ai-target-deck-select');
       
       const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
       deckSelect.innerHTML = deckOptions;
       
+      if (aiTargetSelect) {
+        aiTargetSelect.innerHTML = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
+      }
+
       const allOption = `<option value="all">🌟 全部單字庫綜合</option>`;
       quizDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name} (${d.words.length}字)</option>`).join('');
       statsDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name}</option>`).join('');
