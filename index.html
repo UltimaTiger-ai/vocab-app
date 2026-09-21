@@ -148,6 +148,9 @@
     </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
+
+	<!-- 新增：常駐的重新分析按鈕 (預設隱藏，上傳照片後顯示) -->
+	<button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
     
     <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
       ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
@@ -603,11 +606,15 @@
 
     /* AI 相機/圖片辨識 (兩階段欄位對應) */
     function handleImageCapture(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      lastCapturedFile = file;
-      processImageFile(file);
-    }
+	  const file = event.target.files[0];
+	  if (!file) return;
+	  lastCapturedFile = file;
+	  
+	  // 新增：顯示重新分析按鈕
+	  document.getElementById('btn-reanalyze').classList.remove('hidden');
+	  
+	  processImageFile(file);
+	}
 
     function retryAiCapture() {
       if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新選擇！');
@@ -690,8 +697,9 @@ ${hintPrompt}
             renderAiPreview();
             document.getElementById('ai-result-area').classList.remove('hidden');
           } else {
-            alert('無法從照片中解析出有效的表格內容，請嘗試重新拍照或補充說明。');
-          }
+			document.getElementById('ai-error-msg').innerText = '❌ 無法從照片中解析出有效的表格內容。請嘗試在上方加入「補充說明」後，點擊重新分析。';
+			document.getElementById('ai-error-area').classList.remove('hidden');
+		  }
 
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
