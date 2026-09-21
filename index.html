@@ -118,6 +118,7 @@
       <button type="button" style="width: auto; padding: 6px 12px; font-size: 12px; margin-bottom: 10px;" onclick="speakCurrentQuestion()">🔊 播放題目語音</button>
       <input type="text" id="quiz-answer" placeholder="請輸入對應答案..." autocomplete="off">
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
+      <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
     </div>
   </div>
@@ -1003,7 +1004,10 @@ ${hintPrompt}
         return;
       }
       document.getElementById('quiz-answer').style.display = 'block';
+      document.getElementById('quiz-answer').disabled = false;
       document.getElementById('btn-submit-ans').style.display = 'block';
+      document.getElementById('btn-next-ans').classList.add('hidden');
+
       currentQuizItem = quizQueue.shift();
       totalAnswered++;
       document.getElementById('quiz-progress').innerText = `進度：第 ${totalAnswered} / ${targetLimit} 題`;
@@ -1035,11 +1039,17 @@ ${hintPrompt}
 
       const res = document.getElementById('quiz-result');
       if (isCorrect) {
-        res.style.color = 'green'; res.innerText = '🎉 答對了！';
+        res.style.color = 'green'; 
+        res.innerText = '🎉 答對了！';
         setTimeout(nextQuizQuestion, 1000);
       } else {
-        res.style.color = 'red'; res.innerText = `❌ 正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
-        setTimeout(nextQuizQuestion, 2000);
+        res.style.color = 'red'; 
+        res.innerText = `❌ 正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
+        
+        // 答錯時：鎖定輸入框、隱藏提交按鈕，並顯示「下一題」按鈕讓使用者手動點擊
+        document.getElementById('quiz-answer').disabled = true;
+        document.getElementById('btn-submit-ans').style.display = 'none';
+        document.getElementById('btn-next-ans').classList.remove('hidden');
       }
     }
 
@@ -1049,6 +1059,7 @@ ${hintPrompt}
       document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
       document.getElementById('quiz-answer').style.display = 'none';
       document.getElementById('btn-submit-ans').style.display = 'none';
+      document.getElementById('btn-next-ans').classList.add('hidden');
       document.getElementById('quiz-result').innerText = '';
       
       const deckStats = {};
