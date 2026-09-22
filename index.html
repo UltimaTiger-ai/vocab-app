@@ -9,34 +9,83 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Dictionary_icon.svg/512px-Dictionary_icon.svg.png">
   <style>
+    :root {
+      --bg-color: #f8f9fa;
+      --text-color: #333333;
+      --card-bg: #ffffff;
+      --card-shadow: rgba(0, 0, 0, 0.05);
+      --border-color: #eeeeee;
+      --input-bg: #ffffff;
+      --input-text: #333333;
+      --input-border: #cccccc;
+      --subtext-color: #666666;
+      --h3-color: #495057;
+      --h3-border: #e9ecef;
+      --stats-bg: #f1f3f5;
+      --mapping-bg: #f8f9fa;
+      --mapping-border: #dee2e6;
+      --nav-btn-bg: #e9ecef;
+      --nav-btn-color: #495057;
+      --modal-bg: #ffffff;
+      --hint-bg: #eef5ff;
+      --hint-border: #cce5ff;
+    }
+
+    body.dark-mode {
+      --bg-color: #121212;
+      --text-color: #e0e0e0;
+      --card-bg: #1e1e1e;
+      --card-shadow: rgba(0, 0, 0, 0.5);
+      --border-color: #333333;
+      --input-bg: #2a2a2a;
+      --input-text: #ffffff;
+      --input-border: #444444;
+      --subtext-color: #aaaaaa;
+      --h3-color: #dddddd;
+      --h3-border: #333333;
+      --stats-bg: #2a2a2a;
+      --mapping-bg: #252525;
+      --mapping-border: #444444;
+      --nav-btn-bg: #2a2a2a;
+      --nav-btn-color: #cccccc;
+      --modal-bg: #1e1e1e;
+      --hint-bg: #1a2634;
+      --hint-border: #2c3e50;
+    }
+
     * { box-sizing: border-box; font-family: -apple-system, sans-serif; }
-    body { margin: 0; padding: 15px; background-color: #f8f9fa; color: #333; }
+    body { margin: 0; padding: 15px; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; }
     .status-bar { padding: 10px; font-size: 13px; background: #d4edda; color: #155724; text-align: center; font-weight: bold; margin-bottom: 15px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+    body.dark-mode .status-bar { background: #1c3b2b; color: #a3e6cd; }
     .version-tag { font-size: 11px; background: #155724; color: white; padding: 2px 6px; border-radius: 4px; font-weight: normal; }
-    .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; }
+    body.dark-mode .version-tag { background: #28a745; }
+    .card { background: var(--card-bg); padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px var(--card-shadow); margin-bottom: 15px; }
     h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
-    h3 { font-size: 16px; color: #495057; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; margin-top: 20px;}
-    input, select, textarea, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
+    body.dark-mode h2 { color: #66b2ff; }
+    h3 { font-size: 16px; color: var(--h3-color); border-bottom: 2px solid var(--h3-border); padding-bottom: 5px; margin-top: 20px;}
+    input, select, textarea, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid var(--input-border); font-size: 16px; background-color: var(--input-bg); color: var(--input-text); }
     button { background-color: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
     button:active { opacity: 0.8; }
-    .btn-danger { background-color: #dc3545; }
-    .btn-secondary { background-color: #6c757d; }
-    .btn-success { background-color: #28a745; }
+    .btn-danger { background-color: #dc3545; color: white; }
+    .btn-secondary { background-color: #6c757d; color: white; }
+    .btn-success { background-color: #28a745; color: white; }
     .btn-warning { background-color: #ffc107; color: #333; }
-    .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+    .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
     .nav { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
-    .nav button { flex: 1; background-color: #e9ecef; color: #495057; margin: 0; font-size: 13px; padding: 10px 4px; white-space: nowrap; }
+    .nav button { flex: 1; background-color: var(--nav-btn-bg); color: var(--nav-btn-color); margin: 0; font-size: 13px; padding: 10px 4px; white-space: nowrap; }
     .nav button.active { background-color: #1a73e8; color: white; }
     .hidden { display: none; }
     .deck-header { display: flex; gap: 8px; margin-bottom: 15px; }
     .setting-group { margin-bottom: 15px; }
-    .setting-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: #555; }
-    .stats-box { background: #f1f3f5; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
+    .setting-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: var(--subtext-color); }
+    .stats-box { background: var(--stats-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px; }
     .stats-box p { margin: 5px 0; font-weight: bold; display: flex; justify-content: space-between; }
     .text-green { color: #28a745; }
     .text-red { color: #dc3545; }
     .row-group { display: flex; gap: 8px; }
     .row-group > * { flex: 1; }
+    .sub-label { font-size: 12px; color: var(--subtext-color); }
+    .hint-box { margin-bottom: 12px; background: var(--hint-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--hint-border); }
   </style>
 </head>
 <body>
@@ -68,12 +117,12 @@
       <button onclick="createDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增</button>
     </div>
 
-    <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
     <h2>➕ 新增單字至「<span id="current-deck-title"></span>」</h2>
     <div class="row-group">
       <div>
-        <label style="font-size:12px; color:#666;">題目語言</label>
+        <label class="sub-label">題目語言</label>
         <select id="input-q-lang" onchange="saveLanguagePreferences()">
           <option value="en-US">英文 (English)</option>
           <option value="ja-JP">日文 (日本語)</option>
@@ -83,7 +132,7 @@
         </select>
       </div>
       <div>
-        <label style="font-size:12px; color:#666;">答案語言</label>
+        <label class="sub-label">答案語言</label>
         <select id="input-a-lang" onchange="saveLanguagePreferences()">
           <option value="zh-TW">中文 (繁體)</option>
           <option value="ja-JP">日文 (日本語)</option>
@@ -112,8 +161,8 @@
     <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
     <button onclick="initQuizSession()" class="btn-secondary" style="margin-bottom: 15px;">開始新測驗</button>
 
-    <div id="quiz-box" style="border-top: 1px solid #eee; padding-top: 15px;">
-      <p style="font-size: 14px; color: #666; margin-bottom: 5px;" id="quiz-progress"></p>
+    <div id="quiz-box" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
+      <p style="font-size: 14px; color: var(--subtext-color); margin-bottom: 5px;" id="quiz-progress"></p>
       <p style="font-size: 22px; font-weight: bold; color: #1a73e8;" id="quiz-prompt">請點擊上方按鈕開始！</p>
       <button type="button" style="width: auto; padding: 6px 12px; font-size: 12px; margin-bottom: 10px;" onclick="speakCurrentQuestion()">🔊 播放題目語音</button>
       <input type="text" id="quiz-answer" placeholder="請輸入對應答案..." autocomplete="off">
@@ -140,12 +189,12 @@
   <!-- 4. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: #666;">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
 
     <!-- 可選填表格提示框 -->
-    <div style="margin-bottom: 12px; background: #eef5ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff;">
+    <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
-      <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px; background: white;">
+      <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px;">
     </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
@@ -164,9 +213,9 @@
     </div>
 
     <!-- 階段 2：欄位對應（Column Mapping）區域 -->
-    <div id="ai-column-mapping-area" class="hidden" style="background:#f8f9fa; border:1px solid #dee2e6; padding:15px; border-radius:10px; margin-bottom:15px;">
+    <div id="ai-column-mapping-area" class="hidden" style="background:var(--mapping-bg); border:1px solid var(--mapping-border); padding:15px; border-radius:10px; margin-bottom:15px;">
       <h3 style="margin-top:0; color:#1a73e8; font-size:16px;">📌 請為表格欄位選擇對應角色：</h3>
-      <p style="font-size:13px; color:#666; margin-bottom:12px;">查看下方欄位的範例資料，並選擇每一欄的角色（題目、答案或忽略）：</p>
+      <p style="font-size:13px; color:var(--subtext-color); margin-bottom:12px;">查看下方欄位的範例資料，並選擇每一欄的角色（題目、答案或忽略）：</p>
       
       <div id="ai-col-mapping-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:12px;"></div>
 
@@ -175,13 +224,13 @@
 
     <div id="ai-result-area" class="hidden">
       <h3>🔍 AI 解讀出的原始文字：</h3>
-      <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ccc;"></textarea>
+      <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border);"></textarea>
 
       <h3 style="margin-top:15px;">📋 解析出的單字預覽 (可編輯/刪除)：</h3>
-      <div id="ai-parsed-preview" style="background:#f1f3f5; padding:10px; border-radius:8px; margin-bottom:15px; max-height:250px; overflow-y:auto;"></div>
+      <div id="ai-parsed-preview" style="background:var(--stats-bg); padding:10px; border-radius:8px; margin-bottom:15px; max-height:250px; overflow-y:auto;"></div>
 
       <div style="margin-bottom: 15px;">
-        <label style="font-weight:bold; font-size:14px; color:#555;">📥 選擇要匯入的單字庫：</label>
+        <label style="font-weight:bold; font-size:14px; color:var(--subtext-color);">📥 選擇要匯入的單字庫：</label>
         <select id="ai-target-deck-select" style="margin-top:5px;"></select>
       </div>
 
@@ -192,18 +241,27 @@
   <!-- 5. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
-    <p style="font-size: 14px; color: #666;">點擊下方按鈕呼叫 <code>ModelService.ListModels</code>，查詢你的 API Key 目前可用的完整模型清單：</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">點擊下方按鈕呼叫 <code>ModelService.ListModels</code>，查詢你的 API Key 目前可用的完整模型清單：</p>
     
     <button onclick="fetchAvailableModels()" class="btn-success" style="margin-bottom: 15px;">📡 向 Google API 查詢你帳號支援的模型 (ListModels)</button>
 
     <div id="models-list-container">
-      <p style="color:#888;">尚未查詢，請點擊上方按鈕取得資料。</p>
+      <p style="color:var(--subtext-color);">尚未查詢，請點擊上方按鈕取得資料。</p>
     </div>
   </div>
 
   <!-- 6. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
+
+    <div class="setting-group">
+      <label>🎨 背景主題</label>
+      <select id="setting-theme" onchange="changeTheme()">
+        <option value="light">亮色模式 (Light Mode)</option>
+        <option value="dark">暗色模式 (Dark Mode)</option>
+        <option value="auto">跟隨系統設定 (Auto)</option>
+      </select>
+    </div>
 
     <div class="setting-group">
       <label>🔑 Gemini API Key</label>
@@ -213,7 +271,7 @@
     <div class="setting-group">
       <label>🤖 當前選擇的 Gemini 模型</label>
       <select id="setting-gemini-model" onchange="saveSettings()"></select>
-      <p style="font-size: 12px; color: #666; margin-top: 4px;">此選單是由 ListModels 查詢結果動態生成。</p>
+      <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">此選單是由 ListModels 查詢結果動態生成。</p>
       <button type="button" class="btn-secondary" style="margin-top: 4px; font-size: 12px; padding: 8px;" onclick="fetchAvailableModels()">📡 重新呼叫 ListModels 更新選項</button>
     </div>
 
@@ -222,7 +280,7 @@
       <p id="test-result" style="font-size: 14px; margin-top: 8px; font-weight: bold;"></p>
     </div>
 
-    <hr style="border:0; border-top:1px solid #eee; margin: 15px 0;">
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
     <div class="setting-group">
       <label>🎯 每次測驗題數</label>
@@ -237,7 +295,7 @@
   </div>
 
   <!-- 編輯一般單字彈窗 -->
-  <div id="edit-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: white;">
+  <div id="edit-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: var(--modal-bg);">
     <h2>✏️ 編輯單字</h2>
     <input type="hidden" id="edit-index">
     <label>題目語言 / 題目</label>
@@ -255,7 +313,7 @@
   </div>
 
   <!-- 編輯 AI 辨識單字彈窗 -->
-  <div id="edit-ai-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: white;">
+  <div id="edit-ai-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: var(--modal-bg);">
     <h2>✏️ 編輯 AI 辨識單字</h2>
     <input type="hidden" id="edit-ai-index">
     <label>題目</label>
@@ -297,9 +355,48 @@
     window.onload = function() {
       updateAppVersion();
       loadLanguagePreferences();
+      loadTheme();
       updateModelDropdown();
       renderUI();
+
+      if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+          const savedTheme = localStorage.getItem('vocab_theme') || 'light';
+          if (savedTheme === 'auto') {
+            applyTheme('auto');
+          }
+        });
+      }
     };
+
+    /* 主題功能邏輯 */
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.body.classList.add('dark-mode');
+      } else if (theme === 'light') {
+        document.body.classList.remove('dark-mode');
+      } else if (theme === 'auto') {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+        }
+      }
+    }
+
+    function changeTheme() {
+      const theme = document.getElementById('setting-theme').value;
+      localStorage.setItem('vocab_theme', theme);
+      applyTheme(theme);
+    }
+
+    function loadTheme() {
+      const savedTheme = localStorage.getItem('vocab_theme') || 'light';
+      const themeSelect = document.getElementById('setting-theme');
+      if (themeSelect) themeSelect.value = savedTheme;
+      applyTheme(savedTheme);
+    }
 
     function updateAppVersion() {
       const lastMod = new Date(document.lastModified);
@@ -472,15 +569,15 @@
             const supportsGenerate = m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent');
 
             return `
-              <div style="border: 1px solid ${isCurrent ? '#1a73e8' : '#ddd'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? '#e8f0fe' : '#fff'};">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="border: 1px solid ${isCurrent ? '#1a73e8' : 'var(--input-border)'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? 'var(--hint-bg)' : 'var(--card-bg)'};">
+                <div style="display:flex; justify-space-between; align-items:center;">
                   <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>${isCurrent 
                     ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' 
-                    : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用此模型</button>` : '<span style="color:#888; font-size:12px;">不支援內容生成</span>')
+                    : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用此模型</button>` : '<span style="color:var(--subtext-color); font-size:12px;">不支援內容生成</span>')
                   }
                 </div>
-                <p style="margin:6px 0 3px 0; font-size:13px; color:#555;">${m.description || '無詳細描述'}</p>
-                <p style="margin:0; font-size:11px; color:#888;">支援方法: ${(m.supportedGenerationMethods || []).join(', ')}</p>
+                <p style="margin:6px 0 3px 0; font-size:13px; color:var(--subtext-color);">${m.description || '無詳細描述'}</p>
+                <p style="margin:0; font-size:11px; color:var(--subtext-color);">支援方法: ${(m.supportedGenerationMethods || []).join(', ')}</p>
               </div>
             `;
           }).join('');
@@ -611,9 +708,7 @@
 	  if (!file) return;
 	  lastCapturedFile = file;
 	  
-	  // 新增：顯示重新分析按鈕
 	  document.getElementById('btn-reanalyze').classList.remove('hidden');
-	  
 	  processImageFile(file);
 	}
 
@@ -693,7 +788,6 @@ ${hintPrompt}
             renderColumnMappingUI();
             document.getElementById('ai-column-mapping-area').classList.remove('hidden');
           } else if (parsed.words && parsed.words.length > 0) {
-            // 若 AI 直接回傳單字物件（備用向下相容）
             tempParsedAiWords = parsed.words;
             renderAiPreview();
             document.getElementById('ai-result-area').classList.remove('hidden');
@@ -739,7 +833,7 @@ ${hintPrompt}
         }
 
         html += `
-          <div style="border: 1px solid #ced4da; background: white; padding: 10px; border-radius: 8px; min-width: 140px; flex: 1 0 140px;">
+          <div style="border: 1px solid var(--input-border); background: var(--card-bg); padding: 10px; border-radius: 8px; min-width: 140px; flex: 1 0 140px;">
             <div style="font-weight: bold; font-size: 13px; color: #1a73e8; margin-bottom: 6px;">第 ${i + 1} 欄</div>
             <select class="col-map-select" data-col="${i}" style="margin-top:0; padding:6px; font-size:13px;">
               <option value="ignore" ${defaultRole === 'ignore' ? 'selected' : ''}>❌ 忽略 (序號/詞性/例句)</option>
@@ -747,7 +841,7 @@ ${hintPrompt}
               <option value="ans1" ${defaultRole === 'ans1' ? 'selected' : ''}>💡 設為答案一</option>
               <option value="ans2" ${defaultRole === 'ans2' ? 'selected' : ''}>📝 設為答案二</option>
             </select>
-            <div style="margin-top:8px; font-size:11px; color:#555; background:#f8f9fa; padding:6px; border-radius:4px; max-height:80px; overflow-y:auto;">
+            <div style="margin-top:8px; font-size:11px; color:var(--subtext-color); background:var(--mapping-bg); padding:6px; border-radius:4px; max-height:80px; overflow-y:auto;">
               <strong>範例資料：</strong><br>
               ${samples.map(s => `• ${escapeHtml(s)}`).join('<br>') || '<span style="color:#aaa;">(空白)</span>'}
             </div>
@@ -804,11 +898,11 @@ ${hintPrompt}
     function renderAiPreview() {
       const previewDiv = document.getElementById('ai-parsed-preview');
       if (!tempParsedAiWords || tempParsedAiWords.length === 0) {
-        previewDiv.innerHTML = '<p style="color:#888;">目前沒有解析出的單字。</p>';
+        previewDiv.innerHTML = '<p style="color:var(--subtext-color);">目前沒有解析出的單字。</p>';
         return;
       }
       previewDiv.innerHTML = tempParsedAiWords.map((w, index) => `
-        <div class="word-item" style="border-bottom:1px solid #ddd; padding:8px 0;">
+        <div class="word-item" style="border-bottom:1px solid var(--border-color); padding:8px 0;">
           <div style="flex:1; margin-right:10px;">
             <strong>${w.question}</strong> ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}
           </div>
@@ -922,11 +1016,11 @@ ${hintPrompt}
       document.getElementById('current-deck-title').innerText = deck.name;
       document.getElementById('word-count').innerText = deck.words.length;
       document.getElementById('word-list').innerHTML = deck.words.length === 0 
-        ? '<p style="color:#888;">此單字庫目前沒有單字。</p>'
+        ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
         : deck.words.map((item, index) => `
           <div class="word-item">
             <div>
-              <strong>${item.question}</strong> <span style="color:#666;">(${item.ans1}${item.ans2 ? ' / ' + item.ans2 : ''})</span>
+              <strong>${item.question}</strong> <span style="color:var(--subtext-color);">(${item.ans1}${item.ans2 ? ' / ' + item.ans2 : ''})</span>
             </div>
             <div>
               <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${index})">編輯</button>
@@ -973,21 +1067,18 @@ ${hintPrompt}
 		const aAttempts = a.attempts || 0;
 		const bAttempts = b.attempts || 0;
 
-		// 1. 測驗次數少的優先（0 次會排最前面，再來是 1 次、2 次...）
 		if (aAttempts !== bAttempts) {
 		  return aAttempts - bAttempts;
 		}
 
-		// 2. 測驗次數相同且 > 0 時，錯誤率高者優先 (errors / attempts)
 		if (aAttempts > 0) {
 		  const aErrRate = (a.errors || 0) / aAttempts;
 		  const bErrRate = (b.errors || 0) / bAttempts;
 		  if (aErrRate !== bErrRate) {
-			return bErrRate - aErrRate; // 錯誤率高的排前面
+			return bErrRate - aErrRate;
 		  }
 		}
 
-		// 3. 條件完全相同時隨機打亂，避免每次出題順序僵化
 		return Math.random() - 0.5;
 	  });
 
@@ -1046,7 +1137,6 @@ ${hintPrompt}
         res.style.color = 'red'; 
         res.innerText = `❌ 正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
         
-        // 答錯時：鎖定輸入框、隱藏提交按鈕，並顯示「下一題」按鈕讓使用者手動點擊
         document.getElementById('quiz-answer').disabled = true;
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.remove('hidden');
@@ -1103,7 +1193,7 @@ ${hintPrompt}
         });
       });
 
-      const calcRate = (c, t) => t > 0 ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:#666;">(${c}/${t}題)</span>` : '<span style="color:#888;">尚無紀錄</span>';
+      const calcRate = (c, t) => t > 0 ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
       
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
       document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
@@ -1111,18 +1201,18 @@ ${hintPrompt}
       wordsStats.sort((a, b) => b.errorRate - a.errorRate);
       
       document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
-        ? '<p style="color:#888;">尚未有足夠的測驗紀錄。</p>' 
+        ? '<p style="color:var(--subtext-color);">尚未有足夠的測驗紀錄。</p>' 
         : wordsStats.map(w => `
-          <div class="word-item" style="display:flex; justify-style:space-between;">
+          <div class="word-item" style="display:flex; justify-content:space-between;">
             <div>
-              <strong>${w.question}</strong> <span style="font-size:14px; color:#666;">(${w.ans1})</span><br>
-              <span style="font-size:12px; color:#888;">📁 ${w.deckName}</span>
+              <strong>${w.question}</strong> <span style="font-size:14px; color:var(--subtext-color);">(${w.ans1})</span><br>
+              <span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span>
             </div>
             <div style="text-align:right;">
               <span class="${w.errorRate > 0.5 ? 'text-red' : (w.errorRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
                 ${Math.round(w.errorRate * 100)}%
               </span><br>
-              <span style="font-size:12px; color:#666;">錯 ${w.errors} / 考 ${w.attempts}</span>
+              <span style="font-size:12px; color:var(--subtext-color);">錯 ${w.errors} / 考 ${w.attempts}</span>
             </div>
           </div>
         `).join('');
