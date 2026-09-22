@@ -102,6 +102,7 @@
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 測驗</button>
     <button id="tab-stats" onclick="switchTab('stats')">📊 統計</button>
     <button id="tab-ai" onclick="switchTab('ai')">📸 AI 拍照</button>
+    <button id="tab-share" onclick="switchTab('share')">🌐 社群分享</button>
     <button id="tab-models" onclick="switchTab('models')">🔍 模型清單</button>
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
@@ -199,8 +200,7 @@
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
 
-	<!-- 新增：常駐的重新分析按鈕 (預設隱藏，上傳照片後顯示) -->
-	<button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
+    <button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
     
     <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
       ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
@@ -238,7 +238,35 @@
     </div>
   </div>
 
-  <!-- 5. ListModels 模型清單頁面 -->
+  <!-- 5. 社群單字庫分享頁面 -->
+  <div id="page-share" class="card hidden">
+    <h2>🌐 社群單字庫分享市集</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
+
+    <!-- 發布自己的單字庫 -->
+    <div style="background: var(--stats-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+      <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
+      <div class="setting-group">
+        <label>選擇要分享的單字庫</label>
+        <select id="share-deck-select"></select>
+      </div>
+      <div class="setting-group">
+        <label>創作者暱稱</label>
+        <input type="text" id="share-author-input" placeholder="例如：UltimaTiger" style="margin-top:4px;">
+      </div>
+      <div class="setting-group">
+        <label>單字庫簡介與說明</label>
+        <input type="text" id="share-desc-input" placeholder="例如：包含 N3 必考高頻動詞 20 個" style="margin-top:4px;">
+      </div>
+      <button onclick="publishDeck()" class="btn-success">🚀 發布至社群市集</button>
+    </div>
+
+    <!-- 熱門社群單字庫列表 -->
+    <h3>🔥 熱門社群單字庫</h3>
+    <div id="shared-deck-list"></div>
+  </div>
+
+  <!-- 6. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">點擊下方按鈕呼叫 <code>ModelService.ListModels</code>，查詢你的 API Key 目前可用的完整模型清單：</p>
@@ -250,7 +278,7 @@
     </div>
   </div>
 
-  <!-- 6. 設定頁面 -->
+  <!-- 7. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
 
@@ -334,6 +362,41 @@
     let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
     let quizLimit = parseInt(localStorage.getItem('vocab_quiz_limit') || '10');
 
+    // 初始化社群分享單字庫資料
+    let sharedDecks = JSON.parse(localStorage.getItem('vocab_shared_decks') || 'null');
+    if (!sharedDecks) {
+      sharedDecks = [
+        {
+          id: 'share_demo_1',
+          name: 'TOEIC 職場必備高頻單字',
+          author: 'UltimaTiger',
+          description: '整理自多益常考商務與職場英語高頻詞彙。',
+          downloads: 42,
+          likes: 18,
+          createdAt: '2026-03-20',
+          words: [
+            { question: 'negotiation', ans1: '談判', ans2: '協商', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 },
+            { question: 'agenda', ans1: '議程', ans2: '討論事項', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 },
+            { question: 'proposal', ans1: '提案', ans2: '建議書', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 }
+          ]
+        },
+        {
+          id: 'share_demo_2',
+          name: 'JLPT N3 常用動詞精選',
+          author: '櫻花貓貓',
+          description: '日檢 N3 必考高頻動詞與漢字。',
+          downloads: 29,
+          likes: 15,
+          createdAt: '2026-03-21',
+          words: [
+            { question: '調べる', ans1: 'しらべる', ans2: '調查/查閱', qLang: 'ja-JP', aLang: 'zh-TW', attempts: 0, errors: 0 },
+            { question: '手伝う', ans1: 'てつだう', ans2: '幫忙', qLang: 'ja-JP', aLang: 'zh-TW', attempts: 0, errors: 0 }
+          ]
+        }
+      ];
+      localStorage.setItem('vocab_shared_decks', JSON.stringify(sharedDecks));
+    }
+
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
     let tempParsedAiWords = [];
@@ -415,6 +478,11 @@
       localStorage.setItem('vocab_decks', JSON.stringify(decks));
       localStorage.setItem('vocab_current_deck', currentDeckId);
       renderUI();
+    }
+
+    function saveSharedData() {
+      localStorage.setItem('vocab_shared_decks', JSON.stringify(sharedDecks));
+      renderSharedDecks();
     }
 
     function saveSettings() {
@@ -570,7 +638,7 @@
 
             return `
               <div style="border: 1px solid ${isCurrent ? '#1a73e8' : 'var(--input-border)'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? 'var(--hint-bg)' : 'var(--card-bg)'};">
-                <div style="display:flex; justify-space-between; align-items:center;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
                   <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>${isCurrent 
                     ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' 
                     : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用此模型</button>` : '<span style="color:var(--subtext-color); font-size:12px;">不支援內容生成</span>')
@@ -704,13 +772,13 @@
 
     /* AI 相機/圖片辨識 (兩階段欄位對應) */
     function handleImageCapture(event) {
-	  const file = event.target.files[0];
-	  if (!file) return;
-	  lastCapturedFile = file;
-	  
-	  document.getElementById('btn-reanalyze').classList.remove('hidden');
-	  processImageFile(file);
-	}
+      const file = event.target.files[0];
+      if (!file) return;
+      lastCapturedFile = file;
+      
+      document.getElementById('btn-reanalyze').classList.remove('hidden');
+      processImageFile(file);
+    }
 
     function retryAiCapture() {
       if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新選擇！');
@@ -792,9 +860,9 @@ ${hintPrompt}
             renderAiPreview();
             document.getElementById('ai-result-area').classList.remove('hidden');
           } else {
-			document.getElementById('ai-error-msg').innerText = '❌ 無法從照片中解析出有效的表格內容。請嘗試在上方加入「補充說明」後，點擊重新分析。';
-			document.getElementById('ai-error-area').classList.remove('hidden');
-		  }
+            document.getElementById('ai-error-msg').innerText = '❌ 無法從照片中解析出有效的表格內容。請嘗試在上方加入「補充說明」後，點擊重新分析。';
+            document.getElementById('ai-error-area').classList.remove('hidden');
+          }
 
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
@@ -816,7 +884,6 @@ ${hintPrompt}
       for (let i = 0; i < maxCols; i++) {
         const samples = rawParsedRows.slice(0, 3).map(r => r[i] || '').filter(Boolean);
         
-        // 智慧預測欄位角色
         let defaultRole = 'ignore';
         if (maxCols === 2) {
           defaultRole = i === 0 ? 'question' : 'ans1';
@@ -914,13 +981,11 @@ ${hintPrompt}
       `).join('');
     }
 
-    // 刪除特定的 AI 解析單字
     function deleteAiWord(index) {
       tempParsedAiWords.splice(index, 1);
       renderAiPreview();
     }
 
-    // 開啟編輯 AI 解析單字彈窗
     function openEditAiWordModal(index) {
       const w = tempParsedAiWords[index];
       document.getElementById('edit-ai-index').value = index;
@@ -945,7 +1010,6 @@ ${hintPrompt}
       renderAiPreview();
     }
 
-    // 確認匯入單字至選擇的單字庫 (包含重複檢查)
     function confirmImportAiWords() {
       if (!tempParsedAiWords || tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
       
@@ -995,14 +1059,115 @@ ${hintPrompt}
       switchTab('list');
     }
 
+    /* 社群分享邏輯 */
+    function publishDeck() {
+      const deckId = document.getElementById('share-deck-select').value;
+      const author = document.getElementById('share-author-input').value.trim() || '匿名創作者';
+      const desc = document.getElementById('share-desc-input').value.trim() || '尚無詳細介紹';
+
+      const target = decks.find(d => d.id === deckId);
+      if (!target) return alert('請選擇有效的單字庫！');
+      if (!target.words || target.words.length === 0) return alert('選取的單字庫為空，無法進行分享！');
+
+      const newShared = {
+        id: 'share_' + Date.now(),
+        name: target.name,
+        author: author,
+        description: desc,
+        downloads: 0,
+        likes: 0,
+        createdAt: new Date().toISOString().split('T')[0],
+        words: JSON.parse(JSON.stringify(target.words))
+      };
+
+      sharedDecks.unshift(newShared);
+      saveSharedData();
+
+      document.getElementById('share-desc-input').value = '';
+      alert(`🎉 成功發布「${target.name}」到社群市集！`);
+    }
+
+    function likeSharedDeck(shareId) {
+      const item = sharedDecks.find(s => s.id === shareId);
+      if (item) {
+        item.likes = (item.likes || 0) + 1;
+        saveSharedData();
+      }
+    }
+
+    function downloadSharedDeck(shareId) {
+      const item = sharedDecks.find(s => s.id === shareId);
+      if (!item) return alert('找不到指定的分享單字庫！');
+
+      const newDeck = {
+        id: 'deck_' + Date.now(),
+        name: `${item.name} (社群下載)`,
+        words: JSON.parse(JSON.stringify(item.words)),
+        history: []
+      };
+
+      decks.push(newDeck);
+      currentDeckId = newDeck.id;
+      saveData();
+
+      item.downloads = (item.downloads || 0) + 1;
+      saveSharedData();
+
+      alert(`✅ 成功下載「${item.name}」！已新增至您的單字庫列表。`);
+    }
+
+    function previewSharedDeck(shareId) {
+      const item = sharedDecks.find(s => s.id === shareId);
+      if (!item) return;
+
+      const previewText = item.words.slice(0, 15).map((w, i) => `${i + 1}. ${w.question} ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}`).join('\n');
+      const extraMsg = item.words.length > 15 ? `\n...以及其他 ${item.words.length - 15} 個單字` : '';
+      alert(`📖 「${item.name}」內容預覽 (共 ${item.words.length} 字)：\n\n${previewText}${extraMsg}`);
+    }
+
+    function renderSharedDecks() {
+      const container = document.getElementById('shared-deck-list');
+      if (!container) return;
+
+      if (sharedDecks.length === 0) {
+        container.innerHTML = '<p style="color:var(--subtext-color);">目前社群尚無分享的單字庫。</p>';
+        return;
+      }
+
+      container.innerHTML = sharedDecks.map(item => `
+        <div style="border: 1px solid var(--border-color); background: var(--card-bg); padding: 12px; margin-bottom: 12px; border-radius: 10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:16px; color:#1a73e8;">${escapeHtml(item.name)}</strong>
+            <span style="font-size:12px; color:var(--subtext-color);">作者：${escapeHtml(item.author)}</span>
+          </div>
+          <p style="margin:6px 0; font-size:13px; color:var(--subtext-color);">${escapeHtml(item.description)}</p>
+          
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:12px; color:var(--subtext-color); display:flex; gap:12px;">
+              <span>📚 ${item.words.length} 個單字</span>
+              <span>📥 ${item.downloads || 0} 次下載</span>
+              <span>👍 ${item.likes || 0} 個讚</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-secondary" onclick="previewSharedDeck('${item.id}')">👁️ 預覽</button>
+              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-warning" onclick="likeSharedDeck('${item.id}')">👍 按讚</button>
+              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-success" onclick="downloadSharedDeck('${item.id}')">📥 下載</button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function renderUI() {
       const deckSelect = document.getElementById('deck-select');
       const quizDeckSelect = document.getElementById('quiz-deck-select');
       const statsDeckSelect = document.getElementById('stats-deck-select');
       const aiTargetSelect = document.getElementById('ai-target-deck-select');
+      const shareDeckSelect = document.getElementById('share-deck-select');
       
       const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
       deckSelect.innerHTML = deckOptions;
+      if (shareDeckSelect) shareDeckSelect.innerHTML = deckOptions;
       
       if (aiTargetSelect) {
         aiTargetSelect.innerHTML = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
@@ -1036,7 +1201,7 @@ ${hintPrompt}
     }
 
     function switchTab(tab) {
-      ['list', 'quiz', 'stats', 'ai', 'models', 'settings'].forEach(t => {
+      ['list', 'quiz', 'stats', 'ai', 'share', 'models', 'settings'].forEach(t => {
         document.getElementById(`page-${t}`).classList.add('hidden');
         document.getElementById(`tab-${t}`).classList.remove('active');
       });
@@ -1044,50 +1209,50 @@ ${hintPrompt}
       document.getElementById(`tab-${tab}`).classList.add('active');
       
       if (tab === 'stats') renderStats();
+      if (tab === 'share') renderSharedDecks();
       if (tab === 'models') fetchAvailableModels();
     }
 
     function initQuizSession() {
-	  const selected = document.getElementById('quiz-deck-select').value;
-	  let pool = [];
-	  if (selected === 'all') {
-		pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
-	  } else {
-		const target = decks.find(d => d.id === selected);
-		if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
-	  }
+      const selected = document.getElementById('quiz-deck-select').value;
+      let pool = [];
+      if (selected === 'all') {
+        pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
+      } else {
+        const target = decks.find(d => d.id === selected);
+        if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
+      }
 
-	  if (pool.length === 0) {
-		document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
-		return;
-	  }
+      if (pool.length === 0) {
+        document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
+        return;
+      }
 
-	  // 💡 智慧排序邏輯：未考過/少考過優先 -> 錯誤率高優先 -> 同分隨機打亂
-	  pool.sort((a, b) => {
-		const aAttempts = a.attempts || 0;
-		const bAttempts = b.attempts || 0;
+      pool.sort((a, b) => {
+        const aAttempts = a.attempts || 0;
+        const bAttempts = b.attempts || 0;
 
-		if (aAttempts !== bAttempts) {
-		  return aAttempts - bAttempts;
-		}
+        if (aAttempts !== bAttempts) {
+          return aAttempts - bAttempts;
+        }
 
-		if (aAttempts > 0) {
-		  const aErrRate = (a.errors || 0) / aAttempts;
-		  const bErrRate = (b.errors || 0) / bAttempts;
-		  if (aErrRate !== bErrRate) {
-			return bErrRate - aErrRate;
-		  }
-		}
+        if (aAttempts > 0) {
+          const aErrRate = (a.errors || 0) / aAttempts;
+          const bErrRate = (b.errors || 0) / bAttempts;
+          if (aErrRate !== bErrRate) {
+            return bErrRate - aErrRate;
+          }
+        }
 
-		return Math.random() - 0.5;
-	  });
+        return Math.random() - 0.5;
+      });
 
-	  targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-	  quizQueue = pool.slice(0, targetLimit);
-	  sessionResults = [];
-	  totalAnswered = 0;
-	  nextQuizQuestion();
-	}
+      targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
+      quizQueue = pool.slice(0, targetLimit);
+      sessionResults = [];
+      totalAnswered = 0;
+      nextQuizQuestion();
+    }
 
     function nextQuizQuestion() {
       if (quizQueue.length === 0) {
