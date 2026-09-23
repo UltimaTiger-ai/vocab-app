@@ -295,7 +295,7 @@
     </div>
   </div>
 
-  <!-- 7. 設定頁面 -->
+  <!-- 6. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 系統與 API 設定</h2>
 
@@ -418,7 +418,14 @@
     }
     function updateAppVersion() {
       const d = new Date(document.lastModified);
-      document.getElementById('app-version').innerText = `Ver: ${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      const seconds = String(d.getSeconds()).padStart(2, '0');
+      
+      document.getElementById('app-version').innerText = `Ver: ${year}.${month}.${date} ${hours}:${minutes}:${seconds}`;
     }
 
     function loadSettingsUI() {
@@ -543,6 +550,203 @@
         btn.innerText = '✨ AI 智慧建議答案';
         btn.disabled = false;
       }
+    }
+
+    /* AI 拍照表格辨識邏輯 (Gemini Vision API) */
+    async function handleImageCapture(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      lastCapturedFile = file;
+      await processAiImage(file);
+    }
+
+    async function retryAiCapture() {
+      if (!lastCapturedFile) return alert('尚未選擇照片！');
+      await processAiImage(lastCapturedFile);
+    }
+
+    async function processAiImage(file) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const model = localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
+      const errorArea = document.getElementById('ai-error-area');
+      const errorMsg = document.getElementById('ai-error-msg');
+      const loading = document.getElementById('ai-loading');
+      const reanalyzeBtn = document.getElementById('btn-reanalyze');
+      const mappingArea = document.getElementById('ai-column-mapping-area');
+      const resultArea = document.getElementById('ai-result-area');
+
+      if (!apiKey) {
+        errorArea.classList.remove('hidden');
+        errorMsg.innerText = '⚠️ 請先至「⚙️ 設定」頁面設定 Gemini API Key！';
+        return;
+      }
+
+      errorArea.classList.add('hidden');
+      mappingArea.classList.add('hidden');
+      resultArea.classList.add('hidden');
+      loading.classList.remove('hidden');
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const userHint = document.getElementById('ai-user-hint').value.trim();
+        const promptText = `請分析此圖片中的單字表格對照表內容。${userHint ? '使用者補充說明：' + userHint : ''}
+請將解析出的表格每一列作為二維陣列輸出。請回傳純 JSON 格式：{"table": [["列1欄1", "列1欄2"], ["列2欄1", "列2欄2"]]}`;
+
+        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data.split(',')[1] } }
+              ]
+            }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error.message || 'API 請求失敗');
+
+        const jsonStr = data.candidates[0].content.parts[0].text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(jsonStr);
+        rawParsedRows = parsed.table || parsed.rows || parsed;
+
+        if (!Array.isArray(rawParsedRows) || rawParsedRows.length === 0) {
+          throw new Error('未從圖片中解析出有效的表格數據');
+        }
+
+        reanalyzeBtn.classList.remove('hidden');
+        renderColumnMappingUI(rawParsedRows);
+      } catch (err) {
+        errorArea.classList.remove('hidden');
+        errorMsg.innerText = '❌ 辨識失敗：' + err.message;
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderColumnMappingUI(rows) {
+      const container = document.getElementById('ai-col-mapping-container');
+      container.innerHTML = '';
+      
+      const maxCols = Math.max(...rows.map(r => Array.isArray(r) ? r.length : 0));
+      if (maxCols === 0) return alert('解析結果無有效欄位');
+
+      for (let i = 0; i < maxCols; i++) {
+        const sampleVals = rows.slice(0, 3).map(r => r[i] || '').filter(Boolean).join(', ');
+        const colDiv = document.createElement('div');
+        colDiv.style.cssText = 'min-width: 120px; flex: 1; background: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);';
+        colDiv.innerHTML = `
+          <label style="font-size: 12px; font-weight: bold; display: block;">欄位 ${i + 1}</label>
+          <div style="font-size: 11px; color: var(--subtext-color); margin: 4px 0 8px 0; max-height: 36px; overflow: hidden;" title="${escapeHtml(sampleVals)}">例: ${escapeHtml(sampleVals || '無')}</div>
+          <select class="col-role-select" data-col-index="${i}" style="font-size: 13px; padding: 6px;">
+            <option value="ignore">忽略</option>
+            <option value="question" ${i === 0 ? 'selected' : ''}>題目</option>
+            <option value="ans1" ${i === 1 ? 'selected' : ''}>答案一</option>
+            <option value="ans2" ${i === 2 ? 'selected' : ''}>答案二</option>
+          </select>
+        `;
+        container.appendChild(colDiv);
+      }
+
+      document.getElementById('ai-column-mapping-area').classList.remove('hidden');
+    }
+
+    function applyColumnMapping() {
+      const selects = document.querySelectorAll('.col-role-select');
+      let qIdx = -1, a1Idx = -1, a2Idx = -1;
+
+      selects.forEach(sel => {
+        const idx = parseInt(sel.dataset.colIndex);
+        const role = sel.value;
+        if (role === 'question') qIdx = idx;
+        if (role === 'ans1') a1Idx = idx;
+        if (role === 'ans2') a2Idx = idx;
+      });
+
+      if (qIdx === -1 || a1Idx === -1) {
+        return alert('請至少指定「題目」與「答案一」的對應欄位！');
+      }
+
+      tempParsedAiWords = [];
+      rawParsedRows.forEach(row => {
+        if (!Array.isArray(row)) return;
+        const q = (row[qIdx] || '').toString().trim();
+        const a1 = (row[a1Idx] || '').toString().trim();
+        const a2 = a2Idx !== -1 ? (row[a2Idx] || '').toString().trim() : '';
+
+        if (q && a1) {
+          tempParsedAiWords.push({ question: q, ans1: a1, ans2: a2 });
+        }
+      });
+
+      renderParsedPreview();
+      document.getElementById('ai-result-area').classList.remove('hidden');
+    }
+
+    function renderParsedPreview() {
+      const preview = document.getElementById('ai-parsed-preview');
+      if (tempParsedAiWords.length === 0) {
+        preview.innerHTML = '<p style="color: var(--subtext-color);">未提取到任何有效單字。</p>';
+        return;
+      }
+
+      preview.innerHTML = tempParsedAiWords.map((w, i) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
+          <div>
+            <strong>${escapeHtml(w.question)}</strong> ➔ ${escapeHtml(w.ans1)} ${w.ans2 ? `(${escapeHtml(w.ans2)})` : ''}
+          </div>
+          <button onclick="removeTempAiWord(${i})" class="btn-danger" style="width: auto; padding: 2px 8px; font-size: 12px;">刪除</button>
+        </div>
+      `).join('');
+    }
+
+    function removeTempAiWord(index) {
+      tempParsedAiWords.splice(index, 1);
+      renderParsedPreview();
+    }
+
+    function confirmImportAiWords() {
+      if (tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
+      const targetDeckId = document.getElementById('ai-target-deck-select').value;
+      const targetDeck = decks.find(d => d.id === targetDeckId);
+      if (!targetDeck) return alert('找不到目標單字庫！');
+
+      const qLang = document.getElementById('input-q-lang').value || 'en-US';
+      const aLang = document.getElementById('input-a-lang').value || 'zh-TW';
+
+      tempParsedAiWords.forEach(w => {
+        targetDeck.words.push({
+          question: w.question,
+          ans1: w.ans1,
+          ans2: w.ans2 || '',
+          qLang: qLang,
+          aLang: aLang,
+          attempts: 0,
+          errors: 0
+        });
+      });
+
+      saveData();
+      alert(`🎉 成功匯入 ${tempParsedAiWords.length} 個單字至「${targetDeck.name}」！`);
+      
+      // 清空預覽與重置
+      tempParsedAiWords = [];
+      rawParsedRows = [];
+      document.getElementById('ai-result-area').classList.add('hidden');
+      document.getElementById('ai-column-mapping-area').classList.add('hidden');
+      document.getElementById('camera-input').value = '';
     }
 
     /* Supabase 驗證與資料庫功能 */
@@ -854,6 +1058,7 @@
           <div style="text-align:right"><span class="text-red" style="font-weight:bold;">${Math.round(w.errorRate*100)}%</span><br><span style="font-size:12px; color:var(--subtext-color);">錯 ${w.errors}/${w.attempts}</span></div>
         </div>`).join('');
     }
+
   </script>
 </body>
 </html>
