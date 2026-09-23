@@ -3,15 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字 App - AI 智慧多語言版 (含社群功能)</title>
+  <title>背單字 App - AI 智慧多語言版</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d7/Dictionary_icon.svg/512px-Dictionary_icon.svg.png">
-  
-  <!-- 引入 Supabase JS SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     :root {
       --bg-color: #f8f9fa;
@@ -70,17 +66,15 @@
     input, select, textarea, button { width: 100%; padding: 12px; margin-top: 8px; border-radius: 8px; border: 1px solid var(--input-border); font-size: 16px; background-color: var(--input-bg); color: var(--input-text); }
     button { background-color: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
     button:active { opacity: 0.8; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn-danger { background-color: #dc3545; color: white; }
     .btn-secondary { background-color: #6c757d; color: white; }
     .btn-success { background-color: #28a745; color: white; }
     .btn-warning { background-color: #ffc107; color: #333; }
-    .btn-google { background-color: #4285f4; color: white; margin-top: 10px; }
     .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
     .nav { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
     .nav button { flex: 1; background-color: var(--nav-btn-bg); color: var(--nav-btn-color); margin: 0; font-size: 13px; padding: 10px 4px; white-space: nowrap; }
     .nav button.active { background-color: #1a73e8; color: white; }
-    .hidden { display: none !important; }
+    .hidden { display: none; }
     .deck-header { display: flex; gap: 8px; margin-bottom: 15px; }
     .setting-group { margin-bottom: 15px; }
     .setting-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; color: var(--subtext-color); }
@@ -92,14 +86,13 @@
     .row-group > * { flex: 1; }
     .sub-label { font-size: 12px; color: var(--subtext-color); }
     .hint-box { margin-bottom: 12px; background: var(--hint-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--hint-border); }
-    .divider { margin: 15px 0; border: 0; border-top: 1px dashed var(--border-color); }
   </style>
 </head>
 <body>
 
   <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ UltimaTiger App 就緒！本地儲存啟用</span>
+    <span>✅ UltimaTiger 的 App 已就緒！資料 100% 存於本機</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
@@ -109,7 +102,8 @@
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 測驗</button>
     <button id="tab-stats" onclick="switchTab('stats')">📊 統計</button>
     <button id="tab-ai" onclick="switchTab('ai')">📸 AI 拍照</button>
-    <button id="tab-share" onclick="switchTab('share')">🌐 雲端社群</button>
+    <button id="tab-share" onclick="switchTab('share')">🌐 社群分享</button>
+    <button id="tab-models" onclick="switchTab('models')">🔍 模型清單</button>
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
@@ -195,34 +189,44 @@
 
   <!-- 4. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
-    <h2>📸 Gemini 智慧相機辨識</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相片，AI 將解析表格內容為單字！</p>
-    
+    <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
+
+    <!-- 可選填表格提示框 -->
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
-      <input type="text" id="ai-user-hint" placeholder="例：第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px;">
+      <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px;">
     </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
+
     <button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
     
     <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 辨識中，請稍候...
+      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
     </div>
 
-    <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px;">
+    <!-- 錯誤與重試區域 -->
+    <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
       <p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
-      <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 重試</button>
+      <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
     </div>
 
+    <!-- 階段 2：欄位對應（Column Mapping）區域 -->
     <div id="ai-column-mapping-area" class="hidden" style="background:var(--mapping-bg); border:1px solid var(--mapping-border); padding:15px; border-radius:10px; margin-bottom:15px;">
       <h3 style="margin-top:0; color:#1a73e8; font-size:16px;">📌 請為表格欄位選擇對應角色：</h3>
+      <p style="font-size:13px; color:var(--subtext-color); margin-bottom:12px;">查看下方欄位的範例資料，並選擇每一欄的角色（題目、答案或忽略）：</p>
+      
       <div id="ai-col-mapping-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:12px;"></div>
+
       <button type="button" onclick="applyColumnMapping()" class="btn-success">✅ 確認對應並生成單字預覽</button>
     </div>
 
     <div id="ai-result-area" class="hidden">
-      <h3>📋 解析出的單字預覽 (可編輯/刪除)：</h3>
+      <h3>🔍 AI 解讀出的原始文字：</h3>
+      <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border);"></textarea>
+
+      <h3 style="margin-top:15px;">📋 解析出的單字預覽 (可編輯/刪除)：</h3>
       <div id="ai-parsed-preview" style="background:var(--stats-bg); padding:10px; border-radius:8px; margin-bottom:15px; max-height:250px; overflow-y:auto;"></div>
 
       <div style="margin-bottom: 15px;">
@@ -234,42 +238,14 @@
     </div>
   </div>
 
-  <!-- 5. 社群單字庫分享頁面 (基於 Supabase) -->
+  <!-- 5. 社群單字庫分享頁面 -->
   <div id="page-share" class="card hidden">
-    <h2>🌐 雲端社群分享市集</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">登入帳號後，將你的單字庫分享至雲端，或下載他人的熱門單字庫！</p>
-
-    <!-- 帳號登入區域 -->
-    <div id="auth-section" class="stats-box" style="margin-bottom: 20px;">
-      <h3 style="margin-top:0; color:#1a73e8;">👤 會員登入 / 註冊</h3>
-      
-      <!-- 快捷第三方登入 -->
-      <button onclick="handleGoogleLogin()" class="btn-google">
-        🌐 使用 Google 帳號快速登入
-      </button>
-
-      <div class="divider"></div>
-
-      <!-- 電子郵件登入 -->
-      <label class="sub-label">使用 Email 帳號密碼登入：</label>
-      <input type="email" id="auth-email" placeholder="電子郵件">
-      <input type="password" id="auth-password" placeholder="密碼">
-      <div class="row-group" style="margin-top:10px;">
-        <button onclick="handleLogin()" class="btn-success">Email 登入</button>
-        <button onclick="handleRegister()" class="btn-secondary">註冊新帳號</button>
-      </div>
-      <p id="auth-status" style="font-size:13px; margin-top:10px; font-weight:bold;"></p>
-    </div>
-
-    <!-- 已登入狀態區域 -->
-    <div id="user-info-section" class="stats-box hidden" style="margin-bottom: 20px; border-left: 4px solid #28a745;">
-      <p style="margin:0 0 10px 0;">✅ 當前登入帳號：<span id="current-user-email" style="color:#1a73e8;"></span></p>
-      <button onclick="handleLogout()" class="btn-warning" style="width: auto; padding: 6px 12px; font-size:13px;">登出帳號</button>
-    </div>
+    <h2>🌐 社群單字庫分享市集</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
 
     <!-- 發布自己的單字庫 -->
     <div style="background: var(--stats-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-      <h3 style="margin-top:0;">📤 上傳發布我的單字庫</h3>
+      <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
       <div class="setting-group">
         <label>選擇要分享的單字庫</label>
         <select id="share-deck-select"></select>
@@ -282,22 +258,29 @@
         <label>單字庫簡介與說明</label>
         <input type="text" id="share-desc-input" placeholder="例如：包含 N3 必考高頻動詞 20 個" style="margin-top:4px;">
       </div>
-      <button onclick="publishDeckToSupabase()" id="btn-publish" class="btn-success">🚀 上傳至雲端社群</button>
+      <button onclick="publishDeck()" class="btn-success">🚀 發布至社群市集</button>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-      <h3 style="margin: 0;">🔥 熱門雲端單字庫</h3>
-      <button onclick="fetchSharedDecks()" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-secondary">🔄 重新整理</button>
-    </div>
+    <!-- 熱門社群單字庫列表 -->
+    <h3>🔥 熱門社群單字庫</h3>
+    <div id="shared-deck-list"></div>
+  </div>
+
+  <!-- 6. ListModels 模型清單頁面 -->
+  <div id="page-models" class="card hidden">
+    <h2>🔍 帳號模型查詢 (ListModels)</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">點擊下方按鈕呼叫 <code>ModelService.ListModels</code>，查詢你的 API Key 目前可用的完整模型清單：</p>
     
-    <div id="shared-deck-list">
-      <p style="color:var(--subtext-color);">載入中...</p>
+    <button onclick="fetchAvailableModels()" class="btn-success" style="margin-bottom: 15px;">📡 向 Google API 查詢你帳號支援的模型 (ListModels)</button>
+
+    <div id="models-list-container">
+      <p style="color:var(--subtext-color);">尚未查詢，請點擊上方按鈕取得資料。</p>
     </div>
   </div>
 
-  <!-- 6. 設定頁面 -->
+  <!-- 7. 設定頁面 -->
   <div id="page-settings" class="card hidden">
-    <h2>⚙️ 系統與 API 設定</h2>
+    <h2>⚙️ 偏好與 API 設定</h2>
 
     <div class="setting-group">
       <label>🎨 背景主題</label>
@@ -309,6 +292,25 @@
     </div>
 
     <div class="setting-group">
+      <label>🔑 Gemini API Key</label>
+      <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()">
+    </div>
+
+    <div class="setting-group">
+      <label>🤖 當前選擇的 Gemini 模型</label>
+      <select id="setting-gemini-model" onchange="saveSettings()"></select>
+      <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">此選單是由 ListModels 查詢結果動態生成。</p>
+      <button type="button" class="btn-secondary" style="margin-top: 4px; font-size: 12px; padding: 8px;" onclick="fetchAvailableModels()">📡 重新呼叫 ListModels 更新選項</button>
+    </div>
+
+    <div class="setting-group">
+      <button type="button" class="btn-warning" onclick="testGeminiConnection()">🧪 測試當前模型連線狀態</button>
+      <p id="test-result" style="font-size: 14px; margin-top: 8px; font-weight: bold;"></p>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+
+    <div class="setting-group">
       <label>🎯 每次測驗題數</label>
       <select id="setting-quiz-limit" onchange="saveSettings()">
         <option value="5">5 題</option>
@@ -318,35 +320,6 @@
         <option value="0">全部單字集</option>
       </select>
     </div>
-
-    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
-
-    <h3>🤖 Gemini AI 設定</h3>
-    <div class="setting-group">
-      <label>🔑 Gemini API Key</label>
-      <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()">
-    </div>
-    <div class="setting-group">
-      <label>模型選擇</label>
-      <select id="setting-gemini-model" onchange="saveSettings()">
-        <option value="gemini-1.5-flash">gemini-1.5-flash</option>
-        <option value="gemini-1.5-pro">gemini-1.5-pro</option>
-      </select>
-    </div>
-
-    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
-
-    <h3>☁️ Supabase 雲端連線資訊</h3>
-    <p style="font-size:12px; color:var(--subtext-color); margin-top:0;">目前已直接寫死預設連線資訊。您也可以自訂修改：</p>
-    <div class="setting-group">
-      <label>🗄️ Project URL</label>
-      <input type="text" id="input-sb-url" placeholder="https://xxxx.supabase.co" oninput="saveSettings()">
-    </div>
-    <div class="setting-group">
-      <label>🔑 Anon Key</label>
-      <input type="password" id="input-sb-key" placeholder="貼上 anon public key" oninput="saveSettings()">
-    </div>
-    <button onclick="initSupabase()" class="btn-secondary" style="font-size: 14px;">🔄 測試 / 重新初始化連線</button>
   </div>
 
   <!-- 編輯一般單字彈窗 -->
@@ -367,90 +340,138 @@
     </div>
   </div>
 
+  <!-- 編輯 AI 辨識單字彈窗 -->
+  <div id="edit-ai-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: var(--modal-bg);">
+    <h2>✏️ 編輯 AI 辨識單字</h2>
+    <input type="hidden" id="edit-ai-index">
+    <label>題目</label>
+    <input type="text" id="edit-ai-question">
+    <label style="margin-top:10px; display:block;">答案一 / 答案二</label>
+    <input type="text" id="edit-ai-ans1" placeholder="答案一">
+    <input type="text" id="edit-ai-ans2" placeholder="答案二">
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button type="button" onclick="saveEditedAiWord()" class="btn-success">儲存修改</button>
+      <button type="button" onclick="closeEditAiModal()" class="btn-secondary">取消</button>
+    </div>
+  </div>
+
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-
-    // 預設寫死的 Supabase 專案設定
-    const DEFAULT_SUPABASE_URL = 'https://rgntszsdxttzslnvvqjm.supabase.co';
-    const DEFAULT_SUPABASE_KEY = 'sb_publishable_hxSUUtPW5VotmAdB7Kld5g_hMNu_pAh';
 
     let decks = JSON.parse(localStorage.getItem('vocab_decks') || JSON.stringify([{ id: 'default_1', name: '預設單字庫', words: [], history: [] }]));
     let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
     let quizLimit = parseInt(localStorage.getItem('vocab_quiz_limit') || '10');
 
+    // 初始化社群分享單字庫資料
+    let sharedDecks = JSON.parse(localStorage.getItem('vocab_shared_decks') || 'null');
+    if (!sharedDecks) {
+      sharedDecks = [
+        {
+          id: 'share_demo_1',
+          name: 'TOEIC 職場必備高頻單字',
+          author: 'UltimaTiger',
+          description: '整理自多益常考商務與職場英語高頻詞彙。',
+          downloads: 42,
+          likes: 18,
+          createdAt: '2026-03-20',
+          words: [
+            { question: 'negotiation', ans1: '談判', ans2: '協商', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 },
+            { question: 'agenda', ans1: '議程', ans2: '討論事項', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 },
+            { question: 'proposal', ans1: '提案', ans2: '建議書', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 }
+          ]
+        },
+        {
+          id: 'share_demo_2',
+          name: 'JLPT N3 常用動詞精選',
+          author: '櫻花貓貓',
+          description: '日檢 N3 必考高頻動詞與漢字。',
+          downloads: 29,
+          likes: 15,
+          createdAt: '2026-03-21',
+          words: [
+            { question: '調べる', ans1: 'しらべる', ans2: '調查/查閱', qLang: 'ja-JP', aLang: 'zh-TW', attempts: 0, errors: 0 },
+            { question: '手伝う', ans1: 'てつだう', ans2: '幫忙', qLang: 'ja-JP', aLang: 'zh-TW', attempts: 0, errors: 0 }
+          ]
+        }
+      ];
+      localStorage.setItem('vocab_shared_decks', JSON.stringify(sharedDecks));
+    }
+
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
     let tempParsedAiWords = [];
-    let rawParsedRows = []; 
+    let rawParsedRows = []; // 儲存 AI 回傳的二維陣列
     let lastCapturedFile = null;
 
-    // Supabase 變數
-    let supabaseClient = null;
-    let currentUser = null;
+    // 預設模型名單
+    const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+
+    function getGeminiModel() {
+      return localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
+    }
+
+    function getCachedGenerateModels() {
+      const saved = localStorage.getItem('gemini_cached_models');
+      return saved ? JSON.parse(saved) : DEFAULT_MODELS;
+    }
 
     window.onload = function() {
       updateAppVersion();
       loadLanguagePreferences();
       loadTheme();
-      loadSettingsUI();
+      updateModelDropdown();
       renderUI();
-      initSupabase();
 
       if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-          if ((localStorage.getItem('vocab_theme') || 'light') === 'auto') applyTheme('auto');
+          const savedTheme = localStorage.getItem('vocab_theme') || 'light';
+          if (savedTheme === 'auto') {
+            applyTheme('auto');
+          }
         });
       }
     };
 
+    /* 主題功能邏輯 */
     function applyTheme(theme) {
-      document.body.classList.toggle('dark-mode', theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches));
+      if (theme === 'dark') {
+        document.body.classList.add('dark-mode');
+      } else if (theme === 'light') {
+        document.body.classList.remove('dark-mode');
+      } else if (theme === 'auto') {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+          document.body.classList.add('dark-mode');
+        } else {
+          document.body.classList.remove('dark-mode');
+        }
+      }
     }
+
     function changeTheme() {
       const theme = document.getElementById('setting-theme').value;
       localStorage.setItem('vocab_theme', theme);
       applyTheme(theme);
     }
+
     function loadTheme() {
       const savedTheme = localStorage.getItem('vocab_theme') || 'light';
-      document.getElementById('setting-theme').value = savedTheme;
+      const themeSelect = document.getElementById('setting-theme');
+      if (themeSelect) themeSelect.value = savedTheme;
       applyTheme(savedTheme);
     }
+
     function updateAppVersion() {
-      const d = new Date(document.lastModified);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const date = String(d.getDate()).padStart(2, '0');
-      const hours = String(d.getHours()).padStart(2, '0');
-      const minutes = String(d.getMinutes()).padStart(2, '0');
-      const seconds = String(d.getSeconds()).padStart(2, '0');
+      const lastMod = new Date(document.lastModified);
+      const yyyy = lastMod.getFullYear();
+      const mm = String(lastMod.getMonth() + 1).padStart(2, '0');
+      const dd = String(lastMod.getDate()).padStart(2, '0');
+      const hh = String(lastMod.getHours()).padStart(2, '0');
+      const min = String(lastMod.getMinutes()).padStart(2, '0');
       
-      document.getElementById('app-version').innerText = `Ver: ${year}.${month}.${date} ${hours}:${minutes}:${seconds}`;
-    }
-
-    function loadSettingsUI() {
-      document.getElementById('setting-quiz-limit').value = quizLimit;
-      document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key') || '';
-      document.getElementById('setting-gemini-model').value = localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
-      document.getElementById('input-sb-url').value = localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL;
-      document.getElementById('input-sb-key').value = localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY;
-    }
-
-    function saveSettings() {
-      localStorage.setItem('vocab_quiz_limit', document.getElementById('setting-quiz-limit').value);
-      localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value.trim());
-      localStorage.setItem('gemini_selected_model', document.getElementById('setting-gemini-model').value);
-      localStorage.setItem('supabase_url', document.getElementById('input-sb-url').value.trim());
-      localStorage.setItem('supabase_key', document.getElementById('input-sb-key').value.trim());
-    }
-
-    function saveLanguagePreferences() {
-      localStorage.setItem('vocab_q_lang', document.getElementById('input-q-lang').value);
-      localStorage.setItem('vocab_a_lang', document.getElementById('input-a-lang').value);
-    }
-    function loadLanguagePreferences() {
-      if(localStorage.getItem('vocab_q_lang')) document.getElementById('input-q-lang').value = localStorage.getItem('vocab_q_lang');
-      if(localStorage.getItem('vocab_a_lang')) document.getElementById('input-a-lang').value = localStorage.getItem('vocab_a_lang');
+      const verStr = `Ver: ${yyyy}.${mm}.${dd}-${hh}${min}`;
+      const verElem = document.getElementById('app-version');
+      if (verElem) verElem.innerText = verStr;
     }
 
     function saveData() {
@@ -458,29 +479,76 @@
       localStorage.setItem('vocab_current_deck', currentDeckId);
       renderUI();
     }
+
+    function saveSharedData() {
+      localStorage.setItem('vocab_shared_decks', JSON.stringify(sharedDecks));
+      renderSharedDecks();
+    }
+
+    function saveSettings() {
+      quizLimit = parseInt(document.getElementById('setting-quiz-limit').value);
+      localStorage.setItem('vocab_quiz_limit', quizLimit);
+      localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value.trim());
+      
+      const modelSelect = document.getElementById('setting-gemini-model');
+      if (modelSelect && modelSelect.value) {
+        localStorage.setItem('gemini_selected_model', modelSelect.value);
+      }
+    }
+
+    function updateModelDropdown() {
+      const availableModels = getCachedGenerateModels();
+      const currentModel = getGeminiModel();
+      const modelSelect = document.getElementById('setting-gemini-model');
+
+      if (modelSelect) {
+        modelSelect.innerHTML = availableModels.map(m => `
+          <option value="${m}" ${m === currentModel ? 'selected' : ''}>${m}</option>
+        `).join('');
+      }
+    }
+
+    function saveLanguagePreferences() {
+      const qLang = document.getElementById('input-q-lang').value;
+      const aLang = document.getElementById('input-a-lang').value;
+      localStorage.setItem('vocab_q_lang', qLang);
+      localStorage.setItem('vocab_a_lang', aLang);
+    }
+
+    function loadLanguagePreferences() {
+      const savedQLang = localStorage.getItem('vocab_q_lang');
+      const savedALang = localStorage.getItem('vocab_a_lang');
+      if (savedQLang) document.getElementById('input-q-lang').value = savedQLang;
+      if (savedALang) document.getElementById('input-a-lang').value = savedALang;
+    }
+
     function getCurrentDeck() { return decks.find(d => d.id === currentDeckId) || decks[0]; }
 
     function createDeck() {
       const name = document.getElementById('new-deck-name').value.trim();
-      if (!name) return alert('請輸入名稱');
-      decks.push({ id: 'deck_' + Date.now(), name, words: [], history: [] });
+      if (!name) return alert('請輸入單字庫名稱！');
+      decks.push({ id: 'deck_' + Date.now(), name: name, words: [], history: [] });
       currentDeckId = decks[decks.length - 1].id;
       document.getElementById('new-deck-name').value = '';
       saveData();
     }
-    function changeCurrentDeck() { currentDeckId = document.getElementById('deck-select').value; saveData(); }
+
+    function changeCurrentDeck() {
+      currentDeckId = document.getElementById('deck-select').value;
+      saveData();
+    }
 
     function addWord() {
       const q = document.getElementById('input-question').value.trim();
       const a1 = document.getElementById('input-ans1').value.trim();
-      if (!q || !a1) return alert('請填寫題目與主要答案！');
-      getCurrentDeck().words.push({ 
-        question: q, ans1: a1, 
-        ans2: document.getElementById('input-ans2').value.trim(), 
-        qLang: document.getElementById('input-q-lang').value, 
-        aLang: document.getElementById('input-a-lang').value, 
-        attempts: 0, errors: 0 
-      });
+      const a2 = document.getElementById('input-ans2').value.trim();
+      const qLang = document.getElementById('input-q-lang').value;
+      const aLang = document.getElementById('input-a-lang').value;
+
+      if (!q || !a1) return alert('請至少填寫題目與答案一！');
+      const deck = getCurrentDeck();
+      deck.words.push({ question: q, ans1: a1, ans2: a2, qLang: qLang, aLang: aLang, attempts: 0, errors: 0 });
+      
       document.getElementById('input-question').value = '';
       document.getElementById('input-ans1').value = '';
       document.getElementById('input-ans2').value = '';
@@ -498,7 +566,9 @@
       if(w.qLang) document.getElementById('edit-q-lang').value = w.qLang;
       document.getElementById('edit-modal').classList.remove('hidden');
     }
+
     function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+
     function saveEditedWord() {
       const idx = document.getElementById('edit-index').value;
       const w = getCurrentDeck().words[idx];
@@ -515,505 +585,723 @@
       u.lang = lang;
       window.speechSynthesis.speak(u);
     }
+
     function speakCurrentQuestion() {
-      if (currentQuizItem) speakText(currentQuizItem.question, currentQuizItem.qLang || 'en-US');
+      if (currentQuizItem) {
+        speakText(currentQuizItem.question, currentQuizItem.qLang || 'en-US');
+      }
+    }
+
+    async function fetchAvailableModels() {
+      const apiKey = localStorage.getItem('gemini_api_key') || document.getElementById('input-api-key').value.trim();
+      const container = document.getElementById('models-list-container');
+      
+      if (!apiKey) {
+        alert('請先在設定頁面輸入 API Key！');
+        if (container) container.innerHTML = '<p style="color:red;">❌ 未輸入 API Key，無法向 ListModels 發送請求。</p>';
+        return;
+      }
+
+      if (container) container.innerHTML = '<p style="color:#1a73e8; font-weight:bold;">⏳ 正在呼叫 ModelService.ListModels API...<br><code style="font-size:12px; font-weight:normal;">https://generativelanguage.googleapis.com/v1beta/models</code></p>';
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (data.error) {
+          if (container) container.innerHTML = `<p style="color:red;">❌ 查詢失敗：${data.error.message}</p>`;
+          return;
+        }
+
+        const rawModels = data.models || [];
+        const currentModel = getGeminiModel();
+
+        const generateContentModelNames = rawModels
+          .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+          .map(m => m.name.replace('models/', ''));
+
+        if (generateContentModelNames.length > 0) {
+          localStorage.setItem('gemini_cached_models', JSON.stringify(generateContentModelNames));
+          if (!generateContentModelNames.includes(currentModel)) {
+            localStorage.setItem('gemini_selected_model', generateContentModelNames[0]);
+          }
+        }
+
+        updateModelDropdown();
+
+        if (container) {
+          container.innerHTML = rawModels.map(m => {
+            const cleanName = m.name.replace('models/', '');
+            const isCurrent = (cleanName === getGeminiModel());
+            const supportsGenerate = m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent');
+
+            return `
+              <div style="border: 1px solid ${isCurrent ? '#1a73e8' : 'var(--input-border)'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? 'var(--hint-bg)' : 'var(--card-bg)'};">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>${isCurrent 
+                    ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' 
+                    : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用此模型</button>` : '<span style="color:var(--subtext-color); font-size:12px;">不支援內容生成</span>')
+                  }
+                </div>
+                <p style="margin:6px 0 3px 0; font-size:13px; color:var(--subtext-color);">${m.description || '無詳細描述'}</p>
+                <p style="margin:0; font-size:11px; color:var(--subtext-color);">支援方法: ${(m.supportedGenerationMethods || []).join(', ')}</p>
+              </div>
+            `;
+          }).join('');
+        }
+
+        alert(`✅ ListModels 查詢成功！已更新模型選擇清單 (共找到 ${generateContentModelNames.length} 個可用生成模型)`);
+
+      } catch (e) {
+        if (container) container.innerHTML = `<p style="color:red;">❌ 網路或請求發生錯誤：${e.message}</p>`;
+      }
+    }
+
+    function selectModel(modelName) {
+      localStorage.setItem('gemini_selected_model', modelName);
+      updateModelDropdown();
+      alert(`已將預設 AI 模型切換為：${modelName}`);
+      fetchAvailableModels();
+    }
+
+    async function testGeminiConnection() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const resElem = document.getElementById('test-result');
+      const currentModel = getGeminiModel();
+      
+      if (!apiKey) {
+        resElem.style.color = 'red';
+        resElem.innerText = '❌ 請先輸入 API Key！';
+        return;
+      }
+
+      resElem.style.color = '#1a73e8';
+      resElem.innerText = `⏳ 正在測試與模型 [${currentModel}] 的連線...`;
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: '請回覆「OK」' }] }]
+          })
+        });
+
+        const data = await resp.json();
+        
+        if (data.error) {
+          resElem.style.color = 'red';
+          resElem.innerText = `❌ 連線失敗 (${currentModel})：${data.error.message}`;
+        } else {
+          resElem.style.color = 'green';
+          resElem.innerText = `✅ 模型 [${currentModel}] 連線測試成功！`;
+        }
+      } catch (e) {
+        resElem.style.color = 'red';
+        resElem.innerText = `❌ 網路或請求異常：${e.message}`;
+      }
     }
 
     async function aiSuggestAnswer() {
       const apiKey = localStorage.getItem('gemini_api_key');
-      const model = localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
-      if (!apiKey) return alert('請先設定 API Key');
       const q = document.getElementById('input-question').value.trim();
-      if (!q) return alert('請輸入題目');
-      
+      const qLang = document.getElementById('input-q-lang') ? document.getElementById('input-q-lang').value : 'auto';
+      const aLang = document.getElementById('input-a-lang') ? document.getElementById('input-a-lang').value : 'zh-TW';
+      const currentModel = getGeminiModel();
+
+      if (!apiKey) return alert('請先到設定頁面設定 API Key！');
+      if (!q) return alert('請先輸入題目！');
+
       const btn = document.getElementById('btn-ai-suggest');
-      btn.innerText = '⏳ AI 思考中...';
-      btn.disabled = true;
+      const originalText = btn ? btn.innerText : '✨ AI 智慧建議答案';
+      if (btn) {
+        btn.innerText = '⏳ AI 思考中...';
+        btn.disabled = true;
+      }
+
+      const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
+題目："${q}"
+題目語言：${qLang}
+目標答案語言：${aLang}
+
+【嚴格遵守語言規則】：
+若「目標答案語言」為日文（ja-JP 或含日文）：
+1. "ans1" 必須【完全不可包含任何漢字】，只能是純假名/平假名（例如：にほんご、たべる、かんじ）。
+2. "ans2" 必須是【包含漢字】的標準寫法（例如：日本語、食べる、漢字）。
+
+若為其他語言：
+1. "ans1" 為主要標準翻譯。
+2. "ans2" 為同義詞或備用翻譯。
+
+請嚴格回傳純 JSON 格式：
+{"ans1": "答案一", "ans2": "答案二"}`;
 
       try {
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: `將題目 "${q}" 翻譯為 ${document.getElementById('input-a-lang').value}。若目標為日文，ans1純假名，ans2含漢字。回傳純JSON: {"ans1": "","ans2": ""}` }] }],
+            contents: [{ parts: [{ text: promptText }] }],
             generationConfig: { responseMimeType: "application/json" }
           })
         });
-        const data = await resp.json();
-        const jsonStr = data.candidates[0].content.parts[0].text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(jsonStr);
+
+        const data = await response.json();
+        if (data.error) throw new Error(`[${currentModel}] ${data.error.message}`);
+
+        let text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        
         if (parsed.ans1) document.getElementById('input-ans1').value = parsed.ans1;
         if (parsed.ans2) document.getElementById('input-ans2').value = parsed.ans2;
       } catch (e) {
-        alert('AI 失敗: ' + e.message);
+        console.error('AI 建議失敗:', e);
+        alert('AI 建議失敗: ' + e.message);
       } finally {
-        btn.innerText = '✨ AI 智慧建議答案';
-        btn.disabled = false;
+        if (btn) {
+          btn.innerText = originalText;
+          btn.disabled = false;
+        }
       }
     }
 
-    /* AI 拍照表格辨識邏輯 (Gemini Vision API) */
-    async function handleImageCapture(event) {
+    /* AI 相機/圖片辨識 (兩階段欄位對應) */
+    function handleImageCapture(event) {
       const file = event.target.files[0];
       if (!file) return;
       lastCapturedFile = file;
-      await processAiImage(file);
-    }
-
-    async function retryAiCapture() {
-      if (!lastCapturedFile) return alert('尚未選擇照片！');
-      await processAiImage(lastCapturedFile);
-    }
-
-    async function processAiImage(file) {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      const model = localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
-      const errorArea = document.getElementById('ai-error-area');
-      const errorMsg = document.getElementById('ai-error-msg');
-      const loading = document.getElementById('ai-loading');
-      const reanalyzeBtn = document.getElementById('btn-reanalyze');
-      const mappingArea = document.getElementById('ai-column-mapping-area');
-      const resultArea = document.getElementById('ai-result-area');
-
-      if (!apiKey) {
-        errorArea.classList.remove('hidden');
-        errorMsg.innerText = '⚠️ 請先至「⚙️ 設定」頁面設定 Gemini API Key！';
-        return;
-      }
-
-      errorArea.classList.add('hidden');
-      mappingArea.classList.add('hidden');
-      resultArea.classList.add('hidden');
-      loading.classList.remove('hidden');
-
-      try {
-        const base64Data = await fileToBase64(file);
-        const userHint = document.getElementById('ai-user-hint').value.trim();
-        const promptText = `請分析此圖片中的單字表格對照表內容。${userHint ? '使用者補充說明：' + userHint : ''}
-請將解析出的表格每一列作為二維陣列輸出。請回傳純 JSON 格式：{"table": [["列1欄1", "列1欄2"], ["列2欄1", "列2欄2"]]}`;
-
-        const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: promptText },
-                { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data.split(',')[1] } }
-              ]
-            }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
-        });
-
-        const data = await resp.json();
-        if (data.error) throw new Error(data.error.message || 'API 請求失敗');
-
-        const jsonStr = data.candidates[0].content.parts[0].text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(jsonStr);
-        rawParsedRows = parsed.table || parsed.rows || parsed;
-
-        if (!Array.isArray(rawParsedRows) || rawParsedRows.length === 0) {
-          throw new Error('未從圖片中解析出有效的表格數據');
-        }
-
-        reanalyzeBtn.classList.remove('hidden');
-        renderColumnMappingUI(rawParsedRows);
-      } catch (err) {
-        errorArea.classList.remove('hidden');
-        errorMsg.innerText = '❌ 辨識失敗：' + err.message;
-      } finally {
-        loading.classList.add('hidden');
-      }
-    }
-
-    function fileToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    function renderColumnMappingUI(rows) {
-      const container = document.getElementById('ai-col-mapping-container');
-      container.innerHTML = '';
       
-      const maxCols = Math.max(...rows.map(r => Array.isArray(r) ? r.length : 0));
-      if (maxCols === 0) return alert('解析結果無有效欄位');
+      document.getElementById('btn-reanalyze').classList.remove('hidden');
+      processImageFile(file);
+    }
+
+    function retryAiCapture() {
+      if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新選擇！');
+      processImageFile(lastCapturedFile);
+    }
+
+    async function processImageFile(file) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      
+      if (!apiKey) return alert('請先至設定頁面填寫 Gemini API Key！');
+
+      document.getElementById('ai-loading').classList.remove('hidden');
+      document.getElementById('ai-error-area').classList.add('hidden');
+      document.getElementById('ai-column-mapping-area').classList.add('hidden');
+      document.getElementById('ai-result-area').classList.add('hidden');
+
+      const userHint = document.getElementById('ai-user-hint') ? document.getElementById('ai-user-hint').value.trim() : '';
+      const hintPrompt = userHint ? `\n【使用者提供的表格格式說明】：${userHint}\n` : '';
+
+      const promptText = `你是一個專業的二維表格與 OCR 解析助手。
+請讀取圖片中的內容，並將其整理為二維陣列 (Rows & Columns)。
+
+解析規則：
+1. 請保留表格原本的欄位順序，將每一列 (Row) 解析為包含所有欄位字串的陣列。
+2. 自動忽略頁碼或無關圖樣，但表格內所有欄位（如序號、單字、詞性、例句、中文）請完整保留在對應欄位中。
+${hintPrompt}
+請嚴格回傳純 JSON 格式：
+{
+  "raw_text": "圖片完整 OCR 原始文字",
+  "rows": [
+    ["1", "apple", "n.", "蘋果", "I eat an apple."],
+    ["2", "banana", "n.", "香蕉", "Bananas are yellow."]
+  ]
+}`;
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64Data = reader.result.split(',')[1];
+
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: promptText },
+                  { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data } }
+                ]
+              }],
+              generationConfig: { responseMimeType: "application/json" }
+            })
+          });
+
+          const data = await response.json();
+          document.getElementById('ai-loading').classList.add('hidden');
+
+          if (data.error) {
+            document.getElementById('ai-error-msg').innerText = `❌ AI 辨識錯誤 (${currentModel}): ${data.error.message}`;
+            document.getElementById('ai-error-area').classList.remove('hidden');
+            return;
+          }
+
+          const text = data.candidates[0].content.parts[0].text;
+          const jsonMatch = text.match(/\{[\s\S]*\}/);
+          const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const parsed = JSON.parse(cleaned);
+
+          document.getElementById('ai-raw-text').value = parsed.raw_text || '';
+          rawParsedRows = parsed.rows || [];
+
+          if (rawParsedRows.length > 0) {
+            renderColumnMappingUI();
+            document.getElementById('ai-column-mapping-area').classList.remove('hidden');
+          } else if (parsed.words && parsed.words.length > 0) {
+            tempParsedAiWords = parsed.words;
+            renderAiPreview();
+            document.getElementById('ai-result-area').classList.remove('hidden');
+          } else {
+            document.getElementById('ai-error-msg').innerText = '❌ 無法從照片中解析出有效的表格內容。請嘗試在上方加入「補充說明」後，點擊重新分析。';
+            document.getElementById('ai-error-area').classList.remove('hidden');
+          }
+
+        } catch (e) {
+          document.getElementById('ai-loading').classList.add('hidden');
+          document.getElementById('ai-error-msg').innerText = `❌ 網路或解析失敗 (${currentModel})：${e.message}`;
+          document.getElementById('ai-error-area').classList.remove('hidden');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 渲染欄位對應 UI
+    function renderColumnMappingUI() {
+      const container = document.getElementById('ai-col-mapping-container');
+      if (!rawParsedRows || rawParsedRows.length === 0) return;
+
+      const maxCols = Math.max(...rawParsedRows.map(r => r.length));
+      let html = '';
 
       for (let i = 0; i < maxCols; i++) {
-        const sampleVals = rows.slice(0, 3).map(r => r[i] || '').filter(Boolean).join(', ');
-        const colDiv = document.createElement('div');
-        colDiv.style.cssText = 'min-width: 120px; flex: 1; background: var(--card-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--border-color);';
-        colDiv.innerHTML = `
-          <label style="font-size: 12px; font-weight: bold; display: block;">欄位 ${i + 1}</label>
-          <div style="font-size: 11px; color: var(--subtext-color); margin: 4px 0 8px 0; max-height: 36px; overflow: hidden;" title="${escapeHtml(sampleVals)}">例: ${escapeHtml(sampleVals || '無')}</div>
-          <select class="col-role-select" data-col-index="${i}" style="font-size: 13px; padding: 6px;">
-            <option value="ignore">忽略</option>
-            <option value="question" ${i === 0 ? 'selected' : ''}>題目</option>
-            <option value="ans1" ${i === 1 ? 'selected' : ''}>答案一</option>
-            <option value="ans2" ${i === 2 ? 'selected' : ''}>答案二</option>
-          </select>
-        `;
-        container.appendChild(colDiv);
-      }
-
-      document.getElementById('ai-column-mapping-area').classList.remove('hidden');
-    }
-
-    function applyColumnMapping() {
-      const selects = document.querySelectorAll('.col-role-select');
-      let qIdx = -1, a1Idx = -1, a2Idx = -1;
-
-      selects.forEach(sel => {
-        const idx = parseInt(sel.dataset.colIndex);
-        const role = sel.value;
-        if (role === 'question') qIdx = idx;
-        if (role === 'ans1') a1Idx = idx;
-        if (role === 'ans2') a2Idx = idx;
-      });
-
-      if (qIdx === -1 || a1Idx === -1) {
-        return alert('請至少指定「題目」與「答案一」的對應欄位！');
-      }
-
-      tempParsedAiWords = [];
-      rawParsedRows.forEach(row => {
-        if (!Array.isArray(row)) return;
-        const q = (row[qIdx] || '').toString().trim();
-        const a1 = (row[a1Idx] || '').toString().trim();
-        const a2 = a2Idx !== -1 ? (row[a2Idx] || '').toString().trim() : '';
-
-        if (q && a1) {
-          tempParsedAiWords.push({ question: q, ans1: a1, ans2: a2 });
+        const samples = rawParsedRows.slice(0, 3).map(r => r[i] || '').filter(Boolean);
+        
+        let defaultRole = 'ignore';
+        if (maxCols === 2) {
+          defaultRole = i === 0 ? 'question' : 'ans1';
+        } else {
+          if (i === 0) {
+            const firstSample = samples[0] || '';
+            defaultRole = /^\d+$/.test(firstSample.trim()) ? 'ignore' : 'question';
+          } else if (i === 1) {
+            const col0IsNum = /^\d+$/.test((rawParsedRows[0][0] || '').trim());
+            defaultRole = col0IsNum ? 'question' : 'ans1';
+          } else if (i === 2) {
+            defaultRole = 'ans1';
+          }
         }
-      });
 
-      renderParsedPreview();
-      document.getElementById('ai-result-area').classList.remove('hidden');
+        html += `
+          <div style="border: 1px solid var(--input-border); background: var(--card-bg); padding: 10px; border-radius: 8px; min-width: 140px; flex: 1 0 140px;">
+            <div style="font-weight: bold; font-size: 13px; color: #1a73e8; margin-bottom: 6px;">第 ${i + 1} 欄</div>
+            <select class="col-map-select" data-col="${i}" style="margin-top:0; padding:6px; font-size:13px;">
+              <option value="ignore" ${defaultRole === 'ignore' ? 'selected' : ''}>❌ 忽略 (序號/詞性/例句)</option>
+              <option value="question" ${defaultRole === 'question' ? 'selected' : ''}>📖 設為題目</option>
+              <option value="ans1" ${defaultRole === 'ans1' ? 'selected' : ''}>💡 設為答案一</option>
+              <option value="ans2" ${defaultRole === 'ans2' ? 'selected' : ''}>📝 設為答案二</option>
+            </select>
+            <div style="margin-top:8px; font-size:11px; color:var(--subtext-color); background:var(--mapping-bg); padding:6px; border-radius:4px; max-height:80px; overflow-y:auto;">
+              <strong>範例資料：</strong><br>
+              ${samples.map(s => `• ${escapeHtml(s)}`).join('<br>') || '<span style="color:#aaa;">(空白)</span>'}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
     }
 
-    function renderParsedPreview() {
-      const preview = document.getElementById('ai-parsed-preview');
+    function escapeHtml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // 將二維矩陣依據使用者的欄位指定轉換為單字庫
+    function applyColumnMapping() {
+      const selects = document.querySelectorAll('.col-map-select');
+      let qCol = -1, a1Col = -1, a2Col = -1;
+
+      selects.forEach(s => {
+        const colIdx = parseInt(s.getAttribute('data-col'));
+        if (s.value === 'question') qCol = colIdx;
+        if (s.value === 'ans1') a1Col = colIdx;
+        if (s.value === 'ans2') a2Col = colIdx;
+      });
+
+      if (qCol === -1 || a1Col === -1) {
+        return alert('請至少指定一個「📖 設為題目」欄位與一個「💡 設為答案一」欄位！');
+      }
+
+      tempParsedAiWords = rawParsedRows.map(row => {
+        const q = row[qCol] ? String(row[qCol]).trim() : '';
+        const a1 = row[a1Col] ? String(row[a1Col]).trim() : '';
+        const a2 = (a2Col !== -1 && row[a2Col]) ? String(row[a2Col]).trim() : '';
+        return {
+          question: q,
+          ans1: a1,
+          ans2: a2,
+          qLang: 'en-US',
+          aLang: 'zh-TW'
+        };
+      }).filter(w => w.question && w.ans1);
+
       if (tempParsedAiWords.length === 0) {
-        preview.innerHTML = '<p style="color: var(--subtext-color);">未提取到任何有效單字。</p>';
+        return alert('轉換失敗，未能從您指定的欄位中導出有效單字，請重新確認欄位設定。');
+      }
+
+      renderAiPreview();
+      document.getElementById('ai-result-area').classList.remove('hidden');
+      document.getElementById('ai-result-area').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 渲染 AI 解析預覽列表
+    function renderAiPreview() {
+      const previewDiv = document.getElementById('ai-parsed-preview');
+      if (!tempParsedAiWords || tempParsedAiWords.length === 0) {
+        previewDiv.innerHTML = '<p style="color:var(--subtext-color);">目前沒有解析出的單字。</p>';
         return;
       }
-
-      preview.innerHTML = tempParsedAiWords.map((w, i) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color);">
-          <div>
-            <strong>${escapeHtml(w.question)}</strong> ➔ ${escapeHtml(w.ans1)} ${w.ans2 ? `(${escapeHtml(w.ans2)})` : ''}
+      previewDiv.innerHTML = tempParsedAiWords.map((w, index) => `
+        <div class="word-item" style="border-bottom:1px solid var(--border-color); padding:8px 0;">
+          <div style="flex:1; margin-right:10px;">
+            <strong>${w.question}</strong> ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}
           </div>
-          <button onclick="removeTempAiWord(${i})" class="btn-danger" style="width: auto; padding: 2px 8px; font-size: 12px;">刪除</button>
+          <div style="display:flex; gap:5px; flex-shrink:0;">
+            <button type="button" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" onclick="openEditAiWordModal(${index})">編輯</button>
+            <button type="button" class="btn-danger" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" onclick="deleteAiWord(${index})">刪除</button>
+          </div>
         </div>
       `).join('');
     }
 
-    function removeTempAiWord(index) {
+    function deleteAiWord(index) {
       tempParsedAiWords.splice(index, 1);
-      renderParsedPreview();
+      renderAiPreview();
+    }
+
+    function openEditAiWordModal(index) {
+      const w = tempParsedAiWords[index];
+      document.getElementById('edit-ai-index').value = index;
+      document.getElementById('edit-ai-question').value = w.question || '';
+      document.getElementById('edit-ai-ans1').value = w.ans1 || '';
+      document.getElementById('edit-ai-ans2').value = w.ans2 || '';
+      document.getElementById('edit-ai-modal').classList.remove('hidden');
+    }
+
+    function closeEditAiModal() {
+      document.getElementById('edit-ai-modal').classList.add('hidden');
+    }
+
+    function saveEditedAiWord() {
+      const idx = parseInt(document.getElementById('edit-ai-index').value);
+      if (!isNaN(idx) && tempParsedAiWords[idx]) {
+        tempParsedAiWords[idx].question = document.getElementById('edit-ai-question').value.trim();
+        tempParsedAiWords[idx].ans1 = document.getElementById('edit-ai-ans1').value.trim();
+        tempParsedAiWords[idx].ans2 = document.getElementById('edit-ai-ans2').value.trim();
+      }
+      closeEditAiModal();
+      renderAiPreview();
     }
 
     function confirmImportAiWords() {
-      if (tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
+      if (!tempParsedAiWords || tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
+      
       const targetDeckId = document.getElementById('ai-target-deck-select').value;
       const targetDeck = decks.find(d => d.id === targetDeckId);
+      
       if (!targetDeck) return alert('找不到目標單字庫！');
 
-      const qLang = document.getElementById('input-q-lang').value || 'en-US';
-      const aLang = document.getElementById('input-a-lang').value || 'zh-TW';
+      let addedCount = 0;
+      let skippedCount = 0;
 
       tempParsedAiWords.forEach(w => {
-        targetDeck.words.push({
-          question: w.question,
-          ans1: w.ans1,
-          ans2: w.ans2 || '',
-          qLang: qLang,
-          aLang: aLang,
-          attempts: 0,
-          errors: 0
+        const qClean = (w.question || '').trim().toLowerCase();
+        const a1Clean = (w.ans1 || '').trim().toLowerCase();
+        const a2Clean = (w.ans2 || '').trim().toLowerCase();
+
+        const isDuplicate = targetDeck.words.some(existing => {
+          const exQ = (existing.question || '').trim().toLowerCase();
+          const exA1 = (existing.ans1 || '').trim().toLowerCase();
+          const exA2 = (existing.ans2 || '').trim().toLowerCase();
+
+          const sameQuestion = qClean && exQ && (qClean === exQ);
+          const sameAns1 = a1Clean && (a1Clean === exA1 || (exA2 && a1Clean === exA2));
+          const sameAns2 = a2Clean && (a2Clean === exA1 || (exA2 && a2Clean === exA2));
+
+          return sameQuestion || sameAns1 || sameAns2;
         });
+
+        if (isDuplicate) {
+          skippedCount++;
+        } else {
+          targetDeck.words.push({
+            question: w.question,
+            ans1: w.ans1,
+            ans2: w.ans2 || '',
+            qLang: w.qLang || 'en-US',
+            aLang: w.aLang || 'zh-TW',
+            attempts: 0,
+            errors: 0
+          });
+          addedCount++;
+        }
       });
 
       saveData();
-      alert(`🎉 成功匯入 ${tempParsedAiWords.length} 個單字至「${targetDeck.name}」！`);
-      
-      // 清空預覽與重置
-      tempParsedAiWords = [];
-      rawParsedRows = [];
-      document.getElementById('ai-result-area').classList.add('hidden');
-      document.getElementById('ai-column-mapping-area').classList.add('hidden');
-      document.getElementById('camera-input').value = '';
+      alert(`匯入結果結算：\n✅ 成功匯入 ${addedCount} 個單字\n⚠️ 略過 ${skippedCount} 個重複單字 (與「${targetDeck.name}」中已有題目/答案相同)`);
+      switchTab('list');
     }
 
-    /* Supabase 驗證與資料庫功能 */
-    async function initSupabase() {
-      const url = localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL;
-      const key = localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY;
-      
-      if (url && key && window.supabase) {
-        supabaseClient = window.supabase.createClient(url, key);
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        updateAuthUI(session?.user);
-        
-        // 監聽驗證狀態變化（例如第三方登入跳回）
-        supabaseClient.auth.onAuthStateChange((_event, session) => {
-          updateAuthUI(session?.user);
-        });
-
-        if(document.getElementById('tab-share').classList.contains('active')) fetchSharedDecks();
-      } else {
-        updateAuthUI(null);
-      }
-    }
-
-    function updateAuthUI(user) {
-      currentUser = user;
-      if (user) {
-        document.getElementById('auth-section').classList.add('hidden');
-        document.getElementById('user-info-section').classList.remove('hidden');
-        document.getElementById('current-user-email').innerText = user.email || user.user_metadata?.full_name || '已登入使用者';
-      } else {
-        document.getElementById('auth-section').classList.remove('hidden');
-        document.getElementById('user-info-section').classList.add('hidden');
-      }
-    }
-
-    // Google 快速登入
-    async function handleGoogleLogin() {
-      if(!supabaseClient) return alert('Supabase 未能成功初始化');
-      const { data, error } = await supabaseClient.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin + window.location.pathname
-        }
-      });
-      if (error) {
-        alert('Google 登入啟動失敗: ' + error.message);
-      }
-    }
-
-    async function handleLogin() {
-      if(!supabaseClient) return alert('Supabase 未能成功初始化');
-      const email = document.getElementById('auth-email').value;
-      const password = document.getElementById('auth-password').value;
-      const status = document.getElementById('auth-status');
-      status.innerText = '登入中...';
-      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-      if (error) {
-        status.style.color = 'red';
-        status.innerText = '登入失敗: ' + error.message;
-      } else {
-        status.innerText = '';
-        updateAuthUI(data.user);
-        fetchSharedDecks();
-      }
-    }
-
-    async function handleRegister() {
-      if(!supabaseClient) return alert('Supabase 未能成功初始化');
-      const email = document.getElementById('auth-email').value;
-      const password = document.getElementById('auth-password').value;
-      const status = document.getElementById('auth-status');
-      status.innerText = '註冊中...';
-      const { data, error } = await supabaseClient.auth.signUp({ email, password });
-      if (error) {
-        status.style.color = 'red';
-        status.innerText = '註冊失敗: ' + error.message;
-      } else {
-        status.style.color = 'green';
-        status.innerText = '註冊成功，請檢查電子郵件(如需驗證)或直接登入。';
-        updateAuthUI(data.user);
-      }
-    }
-
-    async function handleLogout() {
-      if(supabaseClient) await supabaseClient.auth.signOut();
-      updateAuthUI(null);
-    }
-
-    async function publishDeckToSupabase() {
-      if (!supabaseClient || !currentUser) return alert('請先登入會員！');
-      
+    /* 社群分享邏輯 */
+    function publishDeck() {
       const deckId = document.getElementById('share-deck-select').value;
-      const author = document.getElementById('share-author-input').value.trim() || currentUser.email || '匿名';
-      const desc = document.getElementById('share-desc-input').value.trim();
+      const author = document.getElementById('share-author-input').value.trim() || '匿名創作者';
+      const desc = document.getElementById('share-desc-input').value.trim() || '尚無詳細介紹';
+
       const target = decks.find(d => d.id === deckId);
-      
-      if (!target || target.words.length === 0) return alert('單字庫不能為空！');
+      if (!target) return alert('請選擇有效的單字庫！');
+      if (!target.words || target.words.length === 0) return alert('選取的單字庫為空，無法進行分享！');
 
-      const btn = document.getElementById('btn-publish');
-      btn.disabled = true; btn.innerText = '上傳中...';
-
-      const { data, error } = await supabaseClient.from('shared_decks').insert([{
+      const newShared = {
+        id: 'share_' + Date.now(),
         name: target.name,
         author: author,
         description: desc,
         downloads: 0,
         likes: 0,
-        words: target.words
-      }]);
+        createdAt: new Date().toISOString().split('T')[0],
+        words: JSON.parse(JSON.stringify(target.words))
+      };
 
-      btn.disabled = false; btn.innerText = '🚀 上傳至雲端社群';
+      sharedDecks.unshift(newShared);
+      saveSharedData();
 
-      if (error) return alert('發布失敗: ' + error.message);
-      alert('🎉 成功發布單字庫！');
       document.getElementById('share-desc-input').value = '';
-      fetchSharedDecks();
+      alert(`🎉 成功發布「${target.name}」到社群市集！`);
     }
 
-    async function fetchSharedDecks() {
+    function likeSharedDeck(shareId) {
+      const item = sharedDecks.find(s => s.id === shareId);
+      if (item) {
+        item.likes = (item.likes || 0) + 1;
+        saveSharedData();
+      }
+    }
+
+    function downloadSharedDeck(shareId) {
+      const item = sharedDecks.find(s => s.id === shareId);
+      if (!item) return alert('找不到指定的分享單字庫！');
+
+      const newDeck = {
+        id: 'deck_' + Date.now(),
+        name: `${item.name} (社群下載)`,
+        words: JSON.parse(JSON.stringify(item.words)),
+        history: []
+      };
+
+      decks.push(newDeck);
+      currentDeckId = newDeck.id;
+      saveData();
+
+      item.downloads = (item.downloads || 0) + 1;
+      saveSharedData();
+
+      alert(`✅ 成功下載「${item.name}」！已新增至您的單字庫列表。`);
+    }
+
+    function previewSharedDeck(shareId) {
+      const item = sharedDecks.find(s => s.id === shareId);
+      if (!item) return;
+
+      const previewText = item.words.slice(0, 15).map((w, i) => `${i + 1}. ${w.question} ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}`).join('\n');
+      const extraMsg = item.words.length > 15 ? `\n...以及其他 ${item.words.length - 15} 個單字` : '';
+      alert(`📖 「${item.name}」內容預覽 (共 ${item.words.length} 字)：\n\n${previewText}${extraMsg}`);
+    }
+
+    function renderSharedDecks() {
       const container = document.getElementById('shared-deck-list');
-      if (!supabaseClient) {
-        container.innerHTML = '<p style="color:#dc3545;">未連線至 Supabase。</p>';
-        return;
-      }
-      container.innerHTML = '<p>載入中...</p>';
-      
-      const { data, error } = await supabaseClient.from('shared_decks').select('*').order('created_at', { ascending: false });
-      
-      if (error) {
-        container.innerHTML = `<p style="color:red;">取得資料失敗: ${error.message}</p>`;
-        return;
-      }
-      if (!data || data.length === 0) {
-        container.innerHTML = '<p>目前尚無雲端單字庫分享。</p>';
+      if (!container) return;
+
+      if (sharedDecks.length === 0) {
+        container.innerHTML = '<p style="color:var(--subtext-color);">目前社群尚無分享的單字庫。</p>';
         return;
       }
 
-      container.innerHTML = data.map(item => `
+      container.innerHTML = sharedDecks.map(item => `
         <div style="border: 1px solid var(--border-color); background: var(--card-bg); padding: 12px; margin-bottom: 12px; border-radius: 10px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <strong style="font-size:16px; color:#1a73e8;">${escapeHtml(item.name)}</strong>
             <span style="font-size:12px; color:var(--subtext-color);">作者：${escapeHtml(item.author)}</span>
           </div>
-          <p style="margin:6px 0; font-size:13px; color:var(--subtext-color);">${escapeHtml(item.description || '無簡介')}</p>
+          <p style="margin:6px 0; font-size:13px; color:var(--subtext-color);">${escapeHtml(item.description)}</p>
+          
           <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
             <div style="font-size:12px; color:var(--subtext-color); display:flex; gap:12px;">
-              <span>📚 ${(item.words || []).length} 字</span>
-              <span>📥 ${item.downloads || 0}</span>
-              <span>👍 ${item.likes || 0}</span>
+              <span>📚 ${item.words.length} 個單字</span>
+              <span>📥 ${item.downloads || 0} 次下載</span>
+              <span>👍 ${item.likes || 0} 個讚</span>
             </div>
             <div style="display:flex; gap:6px;">
-              <button onclick="likeSharedDeck('${item.id}', ${item.likes})" class="btn-warning" style="padding:4px 8px; font-size:12px; width:auto; margin:0;">👍 讚</button>
-              <button onclick="downloadSharedDeck('${item.id}')" class="btn-success" style="padding:4px 8px; font-size:12px; width:auto; margin:0;">📥 下載</button>
+              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-secondary" onclick="previewSharedDeck('${item.id}')">👁️ 預覽</button>
+              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-warning" onclick="likeSharedDeck('${item.id}')">👍 按讚</button>
+              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-success" onclick="downloadSharedDeck('${item.id}')">📥 下載</button>
             </div>
           </div>
         </div>
       `).join('');
     }
 
-    async function likeSharedDeck(id, currentLikes) {
-      if(!supabaseClient) return;
-      const { error } = await supabaseClient.from('shared_decks').update({ likes: currentLikes + 1 }).eq('id', id);
-      if(!error) fetchSharedDecks();
-    }
-
-    async function downloadSharedDeck(id) {
-      if(!supabaseClient) return;
-      const { data, error } = await supabaseClient.from('shared_decks').select('*').eq('id', id).single();
-      if (error || !data) return alert('下載失敗');
-
-      decks.push({ id: 'deck_' + Date.now(), name: `${data.name} (下載)`, words: data.words || [], history: [] });
-      currentDeckId = decks[decks.length - 1].id;
-      saveData();
-      alert(`✅ 成功下載「${data.name}」！`);
-      
-      // 更新下載次數
-      await supabaseClient.from('shared_decks').update({ downloads: (data.downloads || 0) + 1 }).eq('id', id);
-      fetchSharedDecks();
-    }
-
     function renderUI() {
-      const options = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
-      document.getElementById('deck-select').innerHTML = options;
-      document.getElementById('share-deck-select').innerHTML = options;
-      document.getElementById('ai-target-deck-select').innerHTML = options;
+      const deckSelect = document.getElementById('deck-select');
+      const quizDeckSelect = document.getElementById('quiz-deck-select');
+      const statsDeckSelect = document.getElementById('stats-deck-select');
+      const aiTargetSelect = document.getElementById('ai-target-deck-select');
+      const shareDeckSelect = document.getElementById('share-deck-select');
       
-      const allOpt = `<option value="all">🌟 全部綜合</option>`;
-      document.getElementById('quiz-deck-select').innerHTML = allOpt + options;
-      document.getElementById('stats-deck-select').innerHTML = allOpt + options;
+      const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
+      deckSelect.innerHTML = deckOptions;
+      if (shareDeckSelect) shareDeckSelect.innerHTML = deckOptions;
+      
+      if (aiTargetSelect) {
+        aiTargetSelect.innerHTML = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
+      }
+
+      const allOption = `<option value="all">🌟 全部單字庫綜合</option>`;
+      quizDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name} (${d.words.length}字)</option>`).join('');
+      statsDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name}</option>`).join('');
 
       const deck = getCurrentDeck();
       document.getElementById('current-deck-title').innerText = deck.name;
       document.getElementById('word-count').innerText = deck.words.length;
       document.getElementById('word-list').innerHTML = deck.words.length === 0 
-        ? '<p style="color:var(--subtext-color);">此庫無單字。</p>'
-        : deck.words.map((item, i) => `
+        ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
+        : deck.words.map((item, index) => `
           <div class="word-item">
-            <div><strong>${item.question}</strong> <span style="color:var(--subtext-color);">(${item.ans1})</span></div>
             <div>
-              <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${i})">編輯</button>
-              <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${i})">刪除</button>
+              <strong>${item.question}</strong> <span style="color:var(--subtext-color);">(${item.ans1}${item.ans2 ? ' / ' + item.ans2 : ''})</span>
             </div>
-          </div>`).join('');
+            <div>
+              <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${index})">編輯</button>
+              <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
+            </div>
+          </div>
+        `).join('');
+
+      document.getElementById('setting-quiz-limit').value = quizLimit;
+      if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
+      
+      updateModelDropdown();
     }
 
     function switchTab(tab) {
-      ['list', 'quiz', 'stats', 'ai', 'share', 'settings'].forEach(t => {
-        const el = document.getElementById(`page-${t}`);
-        const btn = document.getElementById(`tab-${t}`);
-        if(el) el.classList.add('hidden');
-        if(btn) btn.classList.remove('active');
+      ['list', 'quiz', 'stats', 'ai', 'share', 'models', 'settings'].forEach(t => {
+        document.getElementById(`page-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('active');
       });
       document.getElementById(`page-${tab}`).classList.remove('hidden');
       document.getElementById(`tab-${tab}`).classList.add('active');
+      
       if (tab === 'stats') renderStats();
-      if (tab === 'share') fetchSharedDecks();
+      if (tab === 'share') renderSharedDecks();
+      if (tab === 'models') fetchAvailableModels();
     }
 
-    function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
-
-    /* 測驗邏輯 */
     function initQuizSession() {
       const selected = document.getElementById('quiz-deck-select').value;
-      let pool = selected === 'all' ? decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id}))) : decks.find(d => d.id === selected)?.words.map(w => ({...w, deckId: selected})) || [];
-      if (pool.length === 0) return alert('無單字可測驗！');
-      
-      pool.sort((a, b) => (a.attempts||0) !== (b.attempts||0) ? (a.attempts||0) - (b.attempts||0) : Math.random() - 0.5);
-      
-      targetLimit = parseInt(document.getElementById('setting-quiz-limit').value);
-      targetLimit = targetLimit === 0 ? pool.length : Math.min(targetLimit, pool.length);
+      let pool = [];
+      if (selected === 'all') {
+        pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
+      } else {
+        const target = decks.find(d => d.id === selected);
+        if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
+      }
+
+      if (pool.length === 0) {
+        document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
+        return;
+      }
+
+      pool.sort((a, b) => {
+        const aAttempts = a.attempts || 0;
+        const bAttempts = b.attempts || 0;
+
+        if (aAttempts !== bAttempts) {
+          return aAttempts - bAttempts;
+        }
+
+        if (aAttempts > 0) {
+          const aErrRate = (a.errors || 0) / aAttempts;
+          const bErrRate = (b.errors || 0) / bAttempts;
+          if (aErrRate !== bErrRate) {
+            return bErrRate - aErrRate;
+          }
+        }
+
+        return Math.random() - 0.5;
+      });
+
+      targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
       quizQueue = pool.slice(0, targetLimit);
-      sessionResults = []; totalAnswered = 0;
+      sessionResults = [];
+      totalAnswered = 0;
       nextQuizQuestion();
     }
 
     function nextQuizQuestion() {
-      if (!quizQueue.length) return endQuizSession();
+      if (quizQueue.length === 0) {
+        endQuizSession();
+        return;
+      }
       document.getElementById('quiz-answer').style.display = 'block';
       document.getElementById('quiz-answer').disabled = false;
       document.getElementById('btn-submit-ans').style.display = 'block';
       document.getElementById('btn-next-ans').classList.add('hidden');
-      
+
       currentQuizItem = quizQueue.shift();
       totalAnswered++;
-      document.getElementById('quiz-progress').innerText = `進度：${totalAnswered} / ${targetLimit} 題`;
+      document.getElementById('quiz-progress').innerText = `進度：第 ${totalAnswered} / ${targetLimit} 題`;
       document.getElementById('quiz-prompt').innerText = currentQuizItem.question;
       document.getElementById('quiz-answer').value = '';
       document.getElementById('quiz-result').innerText = '';
+      
       speakCurrentQuestion();
     }
 
     function checkAnswer() {
+      if (!currentQuizItem) return;
       const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
-      const isCorrect = userAns === (currentQuizItem.ans1||'').toLowerCase() || (currentQuizItem.ans2 && userAns === currentQuizItem.ans2.toLowerCase());
+      const ans1 = currentQuizItem.ans1 ? currentQuizItem.ans1.trim().toLowerCase() : '';
+      const ans2 = currentQuizItem.ans2 ? currentQuizItem.ans2.trim().toLowerCase() : '';
+      
+      const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
       
       sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
-      const w = decks.find(d => d.id === currentQuizItem.deckId).words.find(w => w.question === currentQuizItem.question);
-      w.attempts = (w.attempts || 0) + 1;
-      if (!isCorrect) w.errors = (w.errors || 0) + 1;
+      const deck = decks.find(d => d.id === currentQuizItem.deckId);
+      if (deck) {
+        const w = deck.words.find(w => w.question === currentQuizItem.question);
+        if (w) {
+          w.attempts = (w.attempts || 0) + 1;
+          if (!isCorrect) w.errors = (w.errors || 0) + 1;
+        }
+      }
       saveData();
 
       const res = document.getElementById('quiz-result');
       if (isCorrect) {
-        res.style.color = 'green'; res.innerText = '🎉 答對了！';
+        res.style.color = 'green'; 
+        res.innerText = '🎉 答對了！';
         setTimeout(nextQuizQuestion, 1000);
       } else {
-        res.style.color = 'red'; res.innerText = `❌ 正確答案：${currentQuizItem.ans1}`;
+        res.style.color = 'red'; 
+        res.innerText = `❌ 正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
+        
         document.getElementById('quiz-answer').disabled = true;
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.remove('hidden');
@@ -1021,44 +1309,79 @@
     }
 
     function endQuizSession() {
-      const correct = sessionResults.filter(r => r.correct).length;
+      const correctCount = sessionResults.filter(r => r.correct).length;
       document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
-      document.getElementById('quiz-prompt').innerText = `總題數：${totalAnswered}，答對：${correct}`;
+      document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
       document.getElementById('quiz-answer').style.display = 'none';
       document.getElementById('btn-submit-ans').style.display = 'none';
+      document.getElementById('btn-next-ans').classList.add('hidden');
+      document.getElementById('quiz-result').innerText = '';
       
       const deckStats = {};
       sessionResults.forEach(r => {
-        if (!deckStats[r.deckId]) deckStats[r.deckId] = { c: 0, t: 0 };
-        deckStats[r.deckId].t++;
-        if (r.correct) deckStats[r.deckId].c++;
+        if (!deckStats[r.deckId]) deckStats[r.deckId] = { correct: 0, total: 0 };
+        deckStats[r.deckId].total++;
+        if (r.correct) deckStats[r.deckId].correct++;
       });
-      for (let id in deckStats) decks.find(d=>d.id===id).history.push({ timestamp: Date.now(), correct: deckStats[id].c, total: deckStats[id].t });
+      for (let dId in deckStats) {
+        const d = decks.find(d => d.id === dId);
+        if (d) {
+          d.history = d.history || [];
+          d.history.push({ timestamp: Date.now(), correct: deckStats[dId].correct, total: deckStats[dId].total });
+        }
+      }
       saveData();
     }
 
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
       const targetDecks = selected === 'all' ? decks : decks.filter(d => d.id === selected);
-      let aT=0, aC=0, mT=0, mC=0, wordsStats=[];
-      const oneMonth = 30 * 24 * 60 * 60 * 1000, now = Date.now();
       
+      let allTotal = 0, allCorrect = 0, monthTotal = 0, monthCorrect = 0;
+      const now = Date.now(), oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+      let wordsStats = [];
+
       targetDecks.forEach(d => {
-        (d.history || []).forEach(h => { aT+=h.total; aC+=h.correct; if(now-h.timestamp <= oneMonth){ mT+=h.total; mC+=h.correct; } });
-        (d.words || []).forEach(w => { if (w.attempts > 0) wordsStats.push({ ...w, deckName: d.name, errorRate: w.errors/w.attempts }); });
+        (d.history || []).forEach(h => {
+          allTotal += h.total;
+          allCorrect += h.correct;
+          if (now - h.timestamp <= oneMonthMs) {
+            monthTotal += h.total;
+            monthCorrect += h.correct;
+          }
+        });
+        (d.words || []).forEach(w => {
+          if (w.attempts > 0) {
+            const errRate = w.errors / w.attempts;
+            wordsStats.push({ ...w, deckName: d.name, errorRate: errRate });
+          }
+        });
       });
 
-      const cr = (c,t) => t>0 ? `<span class="${c/t>=0.8?'text-green':c/t<0.5?'text-red':''}">${Math.round(c/t*100)}%</span>` : '--';
-      document.getElementById('stat-all-time').innerHTML = cr(aC, aT);
-      document.getElementById('stat-month').innerHTML = cr(mC, mT);
-      wordsStats.sort((a, b) => b.errorRate - a.errorRate);
-      document.getElementById('stats-word-list').innerHTML = wordsStats.slice(0, 20).map(w => `
-        <div class="word-item">
-          <div><strong>${w.question}</strong><br><span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span></div>
-          <div style="text-align:right"><span class="text-red" style="font-weight:bold;">${Math.round(w.errorRate*100)}%</span><br><span style="font-size:12px; color:var(--subtext-color);">錯 ${w.errors}/${w.attempts}</span></div>
-        </div>`).join('');
-    }
+      const calcRate = (c, t) => t > 0 ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
+      
+      document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
+      document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
 
+      wordsStats.sort((a, b) => b.errorRate - a.errorRate);
+      
+      document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
+        ? '<p style="color:var(--subtext-color);">尚未有足夠的測驗紀錄。</p>' 
+        : wordsStats.map(w => `
+          <div class="word-item" style="display:flex; justify-content:space-between;">
+            <div>
+              <strong>${w.question}</strong> <span style="font-size:14px; color:var(--subtext-color);">(${w.ans1})</span><br>
+              <span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span>
+            </div>
+            <div style="text-align:right;">
+              <span class="${w.errorRate > 0.5 ? 'text-red' : (w.errorRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
+                ${Math.round(w.errorRate * 100)}%
+              </span><br>
+              <span style="font-size:12px; color:var(--subtext-color);">錯 ${w.errors} / 考 ${w.attempts}</span>
+            </div>
+          </div>
+        `).join('');
+    }
   </script>
 </body>
 </html>
