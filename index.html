@@ -75,6 +75,7 @@
     .btn-secondary { background-color: #6c757d; color: white; }
     .btn-success { background-color: #28a745; color: white; }
     .btn-warning { background-color: #ffc107; color: #333; }
+    .btn-google { background-color: #4285f4; color: white; margin-top: 10px; }
     .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
     .nav { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
     .nav button { flex: 1; background-color: var(--nav-btn-bg); color: var(--nav-btn-color); margin: 0; font-size: 13px; padding: 10px 4px; white-space: nowrap; }
@@ -91,6 +92,7 @@
     .row-group > * { flex: 1; }
     .sub-label { font-size: 12px; color: var(--subtext-color); }
     .hint-box { margin-bottom: 12px; background: var(--hint-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--hint-border); }
+    .divider { margin: 15px 0; border: 0; border-top: 1px dashed var(--border-color); }
   </style>
 </head>
 <body>
@@ -235,16 +237,26 @@
   <!-- 5. 社群單字庫分享頁面 (基於 Supabase) -->
   <div id="page-share" class="card hidden">
     <h2>🌐 雲端社群分享市集</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">登入帳號後，將你的單字庫分享至雲端，或下載他人的熱門單字庫！<br><span style="font-size:12px; color:#dc3545;">(需先至「設定」頁面填寫 Supabase API 資訊)</span></p>
+    <p style="font-size: 14px; color: var(--subtext-color);">登入帳號後，將你的單字庫分享至雲端，或下載他人的熱門單字庫！</p>
 
     <!-- 帳號登入區域 -->
     <div id="auth-section" class="stats-box" style="margin-bottom: 20px;">
       <h3 style="margin-top:0; color:#1a73e8;">👤 會員登入 / 註冊</h3>
+      
+      <!-- 快捷第三方登入 -->
+      <button onclick="handleGoogleLogin()" class="btn-google">
+        🌐 使用 Google 帳號快速登入
+      </button>
+
+      <div class="divider"></div>
+
+      <!-- 電子郵件登入 -->
+      <label class="sub-label">使用 Email 帳號密碼登入：</label>
       <input type="email" id="auth-email" placeholder="電子郵件">
       <input type="password" id="auth-password" placeholder="密碼">
       <div class="row-group" style="margin-top:10px;">
-        <button onclick="handleLogin()" class="btn-success">登入</button>
-        <button onclick="handleRegister()" class="btn-secondary">註冊</button>
+        <button onclick="handleLogin()" class="btn-success">Email 登入</button>
+        <button onclick="handleRegister()" class="btn-secondary">註冊新帳號</button>
       </div>
       <p id="auth-status" style="font-size:13px; margin-top:10px; font-weight:bold;"></p>
     </div>
@@ -279,7 +291,7 @@
     </div>
     
     <div id="shared-deck-list">
-      <p style="color:var(--subtext-color);">請先設定 Supabase 資訊並點擊重新整理載入資料。</p>
+      <p style="color:var(--subtext-color);">載入中...</p>
     </div>
   </div>
 
@@ -324,8 +336,8 @@
 
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
-    <h3>☁️ Supabase 雲端設定 (社群功能所需)</h3>
-    <p style="font-size:12px; color:var(--subtext-color); margin-top:0;">請確保您的 Supabase 專案中有 <code>shared_decks</code> 資料表 (欄位: id, name, author, description, downloads, likes, words, created_at)。</p>
+    <h3>☁️ Supabase 雲端連線資訊</h3>
+    <p style="font-size:12px; color:var(--subtext-color); margin-top:0;">目前已直接寫死預設連線資訊。您也可以自訂修改：</p>
     <div class="setting-group">
       <label>🗄️ Project URL</label>
       <input type="text" id="input-sb-url" placeholder="https://xxxx.supabase.co" oninput="saveSettings()">
@@ -357,6 +369,10 @@
 
   <script>
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+    // 預設寫死的 Supabase 專案設定
+    const DEFAULT_SUPABASE_URL = 'https://rgntszsdxttzslnvvqjm.supabase.co';
+    const DEFAULT_SUPABASE_KEY = 'sb_publishable_hxSUUtPW5VotmAdB7Kld5g_hMNu_pAh';
 
     let decks = JSON.parse(localStorage.getItem('vocab_decks') || JSON.stringify([{ id: 'default_1', name: '預設單字庫', words: [], history: [] }]));
     let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
@@ -409,8 +425,8 @@
       document.getElementById('setting-quiz-limit').value = quizLimit;
       document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key') || '';
       document.getElementById('setting-gemini-model').value = localStorage.getItem('gemini_selected_model') || 'gemini-1.5-flash';
-      document.getElementById('input-sb-url').value = localStorage.getItem('supabase_url') || '';
-      document.getElementById('input-sb-key').value = localStorage.getItem('supabase_key') || '';
+      document.getElementById('input-sb-url').value = localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL;
+      document.getElementById('input-sb-key').value = localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY;
     }
 
     function saveSettings() {
@@ -531,12 +547,19 @@
 
     /* Supabase 驗證與資料庫功能 */
     async function initSupabase() {
-      const url = localStorage.getItem('supabase_url');
-      const key = localStorage.getItem('supabase_key');
+      const url = localStorage.getItem('supabase_url') || DEFAULT_SUPABASE_URL;
+      const key = localStorage.getItem('supabase_key') || DEFAULT_SUPABASE_KEY;
+      
       if (url && key && window.supabase) {
         supabaseClient = window.supabase.createClient(url, key);
         const { data: { session } } = await supabaseClient.auth.getSession();
         updateAuthUI(session?.user);
+        
+        // 監聽驗證狀態變化（例如第三方登入跳回）
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+          updateAuthUI(session?.user);
+        });
+
         if(document.getElementById('tab-share').classList.contains('active')) fetchSharedDecks();
       } else {
         updateAuthUI(null);
@@ -548,15 +571,29 @@
       if (user) {
         document.getElementById('auth-section').classList.add('hidden');
         document.getElementById('user-info-section').classList.remove('hidden');
-        document.getElementById('current-user-email').innerText = user.email;
+        document.getElementById('current-user-email').innerText = user.email || user.user_metadata?.full_name || '已登入使用者';
       } else {
         document.getElementById('auth-section').classList.remove('hidden');
         document.getElementById('user-info-section').classList.add('hidden');
       }
     }
 
+    // Google 快速登入
+    async function handleGoogleLogin() {
+      if(!supabaseClient) return alert('Supabase 未能成功初始化');
+      const { data, error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + window.location.pathname
+        }
+      });
+      if (error) {
+        alert('Google 登入啟動失敗: ' + error.message);
+      }
+    }
+
     async function handleLogin() {
-      if(!supabaseClient) return alert('請先設定 Supabase 連線資訊');
+      if(!supabaseClient) return alert('Supabase 未能成功初始化');
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
       const status = document.getElementById('auth-status');
@@ -573,7 +610,7 @@
     }
 
     async function handleRegister() {
-      if(!supabaseClient) return alert('請先設定 Supabase 連線資訊');
+      if(!supabaseClient) return alert('Supabase 未能成功初始化');
       const email = document.getElementById('auth-email').value;
       const password = document.getElementById('auth-password').value;
       const status = document.getElementById('auth-status');
@@ -598,7 +635,7 @@
       if (!supabaseClient || !currentUser) return alert('請先登入會員！');
       
       const deckId = document.getElementById('share-deck-select').value;
-      const author = document.getElementById('share-author-input').value.trim() || '匿名';
+      const author = document.getElementById('share-author-input').value.trim() || currentUser.email || '匿名';
       const desc = document.getElementById('share-desc-input').value.trim();
       const target = decks.find(d => d.id === deckId);
       
@@ -627,7 +664,7 @@
     async function fetchSharedDecks() {
       const container = document.getElementById('shared-deck-list');
       if (!supabaseClient) {
-        container.innerHTML = '<p style="color:#dc3545;">未連線至 Supabase，請至設定頁面配置 URL 與 Key。</p>';
+        container.innerHTML = '<p style="color:#dc3545;">未連線至 Supabase。</p>';
         return;
       }
       container.innerHTML = '<p>載入中...</p>';
@@ -726,7 +763,7 @@
 
     function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-    /* 測驗邏輯 (簡化顯示) */
+    /* 測驗邏輯 */
     function initQuizSession() {
       const selected = document.getElementById('quiz-deck-select').value;
       let pool = selected === 'all' ? decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id}))) : decks.find(d => d.id === selected)?.words.map(w => ({...w, deckId: selected})) || [];
