@@ -1333,56 +1333,56 @@ ${hintPrompt}
     let quizAutoNextTimeout = null;
 
     function initQuizSession() {
-      if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
-      const selected = document.getElementById('quiz-deck-select').value;
-      let pool = [];
-      if (selected === 'all') {
-        pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: d.id})));
-      } else {
-        const target = decks.find(d => d.id === selected);
-        if(target) pool = target.words.map(w => ({...w, deckId: target.id}));
-      }
+	  if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
+	  const selected = document.getElementById('quiz-deck-select').value;
+	  let pool = [];
+	  if (selected === 'all') {
+		pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: String(d.id)})));
+	  } else {
+		const target = decks.find(d => String(d.id) === String(selected));
+		if(target) pool = target.words.map(w => ({...w, deckId: String(target.id)}));
+	  }
 
-      if (pool.length === 0) {
-        document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
-        return;
-      }
+	  if (pool.length === 0) {
+		document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
+		return;
+	  }
 
-      targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
+	  targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
-      // 1. 將單字分為「有測驗過 (依錯誤率)」與「少出現/沒測驗過 (依次數)」兩組
-      let testedWords = pool.filter(w => (w.attempts || 0) > 0);
-      let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
+	  // 1. 將單字分為「有測驗過 (依錯誤率)」與「少出現/沒測驗過 (依次數)」兩組
+	  let testedWords = pool.filter(w => (w.attempts || 0) > 0);
+	  let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
 
-      testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
-      newOrRareWords.sort(() => Math.random() - 0.5);
+	  testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
+	  newOrRareWords.sort(() => Math.random() - 0.5);
 
-      // 2. 分配比例：60% 錯誤率高，40% 少出現/新單字
-      let errorQuota = Math.floor(targetLimit * 0.6);
-      let newQuota = targetLimit - errorQuota;
+	  // 2. 分配比例：60% 錯誤率高，40% 少出現/新單字
+	  let errorQuota = Math.floor(targetLimit * 0.6);
+	  let newQuota = targetLimit - errorQuota;
 
-      let selectedWords = [];
-      let selectedErrorWords = testedWords.splice(0, errorQuota);
-      selectedWords.push(...selectedErrorWords);
+	  let selectedWords = [];
+	  let selectedErrorWords = testedWords.splice(0, errorQuota);
+	  selectedWords.push(...selectedErrorWords);
 
-      let selectedNewWords = newOrRareWords.splice(0, newQuota);
-      selectedWords.push(...selectedNewWords);
+	  let selectedNewWords = newOrRareWords.splice(0, newQuota);
+	  selectedWords.push(...selectedNewWords);
 
-      // 3. 互補機制
-      let remainingSlots = targetLimit - selectedWords.length;
-      if (remainingSlots > 0) {
-        let remainingPool = [...testedWords, ...newOrRareWords];
-        selectedWords.push(...remainingPool.slice(0, remainingSlots));
-      }
+	  // 3. 互補機制
+	  let remainingSlots = targetLimit - selectedWords.length;
+	  if (remainingSlots > 0) {
+		let remainingPool = [...testedWords, ...newOrRareWords];
+		selectedWords.push(...remainingPool.slice(0, remainingSlots));
+	  }
 
-      // 4. 打亂排序
-      selectedWords.sort(() => Math.random() - 0.5);
+	  // 4. 打亂排序
+	  selectedWords.sort(() => Math.random() - 0.5);
 
-      quizQueue = selectedWords;
-      sessionResults = [];
-      totalAnswered = 0;
-      nextQuizQuestion();
-    }
+	  quizQueue = selectedWords;
+	  sessionResults = [];
+	  totalAnswered = 0;
+	  nextQuizQuestion();
+	}
 
     function nextQuizQuestion() {
       if (quizAutoNextTimeout) {
@@ -1470,29 +1470,36 @@ ${hintPrompt}
     }
 
     function endQuizSession() {
-      const correctCount = sessionResults.filter(r => r.correct).length;
-      document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
-      document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
-      document.getElementById('quiz-answer').style.display = 'none';
-      document.getElementById('btn-submit-ans').style.display = 'none';
-      document.getElementById('btn-next-ans').classList.add('hidden');
-      document.getElementById('quiz-result').innerText = '';
-      
-      const deckStats = {};
-      sessionResults.forEach(r => {
-        if (!deckStats[r.deckId]) deckStats[r.deckId] = { correct: 0, total: 0 };
-        deckStats[r.deckId].total++;
-        if (r.correct) deckStats[r.deckId].correct++;
-      });
-      for (let dId in deckStats) {
-        const d = decks.find(d => d.id === dId);
-        if (d) {
-          d.history = d.history || [];
-          d.history.push({ timestamp: Date.now(), correct: deckStats[dId].correct, total: deckStats[dId].total });
-        }
-      }
-      saveData();
-    }
+	  const correctCount = sessionResults.filter(r => r.correct).length;
+	  document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
+	  document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
+	  document.getElementById('quiz-answer').style.display = 'none';
+	  document.getElementById('btn-submit-ans').style.display = 'none';
+	  document.getElementById('btn-next-ans').classList.add('hidden');
+	  document.getElementById('quiz-result').innerText = '';
+	  
+	  const deckStats = {};
+	  sessionResults.forEach(r => {
+		if (!r.deckId) return;
+		const targetDeckId = String(r.deckId);
+		if (!deckStats[targetDeckId]) deckStats[targetDeckId] = { correct: 0, total: 0 };
+		deckStats[targetDeckId].total++;
+		if (r.correct) deckStats[targetDeckId].correct++;
+	  });
+
+	  for (let dId in deckStats) {
+		const d = decks.find(deck => String(deck.id) === String(dId));
+		if (d) {
+		  d.history = d.history || [];
+		  d.history.push({ 
+			timestamp: Date.now(), 
+			correct: deckStats[dId].correct, 
+			total: deckStats[dId].total 
+		  });
+		}
+	  }
+	  saveData();
+	}
 
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
