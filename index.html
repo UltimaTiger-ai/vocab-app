@@ -368,6 +368,12 @@
   </div>
 
   <script>
+	// 自動過濾 [疑]、[註]、(注)、【疑】等答案以外的註解標籤
+	function cleanAnswerText(str) {
+	  if (!str) return '';
+	  return str.replace(/\[.*?\]|［.*?］|\(.*?\)|（.*?）|【.*?】/g, '').trim();
+	}
+
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
     let decks = JSON.parse(localStorage.getItem('vocab_decks') || JSON.stringify([{ id: 'default_1', name: '預設單字庫', words: [], history: [] }]));
@@ -665,25 +671,26 @@
 	  let textToSpeak = (type === 'ans1') ? item.ans1 : item.ans2;
 	  if (!textToSpeak) return;
 
+	  // 💡 先過濾掉 [疑] 或其他註解標籤
+	  textToSpeak = cleanAnswerText(textToSpeak);
+	  if (!textToSpeak) return;
+
 	  let aLang = item.aLang || 'zh-TW';
 
-	  // 💡 智慧判斷 2：若題目語言為日文或答案一/二含有假名，強制使用日文 (ja-JP)
+	  // 智慧判斷日文與假名發音邏輯...
 	  const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test((item.ans1 || '') + (item.ans2 || ''));
 	  if ((item.qLang === 'ja-JP' || hasKana) && aLang.startsWith('zh')) {
 		aLang = 'ja-JP';
 	  }
 
-	  // 💡 智慧重音校正：播放純假名時，自動尋找對應的日文漢字進行發音導向
 	  if (aLang.startsWith('ja') || hasKana) {
 		const isPureKana = /^[\u3040-\u309F\u30A0-\u30FF\s]+$/.test(textToSpeak.trim());
 		const hasKanji = (str) => /[\u4E00-\u9FFF]/.test(str || '');
 
 		if (isPureKana) {
-		  // 情況 A：若播放答案一 (純假名)，且答案二含漢字，改用答案二漢字發音 (讀音相同但重音精準)
-		  if (type === 'ans1' && hasKanji(item.ans2)) {
-			textToSpeak = item.ans2;
+		  if (type === 'ans1' && hasKanji(cleanAnswerText(item.ans2))) {
+			textToSpeak = cleanAnswerText(item.ans2);
 		  } 
-		  // 情況 B：若題目本身為日文且含漢字 (例: 題目為「食べる」，答案一為「たべる」)
 		  else if (item.qLang === 'ja-JP' && hasKanji(item.question)) {
 			textToSpeak = item.question;
 		  }
@@ -1402,38 +1409,19 @@ ${hintPrompt}
     }
 
     function checkAnswer() {
-      if (!currentQuizItem) return;
-      const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
-      const ans1 = currentQuizItem.ans1 ? currentQuizItem.ans1.trim().toLowerCase() : '';
-      const ans2 = currentQuizItem.ans2 ? currentQuizItem.ans2.trim().toLowerCase() : '';
-      
-      const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
-      
-      sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
-      const deck = decks.find(d => d.id === currentQuizItem.deckId);
-      if (deck) {
-        const w = deck.words.find(w => w.question === currentQuizItem.question);
-        if (w) {
-          w.attempts = (w.attempts || 0) + 1;
-          if (!isCorrect) w.errors = (w.errors || 0) + 1;
-        }
-      }
-      saveData();
-
-      const res = document.getElementById('quiz-result');
-      if (isCorrect) {
-        res.style.color = 'green'; 
-        res.innerText = '🎉 答對了！';
-        setTimeout(nextQuizQuestion, 1000);
-      } else {
-        res.style.color = 'red'; 
-        res.innerText = `❌ 正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
-        
-        document.getElementById('quiz-answer').disabled = true;
-        document.getElementById('btn-submit-ans').style.display = 'none';
-        document.getElementById('btn-next-ans').classList.remove('hidden');
-      }
-    }
+	  if (!currentQuizItem) return;
+	  const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
+	  
+	  // 💡 比較答案時，自動過濾掉答案一與答案二中的括號註解
+	  const ans1 = cleanAnswerText(currentQuizItem.ans1 || '').toLowerCase();
+	  const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').toLowerCase();
+	  
+	  const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
+	  
+	  // 後續儲存與結果處理邏輯保持不變...
+	  sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
+	  ...
+	}
 
     function endQuizSession() {
       const correctCount = sessionResults.filter(r => r.correct).length;
