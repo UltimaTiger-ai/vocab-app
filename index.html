@@ -143,17 +143,26 @@
       </div>
     </div>
 
-    <input type="text" id="input-question" placeholder="題目 (例如: 食べる)">
-    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-      <button type="button" id="btn-ai-suggest" class="btn-warning" style="font-size: 12px; padding: 6px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
-      <!-- 新增：播放題目 -->
-      <button type="button" class="btn-secondary" style="font-size: 12px; padding: 6px; width: auto;" onclick="speakText(document.getElementById('input-question').value, document.getElementById('input-q-lang').value)">🔊 聽題目</button>
-      <!-- 新增：播放答案 -->
-      <button type="button" class="btn-secondary" style="font-size: 12px; padding: 6px; width: auto;" onclick="speakText(document.getElementById('input-ans1').value, document.getElementById('input-a-lang').value)">🔊 聽答案</button>
+    <!-- 替換掉原本的 input 與 按鈕區塊 -->
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="input-question" placeholder="題目 (例如: 食べる)" style="margin-top:0;">
+      <button type="button" class="btn-secondary" style="width: auto; margin-top:0; white-space: nowrap; padding: 0 15px;" onclick="speakText(document.getElementById('input-question').value, document.getElementById('input-q-lang').value)">🔊 聽題目</button>
+    </div>
+    
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+      <input type="text" id="input-ans1" placeholder="答案一 (無漢字/純假名/主要答案)" style="margin-top:0;">
+      <button type="button" class="btn-secondary" style="width: auto; margin-top:0; white-space: nowrap; padding: 0 15px;" onclick="speakText(document.getElementById('input-ans1').value, document.getElementById('input-a-lang').value)">🔊 聽答一</button>
     </div>
 
-    <input type="text" id="input-ans1" placeholder="答案一 (無漢字/純假名/主要答案)">
-    <input type="text" id="input-ans2" placeholder="答案二 (含漢字寫法/備用答案)">
+    <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+      <input type="text" id="input-ans2" placeholder="答案二 (含漢字寫法/備用答案)" style="margin-top:0;">
+      <button type="button" class="btn-secondary" style="width: auto; margin-top:0; white-space: nowrap; padding: 0 15px;" onclick="speakText(document.getElementById('input-ans2').value, document.getElementById('input-a-lang').value)">🔊 聽答二</button>
+    </div>
+
+    <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 15px;">
+      <button type="button" id="btn-ai-suggest" class="btn-warning" style="font-size: 12px; padding: 8px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
+    </div>
+
     <button onclick="addWord()" class="btn-success">加入此單字庫</button>
 
     <h2 style="margin-top: 20px;">📖 單字清單 (<span id="word-count">0</span>)</h2>
@@ -1191,8 +1200,8 @@ ${hintPrompt}
               <strong>${item.question}</strong> <span style="color:var(--subtext-color);">(${item.ans1}${item.ans2 ? ' / ' + item.ans2 : ''})</span>
             </div>
             <div>
-              <!-- 新增這行語音按鈕 -->
-              <button class="btn-secondary" style="width:auto; padding:5px; margin:0;" onclick="speakText('${item.question}', '${item.qLang || 'en-US'}')">🔊</button>
+              <!-- 修改後：播放答案與答案語言 -->
+			  <button class="btn-secondary" style="width:auto; padding:5px; margin:0;" title="播放答案語音" onclick="speakText('${item.ans1}', '${item.aLang || 'zh-TW'}')">🔊</button>
               
               <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${index})">編輯</button>
               <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
