@@ -1433,6 +1433,18 @@ ${hintPrompt}
 		currentQuizItem.errors = (currentQuizItem.errors || 0) + 1;
 	  }
 
+	  // 💡【新增】每答一題，立刻將該題寫入單字庫的歷史紀錄中
+	  const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+	  if (targetDeck) {
+		targetDeck.history = targetDeck.history || [];
+		targetDeck.history.push({
+		  timestamp: Date.now(),
+		  correct: isCorrect ? 1 : 0,
+		  total: 1
+		});
+	  }
+	  saveData(); // 即時儲存至 localStorage
+
 	  const resultElem = document.getElementById('quiz-result');
 	  inputElem.disabled = true;
 
