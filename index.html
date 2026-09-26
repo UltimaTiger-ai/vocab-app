@@ -1302,9 +1302,8 @@ ${hintPrompt}
 			<strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)}${item.ans2 ? ' / ' + escapeHtml(item.ans2) : ''})</span>
 		  </div>
 		  <div style="display:flex; gap:4px; align-items:center;">
-			<!-- 僅保留答案播放按鈕，自動辨識答案語言發音 -->
-			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案" onclick="playWordAudio(${index}, 'ans1')">🔊 答案${item.ans2 ? '一' : ''}</button>
-			${item.ans2 ? `<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案二" onclick="playWordAudio(${index}, 'ans2')">🔊 答案二</button>` : ''}
+			<!-- 保留單一答案發音按鈕 -->
+			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案" onclick="playWordAudio(${index}, 'ans1')">🔊 答案</button>
 			
 			<button style="width:auto; padding:5px 8px; margin:0;" onclick="openEditModal(${index})">編輯</button>
 			<button class="btn-danger" style="width:auto; padding:5px 8px; margin:0;" onclick="deleteWord(${index})">刪除</button>
