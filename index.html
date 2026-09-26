@@ -592,33 +592,44 @@
       closeEditModal();
     }
 
-    // 預先觸發載入語音清單，避免部分瀏覽器首次發音抓不到語音庫
-    if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
-      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    // 預先儲存語音清單與當前發音物件，避免 Safari 的垃圾回收 (GC) 機制中斷語音
+    let globalVoices = [];
+    let currentUtterance = null;
+
+    if (typeof speechSynthesis !== 'undefined') {
+      // 初始抓取語音庫
+      globalVoices = speechSynthesis.getVoices();
+      if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = () => {
+          globalVoices = window.speechSynthesis.getVoices();
+        };
+      }
     }
 
     function speakText(text, lang = 'en-US') {
       if (!text) return;
       
-      // 停止當前正在播放的語音，避免聲音重疊
+      // 停止當前正在播放的語音
       window.speechSynthesis.cancel();
 
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang;
+      // 加入 50ms 延遲，避免部分手機與瀏覽器 cancel() 非同步執行吃掉接下來的 speak() 指令
+      setTimeout(() => {
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        currentUtterance.lang = lang;
 
-      // 取得裝置支援的所有語音清單
-      const voices = window.speechSynthesis.getVoices();
-      
-      // 優先尋找與設定語言完全相符 (如 ja-JP/ja_JP)，或同語言家族的語音 (如 ja)
-      const targetVoice = voices.find(v => v.lang === lang || v.lang.replace('_', '-') === lang) || 
-                          voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+        // 若 onvoiceschanged 尚未觸發，做最後一次即時抓取
+        const voices = globalVoices.length > 0 ? globalVoices : window.speechSynthesis.getVoices();
+        
+        // 優先尋找完全相符或同語言家族的語音
+        const targetVoice = voices.find(v => v.lang === lang || v.lang.replace('_', '-') === lang) || 
+                            voices.find(v => v.lang.startsWith(lang.split('-')[0]));
 
-      // 強制指定對應的語音套件
-      if (targetVoice) {
-        u.voice = targetVoice;
-      }
+        if (targetVoice) {
+          currentUtterance.voice = targetVoice;
+        }
 
-      window.speechSynthesis.speak(u);
+        window.speechSynthesis.speak(currentUtterance);
+      }, 50);
     }
 
     function speakCurrentQuestion() {
@@ -1224,7 +1235,7 @@ ${hintPrompt}
             </div>
             <div>
               <!-- 修改後：播放答案與答案語言 -->
-			  <button class="btn-secondary" style="width:auto; padding:5px; margin:0;" title="播放答案語音" onclick="speakText('${item.ans1}', '${item.aLang || 'zh-TW'}')">🔊</button>
+			  <button class="btn-secondary" style="width:auto; padding:5px; margin:0;" title="播放答案語音" onclick="speakText('${item.ans1.replace(/'/g, "\\'")}', '${item.aLang || 'zh-TW'}')">🔊</button>
               
               <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${index})">編輯</button>
               <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
