@@ -606,37 +606,39 @@
       }
     }
 
-    function speakText(text, lang = 'en-US') {
+    // 簡化後的發音函式（移除 voice 強制指定，由系統依據 lang 自動挑選最佳語音）
+	function speakText(text, lang = 'en-US') {
 	  if (!text) return;
 
-	  // 1. 若目前正在發音，才執行 cancel；避免無謂的 cancel 導致 iOS 語音引擎卡死
+	  // 1. 若目前正在發音，先取消以避免重疊
 	  if (window.speechSynthesis.speaking) {
 		window.speechSynthesis.cancel();
 	  }
 
-	  // 2. 若 iOS 語音引擎處於暫停狀態，強制恢復
+	  // 2. 若處於暫停狀態，強制恢復
 	  if (window.speechSynthesis.paused) {
 		window.speechSynthesis.resume();
 	  }
 
-	  // 3. 直接同步建立發音物件（移除 setTimeout，確保符合 iOS 的 User Gesture 規範）
+	  // 3. 建立語音物件並設定語言格式
 	  currentUtterance = new SpeechSynthesisUtterance(text);
-	  currentUtterance.lang = lang;
+	  currentUtterance.lang = lang.replace('_', '-');
 
-	  // 4. 即時取得語音清單並進行語言比對
-	  const voices = window.speechSynthesis.getVoices();
-	  if (voices.length > 0) {
-		const normalizedLang = lang.replace('_', '-');
-		const targetVoice = voices.find(v => v.lang === normalizedLang || v.lang === lang) || 
-							voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-
-		if (targetVoice) {
-		  currentUtterance.voice = targetVoice;
-		}
-	  }
-
-	  // 5. 同步播放語音
+	  // 4. 播放語音
 	  window.speechSynthesis.speak(currentUtterance);
+	}
+
+	// 單字清單專用播放函式 (以索引讀取，避免字串拼接跳脫錯誤)
+	function playWordAudio(index, type = 'question') {
+	  const deck = getCurrentDeck();
+	  if (!deck || !deck.words[index]) return;
+	  const item = deck.words[index];
+
+	  if (type === 'question') {
+		speakText(item.question, item.qLang || 'en-US');
+	  } else if (type === 'ans1') {
+		speakText(item.ans1, item.aLang || 'zh-TW');
+	  }
 	}
 
     function speakCurrentQuestion() {
@@ -1234,21 +1236,22 @@ ${hintPrompt}
       document.getElementById('current-deck-title').innerText = deck.name;
       document.getElementById('word-count').innerText = deck.words.length;
       document.getElementById('word-list').innerHTML = deck.words.length === 0 
-        ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
-        : deck.words.map((item, index) => `
-          <div class="word-item">
-            <div>
-              <strong>${item.question}</strong> <span style="color:var(--subtext-color);">(${item.ans1}${item.ans2 ? ' / ' + item.ans2 : ''})</span>
-            </div>
-            <div>
-              <!-- 修改後：播放答案與答案語言 -->
-			  <button class="btn-secondary" style="width:auto; padding:5px; margin:0;" title="播放答案語音" onclick="speakText('${item.ans1.replace(/'/g, "\\'")}', '${item.aLang || 'zh-TW'}')">🔊</button>
-              
-              <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${index})">編輯</button>
-              <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
-            </div>
-          </div>
-        `).join('');
+	  ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
+	  : deck.words.map((item, index) => `
+		<div class="word-item">
+		  <div>
+			<strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)}${item.ans2 ? ' / ' + escapeHtml(item.ans2) : ''})</span>
+		  </div>
+		  <div style="display:flex; gap:4px; align-items:center;">
+			<!-- 分別提供題目與答案的發音按鈕 -->
+			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放題目語音" onclick="playWordAudio(${index}, 'question')">🔊 題目</button>
+			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案語音" onclick="playWordAudio(${index}, 'ans1')">🔊 答案</button>
+			
+			<button style="width:auto; padding:5px 8px; margin:0;" onclick="openEditModal(${index})">編輯</button>
+			<button class="btn-danger" style="width:auto; padding:5px 8px; margin:0;" onclick="deleteWord(${index})">刪除</button>
+		  </div>
+		</div>
+	  `).join('');
 
       document.getElementById('setting-quiz-limit').value = quizLimit;
       if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
