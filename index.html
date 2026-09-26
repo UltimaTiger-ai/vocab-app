@@ -144,8 +144,12 @@
     </div>
 
     <input type="text" id="input-question" placeholder="題目 (例如: 食べる)">
-    <div style="display: flex; gap: 5px;">
+    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
       <button type="button" id="btn-ai-suggest" class="btn-warning" style="font-size: 12px; padding: 6px; width: auto;" onclick="aiSuggestAnswer()">✨ AI 智慧建議答案</button>
+      <!-- 新增：播放題目 -->
+      <button type="button" class="btn-secondary" style="font-size: 12px; padding: 6px; width: auto;" onclick="speakText(document.getElementById('input-question').value, document.getElementById('input-q-lang').value)">🔊 聽題目</button>
+      <!-- 新增：播放答案 -->
+      <button type="button" class="btn-secondary" style="font-size: 12px; padding: 6px; width: auto;" onclick="speakText(document.getElementById('input-ans1').value, document.getElementById('input-a-lang').value)">🔊 聽答案</button>
     </div>
 
     <input type="text" id="input-ans1" placeholder="答案一 (無漢字/純假名/主要答案)">
@@ -165,7 +169,6 @@
     <div id="quiz-box" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
       <p style="font-size: 14px; color: var(--subtext-color); margin-bottom: 5px;" id="quiz-progress"></p>
       <p style="font-size: 22px; font-weight: bold; color: #1a73e8;" id="quiz-prompt">請點擊上方按鈕開始！</p>
-      <button type="button" style="width: auto; padding: 6px 12px; font-size: 12px; margin-bottom: 10px;" onclick="speakCurrentQuestion()">🔊 播放題目語音</button>
       <input type="text" id="quiz-answer" placeholder="請輸入對應答案..." autocomplete="off">
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
@@ -1188,6 +1191,9 @@ ${hintPrompt}
               <strong>${item.question}</strong> <span style="color:var(--subtext-color);">(${item.ans1}${item.ans2 ? ' / ' + item.ans2 : ''})</span>
             </div>
             <div>
+              <!-- 新增這行語音按鈕 -->
+              <button class="btn-secondary" style="width:auto; padding:5px; margin:0;" onclick="speakText('${item.question}', '${item.qLang || 'en-US'}')">🔊</button>
+              
               <button style="width:auto; padding:5px; margin:0;" onclick="openEditModal(${index})">編輯</button>
               <button class="btn-danger" style="width:auto; padding:5px; margin:0;" onclick="deleteWord(${index})">刪除</button>
             </div>
@@ -1228,27 +1234,43 @@ ${hintPrompt}
         return;
       }
 
-      pool.sort((a, b) => {
-        const aAttempts = a.attempts || 0;
-        const bAttempts = b.attempts || 0;
-
-        if (aAttempts !== bAttempts) {
-          return aAttempts - bAttempts;
-        }
-
-        if (aAttempts > 0) {
-          const aErrRate = (a.errors || 0) / aAttempts;
-          const bErrRate = (b.errors || 0) / bAttempts;
-          if (aErrRate !== bErrRate) {
-            return bErrRate - aErrRate;
-          }
-        }
-
-        return Math.random() - 0.5;
-      });
-
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-      quizQueue = pool.slice(0, targetLimit);
+
+      // 1. 將單字分為「有測驗過 (依錯誤率)」與「少出現/沒測驗過 (依次數)」兩組
+      let testedWords = pool.filter(w => (w.attempts || 0) > 0);
+      let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
+
+      // 如果有測驗過的字，依照錯誤率由高到低排序
+      testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
+      // 沒測驗過的字隨機打亂
+      newOrRareWords.sort(() => Math.random() - 0.5);
+
+      // 2. 分配比例：60% 錯誤率高，40% 少出現/新單字
+      let errorQuota = Math.floor(targetLimit * 0.6);
+      let newQuota = targetLimit - errorQuota;
+
+      let selectedWords = [];
+
+      // 取出錯誤率高的單字
+      let selectedErrorWords = testedWords.splice(0, errorQuota);
+      selectedWords.push(...selectedErrorWords);
+
+      // 取出少出現的單字
+      let selectedNewWords = newOrRareWords.splice(0, newQuota);
+      selectedWords.push(...selectedNewWords);
+
+      // 3. 互補機制：如果其中一邊數量不夠，用另一邊補齊剩餘名額
+      let remainingSlots = targetLimit - selectedWords.length;
+      if (remainingSlots > 0) {
+        // 合併剩餘的單字並繼續填補
+        let remainingPool = [...testedWords, ...newOrRareWords];
+        selectedWords.push(...remainingPool.slice(0, remainingSlots));
+      }
+
+      // 4. 最後將選出的題目打亂，避免使用者猜到出題規律（例如前幾題永遠是錯最多的）
+      selectedWords.sort(() => Math.random() - 0.5);
+
+      quizQueue = selectedWords;
       sessionResults = [];
       totalAnswered = 0;
       nextQuizQuestion();
@@ -1271,7 +1293,7 @@ ${hintPrompt}
       document.getElementById('quiz-answer').value = '';
       document.getElementById('quiz-result').innerText = '';
       
-      speakCurrentQuestion();
+      //speakCurrentQuestion();
     }
 
     function checkAnswer() {
