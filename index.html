@@ -592,9 +592,32 @@
       closeEditModal();
     }
 
+    // 預先觸發載入語音清單，避免部分瀏覽器首次發音抓不到語音庫
+    if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+
     function speakText(text, lang = 'en-US') {
+      if (!text) return;
+      
+      // 停止當前正在播放的語音，避免聲音重疊
+      window.speechSynthesis.cancel();
+
       const u = new SpeechSynthesisUtterance(text);
       u.lang = lang;
+
+      // 取得裝置支援的所有語音清單
+      const voices = window.speechSynthesis.getVoices();
+      
+      // 優先尋找與設定語言完全相符 (如 ja-JP/ja_JP)，或同語言家族的語音 (如 ja)
+      const targetVoice = voices.find(v => v.lang === lang || v.lang.replace('_', '-') === lang) || 
+                          voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+
+      // 強制指定對應的語音套件
+      if (targetVoice) {
+        u.voice = targetVoice;
+      }
+
       window.speechSynthesis.speak(u);
     }
 
