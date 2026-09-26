@@ -143,7 +143,6 @@
       </div>
     </div>
 
-    <!-- 替換掉原本的 input 與 按鈕區塊 -->
     <div style="display: flex; gap: 8px; margin-bottom: 8px;">
       <input type="text" id="input-question" placeholder="題目 (例如: 食べる)" style="margin-top:0;">
       <button type="button" class="btn-secondary" style="width: auto; margin-top:0; white-space: nowrap; padding: 0 15px;" onclick="speakText(document.getElementById('input-question').value, document.getElementById('input-q-lang').value)">🔊 聽題目</button>
@@ -178,7 +177,7 @@
     <div id="quiz-box" style="border-top: 1px solid var(--border-color); padding-top: 15px;">
       <p style="font-size: 14px; color: var(--subtext-color); margin-bottom: 5px;" id="quiz-progress"></p>
       <p style="font-size: 22px; font-weight: bold; color: #1a73e8;" id="quiz-prompt">請點擊上方按鈕開始！</p>
-      <input type="text" id="quiz-answer" placeholder="請輸入對應答案..." autocomplete="off">
+      <input type="text" id="quiz-answer" placeholder="請輸入對應答案..." autocomplete="off" onkeydown="handleQuizKeyDown(event)">
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
@@ -368,11 +367,10 @@
   </div>
 
   <script>
-	// 自動過濾 [疑]、[註]、(注)、【疑】等答案以外的註解標籤
-	function cleanAnswerText(str) {
-	  if (!str) return '';
-	  return str.replace(/\[.*?\]|［.*?］|\(.*?\)|（.*?）|【.*?】/g, '').trim();
-	}
+    function cleanAnswerText(str) {
+      if (!str) return '';
+      return str.replace(/\[.*?\]|［.*?］|\(.*?\)|（.*?）|【.*?】/g, '').trim();
+    }
 
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 
@@ -380,7 +378,6 @@
     let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
     let quizLimit = parseInt(localStorage.getItem('vocab_quiz_limit') || '10');
 
-    // 初始化社群分享單字庫資料
     let sharedDecks = JSON.parse(localStorage.getItem('vocab_shared_decks') || 'null');
     if (!sharedDecks) {
       sharedDecks = [
@@ -418,10 +415,9 @@
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
     let tempParsedAiWords = [];
-    let rawParsedRows = []; // 儲存 AI 回傳的二維陣列
+    let rawParsedRows = []; 
     let lastCapturedFile = null;
 
-    // 預設模型名單
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
 
     function getGeminiModel() {
@@ -450,7 +446,6 @@
       }
     };
 
-    /* 主題功能邏輯 */
     function applyTheme(theme) {
       if (theme === 'dark') {
         document.body.classList.add('dark-mode');
@@ -598,12 +593,10 @@
       closeEditModal();
     }
 
-    // 預先儲存語音清單與當前發音物件，避免 Safari 的垃圾回收 (GC) 機制中斷語音
     let globalVoices = [];
     let currentUtterance = null;
 
     if (typeof speechSynthesis !== 'undefined') {
-      // 初始抓取語音庫
       globalVoices = speechSynthesis.getVoices();
       if (speechSynthesis.onvoiceschanged !== undefined) {
         speechSynthesis.onvoiceschanged = () => {
@@ -612,93 +605,83 @@
       }
     }
 
-	// 1. 強化的語音播放函式（含日文假名自動辨識與句號語調補正）
-	function speakText(text, lang = 'zh-TW') {
-	  if (!text) return;
-	  if (typeof speechSynthesis === 'undefined') return;
+    function speakText(text, lang = 'zh-TW') {
+      if (!text) return;
+      if (typeof speechSynthesis === 'undefined') return;
 
-	  // 若目前正在發音，先取消以避免聲音重疊
-	  if (window.speechSynthesis.speaking) {
-		window.speechSynthesis.cancel();
-	  }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
 
-	  // 若處於暫停狀態，強制恢復
-	  if (window.speechSynthesis.paused) {
-		window.speechSynthesis.resume();
-	  }
+      let targetLang = lang.replace('_', '-').toLowerCase();
 
-	  let targetLang = lang.replace('_', '-').toLowerCase();
+      const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
+      if (hasKana && targetLang.startsWith('zh')) {
+        targetLang = 'ja-JP';
+      }
 
-	  // 💡 智慧判斷 1：若文字中包含日文假名，強制修正為日文 (ja-JP) 發音
-	  const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
-	  if (hasKana && targetLang.startsWith('zh')) {
-		targetLang = 'ja-JP';
-	  }
+      let speakContent = text;
+      if (targetLang.startsWith('ja') && !/[。！？!?.]$/.test(speakContent)) {
+        speakContent += '。';
+      }
 
-	  let speakContent = text;
-	  // 💡 智慧語調補正：若為日文純假名且無標點，加上句號「。」能促使 TTS 採用自然語調發音
-	  if (targetLang.startsWith('ja') && !/[。！？!?.]$/.test(speakContent)) {
-		speakContent += '。';
-	  }
+      currentUtterance = new SpeechSynthesisUtterance(speakContent);
+      currentUtterance.lang = targetLang;
 
-	  currentUtterance = new SpeechSynthesisUtterance(speakContent);
-	  currentUtterance.lang = targetLang;
+      const voices = window.speechSynthesis.getVoices();
+      if (voices && voices.length > 0) {
+        let matchedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === targetLang);
 
-	  // 取得系統所有可用語音，進行語言比對匹配
-	  const voices = window.speechSynthesis.getVoices();
-	  if (voices && voices.length > 0) {
-		let matchedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === targetLang);
+        if (!matchedVoice) {
+          const mainLang = targetLang.split('-')[0];
+          matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(mainLang));
+        }
 
-		if (!matchedVoice) {
-		  const mainLang = targetLang.split('-')[0];
-		  matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(mainLang));
-		}
+        if (matchedVoice) {
+          currentUtterance.voice = matchedVoice;
+        }
+      }
 
-		if (matchedVoice) {
-		  currentUtterance.voice = matchedVoice;
-		}
-	  }
+      window.speechSynthesis.speak(currentUtterance);
+    }
 
-	  window.speechSynthesis.speak(currentUtterance);
-	}
+    function playWordAudio(index, type = 'ans1') {
+      const deck = getCurrentDeck();
+      if (!deck || !deck.words[index]) return;
+      const item = deck.words[index];
 
-	// 2. 單字清單播放邏輯（含純假名之日文漢字智慧重音校正）
-	function playWordAudio(index, type = 'ans1') {
-	  const deck = getCurrentDeck();
-	  if (!deck || !deck.words[index]) return;
-	  const item = deck.words[index];
+      let textToSpeak = (type === 'ans1') ? item.ans1 : item.ans2;
+      if (!textToSpeak) return;
 
-	  let textToSpeak = (type === 'ans1') ? item.ans1 : item.ans2;
-	  if (!textToSpeak) return;
+      textToSpeak = cleanAnswerText(textToSpeak);
+      if (!textToSpeak) return;
 
-	  // 💡 先過濾掉 [疑] 或其他註解標籤
-	  textToSpeak = cleanAnswerText(textToSpeak);
-	  if (!textToSpeak) return;
+      let aLang = item.aLang || 'zh-TW';
 
-	  let aLang = item.aLang || 'zh-TW';
+      const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test((item.ans1 || '') + (item.ans2 || ''));
+      if ((item.qLang === 'ja-JP' || hasKana) && aLang.startsWith('zh')) {
+        aLang = 'ja-JP';
+      }
 
-	  // 智慧判斷日文與假名發音邏輯...
-	  const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test((item.ans1 || '') + (item.ans2 || ''));
-	  if ((item.qLang === 'ja-JP' || hasKana) && aLang.startsWith('zh')) {
-		aLang = 'ja-JP';
-	  }
+      if (aLang.startsWith('ja') || hasKana) {
+        const isPureKana = /^[\u3040-\u309F\u30A0-\u30FF\s]+$/.test(textToSpeak.trim());
+        const hasKanji = (str) => /[\u4E00-\u9FFF]/.test(str || '');
 
-	  if (aLang.startsWith('ja') || hasKana) {
-		const isPureKana = /^[\u3040-\u309F\u30A0-\u30FF\s]+$/.test(textToSpeak.trim());
-		const hasKanji = (str) => /[\u4E00-\u9FFF]/.test(str || '');
+        if (isPureKana) {
+          if (type === 'ans1' && hasKanji(cleanAnswerText(item.ans2))) {
+            textToSpeak = cleanAnswerText(item.ans2);
+          } 
+          else if (item.qLang === 'ja-JP' && hasKanji(item.question)) {
+            textToSpeak = item.question;
+          }
+        }
+      }
 
-		if (isPureKana) {
-		  if (type === 'ans1' && hasKanji(cleanAnswerText(item.ans2))) {
-			textToSpeak = cleanAnswerText(item.ans2);
-		  } 
-		  else if (item.qLang === 'ja-JP' && hasKanji(item.question)) {
-			textToSpeak = item.question;
-		  }
-		}
-	  }
-
-	  speakText(textToSpeak, aLang);
-	}
+      speakText(textToSpeak, aLang);
+    }
 
     function speakCurrentQuestion() {
       if (currentQuizItem) {
@@ -884,7 +867,6 @@
       }
     }
 
-    /* AI 相機/圖片辨識 (兩階段欄位對應) */
     function handleImageCapture(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -987,7 +969,6 @@ ${hintPrompt}
       reader.readAsDataURL(file);
     }
 
-    // 渲染欄位對應 UI
     function renderColumnMappingUI() {
       const container = document.getElementById('ai-col-mapping-container');
       if (!rawParsedRows || rawParsedRows.length === 0) return;
@@ -1037,7 +1018,6 @@ ${hintPrompt}
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // 將二維矩陣依據使用者的欄位指定轉換為單字庫
     function applyColumnMapping() {
       const selects = document.querySelectorAll('.col-map-select');
       let qCol = -1, a1Col = -1, a2Col = -1;
@@ -1075,7 +1055,6 @@ ${hintPrompt}
       document.getElementById('ai-result-area').scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 渲染 AI 解析預覽列表
     function renderAiPreview() {
       const previewDiv = document.getElementById('ai-parsed-preview');
       if (!tempParsedAiWords || tempParsedAiWords.length === 0) {
@@ -1173,7 +1152,6 @@ ${hintPrompt}
       switchTab('list');
     }
 
-    /* 社群分享邏輯 */
     function publishDeck() {
       const deckId = document.getElementById('share-deck-select').value;
       const author = document.getElementById('share-author-input').value.trim() || '匿名創作者';
@@ -1295,21 +1273,19 @@ ${hintPrompt}
       document.getElementById('current-deck-title').innerText = deck.name;
       document.getElementById('word-count').innerText = deck.words.length;
       document.getElementById('word-list').innerHTML = deck.words.length === 0 
-	  ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
-	  : deck.words.map((item, index) => `
-		<div class="word-item">
-		  <div>
-			<strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)}${item.ans2 ? ' / ' + escapeHtml(item.ans2) : ''})</span>
-		  </div>
-		  <div style="display:flex; gap:4px; align-items:center;">
-			<!-- 保留單一答案發音按鈕 -->
-			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案" onclick="playWordAudio(${index}, 'ans1')">🔊 答案</button>
-			
-			<button style="width:auto; padding:5px 8px; margin:0;" onclick="openEditModal(${index})">編輯</button>
-			<button class="btn-danger" style="width:auto; padding:5px 8px; margin:0;" onclick="deleteWord(${index})">刪除</button>
-		  </div>
-		</div>
-	  `).join('');
+      ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
+      : deck.words.map((item, index) => `
+        <div class="word-item">
+          <div>
+            <strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)}${item.ans2 ? ' / ' + escapeHtml(item.ans2) : ''})</span>
+          </div>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案" onclick="playWordAudio(${index}, 'ans1')">🔊 答案</button>
+            <button style="width:auto; padding:5px 8px; margin:0;" onclick="openEditModal(${index})">編輯</button>
+            <button class="btn-danger" style="width:auto; padding:5px 8px; margin:0;" onclick="deleteWord(${index})">刪除</button>
+          </div>
+        </div>
+      `).join('');
 
       document.getElementById('setting-quiz-limit').value = quizLimit;
       if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
@@ -1333,56 +1309,54 @@ ${hintPrompt}
     let quizAutoNextTimeout = null;
 
     function initQuizSession() {
-	  if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
-	  const selected = document.getElementById('quiz-deck-select').value;
-	  let pool = [];
-	  if (selected === 'all') {
-		pool = decks.flatMap(d => d.words.map(w => ({...w, deckId: String(d.id)})));
-	  } else {
-		const target = decks.find(d => String(d.id) === String(selected));
-		if(target) pool = target.words.map(w => ({...w, deckId: String(target.id)}));
-	  }
+      if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
+      const selected = document.getElementById('quiz-deck-select').value;
+      let pool = [];
+      
+      // 修復一：將單字的原始 index 綁定在臨時物件上，確保後續結算能抓到正確的記憶體參照
+      if (selected === 'all') {
+        pool = decks.flatMap(d => d.words.map((w, index) => ({...w, deckId: String(d.id), wordIndex: index})));
+      } else {
+        const target = decks.find(d => String(d.id) === String(selected));
+        if(target) pool = target.words.map((w, index) => ({...w, deckId: String(target.id), wordIndex: index}));
+      }
 
-	  if (pool.length === 0) {
-		document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
-		return;
-	  }
+      if (pool.length === 0) {
+        document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
+        return;
+      }
 
-	  targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
+      targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
-	  // 1. 將單字分為「有測驗過 (依錯誤率)」與「少出現/沒測驗過 (依次數)」兩組
-	  let testedWords = pool.filter(w => (w.attempts || 0) > 0);
-	  let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
+      let testedWords = pool.filter(w => (w.attempts || 0) > 0);
+      let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
 
-	  testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
-	  newOrRareWords.sort(() => Math.random() - 0.5);
+      testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
+      newOrRareWords.sort(() => Math.random() - 0.5);
 
-	  // 2. 分配比例：60% 錯誤率高，40% 少出現/新單字
-	  let errorQuota = Math.floor(targetLimit * 0.6);
-	  let newQuota = targetLimit - errorQuota;
+      let errorQuota = Math.floor(targetLimit * 0.6);
+      let newQuota = targetLimit - errorQuota;
 
-	  let selectedWords = [];
-	  let selectedErrorWords = testedWords.splice(0, errorQuota);
-	  selectedWords.push(...selectedErrorWords);
+      let selectedWords = [];
+      let selectedErrorWords = testedWords.splice(0, errorQuota);
+      selectedWords.push(...selectedErrorWords);
 
-	  let selectedNewWords = newOrRareWords.splice(0, newQuota);
-	  selectedWords.push(...selectedNewWords);
+      let selectedNewWords = newOrRareWords.splice(0, newQuota);
+      selectedWords.push(...selectedNewWords);
 
-	  // 3. 互補機制
-	  let remainingSlots = targetLimit - selectedWords.length;
-	  if (remainingSlots > 0) {
-		let remainingPool = [...testedWords, ...newOrRareWords];
-		selectedWords.push(...remainingPool.slice(0, remainingSlots));
-	  }
+      let remainingSlots = targetLimit - selectedWords.length;
+      if (remainingSlots > 0) {
+        let remainingPool = [...testedWords, ...newOrRareWords];
+        selectedWords.push(...remainingPool.slice(0, remainingSlots));
+      }
 
-	  // 4. 打亂排序
-	  selectedWords.sort(() => Math.random() - 0.5);
+      selectedWords.sort(() => Math.random() - 0.5);
 
-	  quizQueue = selectedWords;
-	  sessionResults = [];
-	  totalAnswered = 0;
-	  nextQuizQuestion();
-	}
+      quizQueue = selectedWords;
+      sessionResults = [];
+      totalAnswered = 0;
+      nextQuizQuestion();
+    }
 
     function nextQuizQuestion() {
       if (quizAutoNextTimeout) {
@@ -1408,7 +1382,6 @@ ${hintPrompt}
       inputElem.value = '';
       document.getElementById('quiz-result').innerText = '';
       
-      // 自動聚焦輸入框
       setTimeout(() => inputElem.focus(), 50);
     }
 
@@ -1423,16 +1396,19 @@ ${hintPrompt}
       
       const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
       
-      // 1. 紀錄測驗結果與更新錯題數
       sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
-      currentQuizItem.attempts = (currentQuizItem.attempts || 0) + 1;
-      if (!isCorrect) {
-        currentQuizItem.errors = (currentQuizItem.errors || 0) + 1;
-      }
-
-      // 2. 每答一題，立刻寫入歷史紀錄
+      
       const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
       if (targetDeck) {
+        // 修復二：透過 wordIndex 找到最原始的單字並更新數值，不再只更新淺拷貝出來的物件
+        const originalWord = targetDeck.words[currentQuizItem.wordIndex];
+        if (originalWord) {
+          originalWord.attempts = (originalWord.attempts || 0) + 1;
+          if (!isCorrect) {
+            originalWord.errors = (originalWord.errors || 0) + 1;
+          }
+        }
+
         if (!Array.isArray(targetDeck.history)) {
           targetDeck.history = [];
         }
@@ -1443,7 +1419,7 @@ ${hintPrompt}
         });
       }
       
-      saveData(); // 即時儲存至 localStorage
+      saveData();
 
       const resultElem = document.getElementById('quiz-result');
       inputElem.disabled = true;
@@ -1465,7 +1441,6 @@ ${hintPrompt}
       }
     }
 
-    // 支援 Enter 鍵快速送出或跳下一題
     function handleQuizKeyDown(event) {
       if (event.key === 'Enter') {
         const btnNext = document.getElementById('btn-next-ans');
@@ -1488,13 +1463,11 @@ ${hintPrompt}
       document.getElementById('btn-next-ans').classList.add('hidden');
       document.getElementById('quiz-result').innerText = '';
       
-      // 注意：因為 checkAnswer 已經即時寫入歷史紀錄，這裡只需負責儲存與更新畫面即可，避免重複寫入。
       saveData();
     }
 
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
-      // 使用 String(d.id) 確保字串與數字 ID 都能精確比對
       const targetDecks = selected === 'all' 
         ? decks 
         : decks.filter(d => String(d.id) === String(selected));
@@ -1521,7 +1494,7 @@ ${hintPrompt}
       });
 
       const calcRate = (c, t) => t > 0 
-        ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` 
+        ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}题)</span>` 
         : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
       
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
