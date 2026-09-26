@@ -1313,7 +1313,6 @@ ${hintPrompt}
       const selected = document.getElementById('quiz-deck-select').value;
       let pool = [];
       
-      // 修復一：將單字的原始 index 綁定在臨時物件上，確保後續結算能抓到正確的記憶體參照
       if (selected === 'all') {
         pool = decks.flatMap(d => d.words.map((w, index) => ({...w, deckId: String(d.id), wordIndex: index})));
       } else {
@@ -1331,7 +1330,18 @@ ${hintPrompt}
       let testedWords = pool.filter(w => (w.attempts || 0) > 0);
       let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
 
-      testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
+      // 引入貝葉斯平滑（Bayesian Average）機制修正分母過小的影響
+      testedWords.sort((a, b) => {
+        const getScore = (item) => {
+          const attempts = item.attempts || 0;
+          const errors = item.errors || 0;
+          const globalAvgErrorRate = 0.3; // 假設全域平均錯誤率約為 30%
+          const C = 3; // 平滑常數
+          return (errors + C * globalAvgErrorRate) / (attempts + C);
+        };
+        return getScore(b) - getScore(a); // 權重高者優先
+      });
+
       newOrRareWords.sort(() => Math.random() - 0.5);
 
       let errorQuota = Math.floor(targetLimit * 0.6);
@@ -1400,7 +1410,6 @@ ${hintPrompt}
       
       const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
       if (targetDeck) {
-        // 修復二：透過 wordIndex 找到最原始的單字並更新數值，不再只更新淺拷貝出來的物件
         const originalWord = targetDeck.words[currentQuizItem.wordIndex];
         if (originalWord) {
           originalWord.attempts = (originalWord.attempts || 0) + 1;
