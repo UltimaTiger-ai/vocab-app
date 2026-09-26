@@ -607,30 +607,37 @@
     }
 
     function speakText(text, lang = 'en-US') {
-      if (!text) return;
-      
-      // 停止當前正在播放的語音
-      window.speechSynthesis.cancel();
+	  if (!text) return;
 
-      // 加入 50ms 延遲，避免部分手機與瀏覽器 cancel() 非同步執行吃掉接下來的 speak() 指令
-      setTimeout(() => {
-        currentUtterance = new SpeechSynthesisUtterance(text);
-        currentUtterance.lang = lang;
+	  // 1. 若目前正在發音，才執行 cancel；避免無謂的 cancel 導致 iOS 語音引擎卡死
+	  if (window.speechSynthesis.speaking) {
+		window.speechSynthesis.cancel();
+	  }
 
-        // 若 onvoiceschanged 尚未觸發，做最後一次即時抓取
-        const voices = globalVoices.length > 0 ? globalVoices : window.speechSynthesis.getVoices();
-        
-        // 優先尋找完全相符或同語言家族的語音
-        const targetVoice = voices.find(v => v.lang === lang || v.lang.replace('_', '-') === lang) || 
-                            voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+	  // 2. 若 iOS 語音引擎處於暫停狀態，強制恢復
+	  if (window.speechSynthesis.paused) {
+		window.speechSynthesis.resume();
+	  }
 
-        if (targetVoice) {
-          currentUtterance.voice = targetVoice;
-        }
+	  // 3. 直接同步建立發音物件（移除 setTimeout，確保符合 iOS 的 User Gesture 規範）
+	  currentUtterance = new SpeechSynthesisUtterance(text);
+	  currentUtterance.lang = lang;
 
-        window.speechSynthesis.speak(currentUtterance);
-      }, 50);
-    }
+	  // 4. 即時取得語音清單並進行語言比對
+	  const voices = window.speechSynthesis.getVoices();
+	  if (voices.length > 0) {
+		const normalizedLang = lang.replace('_', '-');
+		const targetVoice = voices.find(v => v.lang === normalizedLang || v.lang === lang) || 
+							voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+
+		if (targetVoice) {
+		  currentUtterance.voice = targetVoice;
+		}
+	  }
+
+	  // 5. 同步播放語音
+	  window.speechSynthesis.speak(currentUtterance);
+	}
 
     function speakCurrentQuestion() {
       if (currentQuizItem) {
