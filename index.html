@@ -606,38 +606,58 @@
       }
     }
 
-    // 簡化後的發音函式（移除 voice 強制指定，由系統依據 lang 自動挑選最佳語音）
-	function speakText(text, lang = 'en-US') {
+	// 1. 強化的語音播放函式：自動搜尋匹配答案語言的 Voice 物件
+	function speakText(text, lang = 'zh-TW') {
 	  if (!text) return;
+	  if (typeof speechSynthesis === 'undefined') return;
 
-	  // 1. 若目前正在發音，先取消以避免重疊
+	  // 若目前正在發音，先取消以避免聲音重疊
 	  if (window.speechSynthesis.speaking) {
 		window.speechSynthesis.cancel();
 	  }
 
-	  // 2. 若處於暫停狀態，強制恢復
+	  // 若處於暫停狀態，強制恢復
 	  if (window.speechSynthesis.paused) {
 		window.speechSynthesis.resume();
 	  }
 
-	  // 3. 建立語音物件並設定語言格式
+	  const targetLang = lang.replace('_', '-').toLowerCase();
 	  currentUtterance = new SpeechSynthesisUtterance(text);
-	  currentUtterance.lang = lang.replace('_', '-');
+	  currentUtterance.lang = targetLang;
 
-	  // 4. 播放語音
+	  // 取得系統所有可用語音，進行語言比對匹配
+	  const voices = window.speechSynthesis.getVoices();
+	  if (voices && voices.length > 0) {
+		// 優先 1：精確匹配全區域名稱 (例: zh-TW, ja-JP, en-US)
+		let matchedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === targetLang);
+
+		// 優先 2：若無完全匹配，退回主語言匹配 (例: zh, ja, en)
+		if (!matchedVoice) {
+		  const mainLang = targetLang.split('-')[0];
+		  matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(mainLang));
+		}
+
+		// 若找到匹配的語音包，直接指定給 utterance
+		if (matchedVoice) {
+		  currentUtterance.voice = matchedVoice;
+		}
+	  }
+
 	  window.speechSynthesis.speak(currentUtterance);
 	}
 
-	// 單字清單專用播放函式 (以索引讀取，避免字串拼接跳脫錯誤)
-	function playWordAudio(index, type = 'question') {
+	// 2. 更新單字清單播放邏輯 (專播放答案一與答案二)
+	function playWordAudio(index, type = 'ans1') {
 	  const deck = getCurrentDeck();
 	  if (!deck || !deck.words[index]) return;
 	  const item = deck.words[index];
 
-	  if (type === 'question') {
-		speakText(item.question, item.qLang || 'en-US');
-	  } else if (type === 'ans1') {
-		speakText(item.ans1, item.aLang || 'zh-TW');
+	  const aLang = item.aLang || 'zh-TW';
+
+	  if (type === 'ans1') {
+		speakText(item.ans1, aLang);
+	  } else if (type === 'ans2' && item.ans2) {
+		speakText(item.ans2, aLang);
 	  }
 	}
 
@@ -1243,9 +1263,9 @@ ${hintPrompt}
 			<strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)}${item.ans2 ? ' / ' + escapeHtml(item.ans2) : ''})</span>
 		  </div>
 		  <div style="display:flex; gap:4px; align-items:center;">
-			<!-- 分別提供題目與答案的發音按鈕 -->
-			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放題目語音" onclick="playWordAudio(${index}, 'question')">🔊 題目</button>
-			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案語音" onclick="playWordAudio(${index}, 'ans1')">🔊 答案</button>
+			<!-- 僅保留答案播放按鈕，自動辨識答案語言發音 -->
+			<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案" onclick="playWordAudio(${index}, 'ans1')">🔊 答案${item.ans2 ? '一' : ''}</button>
+			${item.ans2 ? `<button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案二" onclick="playWordAudio(${index}, 'ans2')">🔊 答案二</button>` : ''}
 			
 			<button style="width:auto; padding:5px 8px; margin:0;" onclick="openEditModal(${index})">編輯</button>
 			<button class="btn-danger" style="width:auto; padding:5px 8px; margin:0;" onclick="deleteWord(${index})">刪除</button>
