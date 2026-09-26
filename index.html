@@ -1330,7 +1330,10 @@ ${hintPrompt}
       if (tab === 'models') fetchAvailableModels();
     }
 
+    let quizAutoNextTimeout = null;
+
     function initQuizSession() {
+      if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
       const selected = document.getElementById('quiz-deck-select').value;
       let pool = [];
       if (selected === 'all') {
@@ -1351,9 +1354,7 @@ ${hintPrompt}
       let testedWords = pool.filter(w => (w.attempts || 0) > 0);
       let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
 
-      // 如果有測驗過的字，依照錯誤率由高到低排序
       testedWords.sort((a, b) => ((b.errors || 0) / (b.attempts || 1)) - ((a.errors || 0) / (a.attempts || 1)));
-      // 沒測驗過的字隨機打亂
       newOrRareWords.sort(() => Math.random() - 0.5);
 
       // 2. 分配比例：60% 錯誤率高，40% 少出現/新單字
@@ -1361,24 +1362,20 @@ ${hintPrompt}
       let newQuota = targetLimit - errorQuota;
 
       let selectedWords = [];
-
-      // 取出錯誤率高的單字
       let selectedErrorWords = testedWords.splice(0, errorQuota);
       selectedWords.push(...selectedErrorWords);
 
-      // 取出少出現的單字
       let selectedNewWords = newOrRareWords.splice(0, newQuota);
       selectedWords.push(...selectedNewWords);
 
-      // 3. 互補機制：如果其中一邊數量不夠，用另一邊補齊剩餘名額
+      // 3. 互補機制
       let remainingSlots = targetLimit - selectedWords.length;
       if (remainingSlots > 0) {
-        // 合併剩餘的單字並繼續填補
         let remainingPool = [...testedWords, ...newOrRareWords];
         selectedWords.push(...remainingPool.slice(0, remainingSlots));
       }
 
-      // 4. 最後將選出的題目打亂，避免使用者猜到出題規律（例如前幾題永遠是錯最多的）
+      // 4. 打亂排序
       selectedWords.sort(() => Math.random() - 0.5);
 
       quizQueue = selectedWords;
@@ -1388,12 +1385,19 @@ ${hintPrompt}
     }
 
     function nextQuizQuestion() {
+      if (quizAutoNextTimeout) {
+        clearTimeout(quizAutoNextTimeout);
+        quizAutoNextTimeout = null;
+      }
+
       if (quizQueue.length === 0) {
         endQuizSession();
         return;
       }
-      document.getElementById('quiz-answer').style.display = 'block';
-      document.getElementById('quiz-answer').disabled = false;
+
+      const inputElem = document.getElementById('quiz-answer');
+      inputElem.style.display = 'block';
+      inputElem.disabled = false;
       document.getElementById('btn-submit-ans').style.display = 'block';
       document.getElementById('btn-next-ans').classList.add('hidden');
 
@@ -1401,49 +1405,68 @@ ${hintPrompt}
       totalAnswered++;
       document.getElementById('quiz-progress').innerText = `進度：第 ${totalAnswered} / ${targetLimit} 題`;
       document.getElementById('quiz-prompt').innerText = currentQuizItem.question;
-      document.getElementById('quiz-answer').value = '';
+      inputElem.value = '';
       document.getElementById('quiz-result').innerText = '';
       
-      //speakCurrentQuestion();
+      // 自動聚焦輸入框
+      setTimeout(() => inputElem.focus(), 50);
     }
 
     function checkAnswer() {
-	  if (!currentQuizItem) return;
-	  
-	  const inputElem = document.getElementById('quiz-answer');
-	  const userAns = inputElem.value.trim().toLowerCase();
-	  
-	  // 比較答案時，自動過濾掉答案一與答案二中的括號註解
-	  const ans1 = cleanAnswerText(currentQuizItem.ans1 || '').toLowerCase();
-	  const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').toLowerCase();
-	  
-	  // 判斷是否答對
-	  const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
-	  
-	  // 紀錄本次測驗結果
-	  sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
-	  
-	  // 更新單字本機記錄中的測驗次數與錯誤次數
-	  currentQuizItem.attempts = (currentQuizItem.attempts || 0) + 1;
-	  if (!isCorrect) {
-		currentQuizItem.errors = (currentQuizItem.errors || 0) + 1;
-	  }
+      if (!currentQuizItem) return;
+      
+      const inputElem = document.getElementById('quiz-answer');
+      const userAns = inputElem.value.trim().toLowerCase();
+      
+      // 比較答案時自動過濾括號註解
+      const ans1 = cleanAnswerText(currentQuizItem.ans1 || '').toLowerCase();
+      const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').toLowerCase();
+      
+      // 判斷答對與否
+      const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
+      
+      // 紀錄測驗結果與更新錯題數
+      sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
+      currentQuizItem.attempts = (currentQuizItem.attempts || 0) + 1;
+      if (!isCorrect) {
+        currentQuizItem.errors = (currentQuizItem.errors || 0) + 1;
+      }
 
-	  // 顯示答題結果提示
-	  const resultElem = document.getElementById('quiz-result');
-	  if (isCorrect) {
-		resultElem.style.color = '#28a745';
-		resultElem.innerText = '⭕ 答對了！';
-	  } else {
-		resultElem.style.color = '#dc3545';
-		resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
-	  }
+      const resultElem = document.getElementById('quiz-result');
+      inputElem.disabled = true;
 
-	  // 停用輸入框並切換至「下一題」按鈕
-	  inputElem.disabled = true;
-	  document.getElementById('btn-submit-ans').style.display = 'none';
-	  document.getElementById('btn-next-ans').classList.remove('hidden');
-	}
+      if (isCorrect) {
+        // 答對處理：提示成功並於 0.6 秒後自動切換下一題
+        resultElem.style.color = '#28a745';
+        resultElem.innerText = '⭕ 答對了！';
+        document.getElementById('btn-submit-ans').style.display = 'none';
+
+        if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
+        quizAutoNextTimeout = setTimeout(() => {
+          nextQuizQuestion();
+        }, 600);
+      } else {
+        // 答錯處理：停下來顯示正確答案，並顯示「下一題」按鈕由 User 確認
+        resultElem.style.color = '#dc3545';
+        resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
+        document.getElementById('btn-submit-ans').style.display = 'none';
+        document.getElementById('btn-next-ans').classList.remove('hidden');
+      }
+    }
+
+    // 支援 Enter 鍵快速送出或跳下一題
+    function handleQuizKeyDown(event) {
+      if (event.key === 'Enter') {
+        const btnNext = document.getElementById('btn-next-ans');
+        const btnSubmit = document.getElementById('btn-submit-ans');
+        
+        if (!btnNext.classList.contains('hidden')) {
+          nextQuizQuestion();
+        } else if (btnSubmit.style.display !== 'none') {
+          checkAnswer();
+        }
+      }
+    }
 
     function endQuizSession() {
       const correctCount = sessionResults.filter(r => r.correct).length;
