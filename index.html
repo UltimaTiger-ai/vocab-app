@@ -1413,59 +1413,57 @@ ${hintPrompt}
     }
 
     function checkAnswer() {
-	  if (!currentQuizItem) return;
-	  
-	  const inputElem = document.getElementById('quiz-answer');
-	  // 使用 .trim().replace(/\s+/g, ' ') 將連續空格縮減為單一空格
-	  const userAns = inputElem.value.trim().replace(/\s+/g, ' ').toLowerCase();
-	  
-	  // 比較答案時自動過濾括號註解，並同樣進行空格正規化
-	  const ans1 = cleanAnswerText(currentQuizItem.ans1 || '').trim().replace(/\s+/g, ' ').toLowerCase();
-	  const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').trim().replace(/\s+/g, ' ').toLowerCase();
-	  
-	  // 判斷答對與否
-	  const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
-	  
-	  // 紀錄測驗結果與更新錯題數
-	  sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
-	  currentQuizItem.attempts = (currentQuizItem.attempts || 0) + 1;
-	  if (!isCorrect) {
-		currentQuizItem.errors = (currentQuizItem.errors || 0) + 1;
-	  }
+      if (!currentQuizItem) return;
+      
+      const inputElem = document.getElementById('quiz-answer');
+      const userAns = inputElem.value.trim().replace(/\s+/g, ' ').toLowerCase();
+      
+      const ans1 = cleanAnswerText(currentQuizItem.ans1 || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').trim().replace(/\s+/g, ' ').toLowerCase();
+      
+      const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
+      
+      // 1. 紀錄測驗結果與更新錯題數
+      sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
+      currentQuizItem.attempts = (currentQuizItem.attempts || 0) + 1;
+      if (!isCorrect) {
+        currentQuizItem.errors = (currentQuizItem.errors || 0) + 1;
+      }
 
-	  // 💡【新增】每答一題，立刻將該題寫入單字庫的歷史紀錄中
-	  const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
-	  if (targetDeck) {
-		targetDeck.history = targetDeck.history || [];
-		targetDeck.history.push({
-		  timestamp: Date.now(),
-		  correct: isCorrect ? 1 : 0,
-		  total: 1
-		});
-	  }
-	  saveData(); // 即時儲存至 localStorage
+      // 2. 每答一題，立刻寫入歷史紀錄
+      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+      if (targetDeck) {
+        if (!Array.isArray(targetDeck.history)) {
+          targetDeck.history = [];
+        }
+        targetDeck.history.push({
+          timestamp: Date.now(),
+          correct: isCorrect ? 1 : 0,
+          total: 1
+        });
+      }
+      
+      saveData(); // 即時儲存至 localStorage
 
-	  const resultElem = document.getElementById('quiz-result');
-	  inputElem.disabled = true;
+      const resultElem = document.getElementById('quiz-result');
+      inputElem.disabled = true;
 
-	  if (isCorrect) {
-		// 答對處理：提示成功並於 0.6 秒後自動切換下一題
-		resultElem.style.color = '#28a745';
-		resultElem.innerText = '⭕ 答對了！';
-		document.getElementById('btn-submit-ans').style.display = 'none';
+      if (isCorrect) {
+        resultElem.style.color = '#28a745';
+        resultElem.innerText = '⭕ 答對了！';
+        document.getElementById('btn-submit-ans').style.display = 'none';
 
-		if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
-		quizAutoNextTimeout = setTimeout(() => {
-		  nextQuizQuestion();
-		}, 600);
-	  } else {
-		// 答錯處理：停下來顯示正確答案，並顯示「下一題」按鈕由 User 確認
-		resultElem.style.color = '#dc3545';
-		resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
-		document.getElementById('btn-submit-ans').style.display = 'none';
-		document.getElementById('btn-next-ans').classList.remove('hidden');
-	  }
-	}
+        if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
+        quizAutoNextTimeout = setTimeout(() => {
+          nextQuizQuestion();
+        }, 600);
+      } else {
+        resultElem.style.color = '#dc3545';
+        resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
+        document.getElementById('btn-submit-ans').style.display = 'none';
+        document.getElementById('btn-next-ans').classList.remove('hidden');
+      }
+    }
 
     // 支援 Enter 鍵快速送出或跳下一題
     function handleQuizKeyDown(event) {
@@ -1482,40 +1480,24 @@ ${hintPrompt}
     }
 
     function endQuizSession() {
-	  const correctCount = sessionResults.filter(r => r.correct).length;
-	  document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
-	  document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
-	  document.getElementById('quiz-answer').style.display = 'none';
-	  document.getElementById('btn-submit-ans').style.display = 'none';
-	  document.getElementById('btn-next-ans').classList.add('hidden');
-	  document.getElementById('quiz-result').innerText = '';
-	  
-	  const deckStats = {};
-	  sessionResults.forEach(r => {
-		if (!r.deckId) return;
-		const targetDeckId = String(r.deckId);
-		if (!deckStats[targetDeckId]) deckStats[targetDeckId] = { correct: 0, total: 0 };
-		deckStats[targetDeckId].total++;
-		if (r.correct) deckStats[targetDeckId].correct++;
-	  });
-
-	  for (let dId in deckStats) {
-		const d = decks.find(deck => String(deck.id) === String(dId));
-		if (d) {
-		  d.history = d.history || [];
-		  d.history.push({ 
-			timestamp: Date.now(), 
-			correct: deckStats[dId].correct, 
-			total: deckStats[dId].total 
-		  });
-		}
-	  }
-	  saveData();
-	}
+      const correctCount = sessionResults.filter(r => r.correct).length;
+      document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
+      document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
+      document.getElementById('quiz-answer').style.display = 'none';
+      document.getElementById('btn-submit-ans').style.display = 'none';
+      document.getElementById('btn-next-ans').classList.add('hidden');
+      document.getElementById('quiz-result').innerText = '';
+      
+      // 注意：因為 checkAnswer 已經即時寫入歷史紀錄，這裡只需負責儲存與更新畫面即可，避免重複寫入。
+      saveData();
+    }
 
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
-      const targetDecks = selected === 'all' ? decks : decks.filter(d => d.id === selected);
+      // 使用 String(d.id) 確保字串與數字 ID 都能精確比對
+      const targetDecks = selected === 'all' 
+        ? decks 
+        : decks.filter(d => String(d.id) === String(selected));
       
       let allTotal = 0, allCorrect = 0, monthTotal = 0, monthCorrect = 0;
       const now = Date.now(), oneMonthMs = 30 * 24 * 60 * 60 * 1000;
@@ -1523,11 +1505,11 @@ ${hintPrompt}
 
       targetDecks.forEach(d => {
         (d.history || []).forEach(h => {
-          allTotal += h.total;
-          allCorrect += h.correct;
+          allTotal += (h.total || 0);
+          allCorrect += (h.correct || 0);
           if (now - h.timestamp <= oneMonthMs) {
-            monthTotal += h.total;
-            monthCorrect += h.correct;
+            monthTotal += (h.total || 0);
+            monthCorrect += (h.correct || 0);
           }
         });
         (d.words || []).forEach(w => {
@@ -1538,7 +1520,9 @@ ${hintPrompt}
         });
       });
 
-      const calcRate = (c, t) => t > 0 ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
+      const calcRate = (c, t) => t > 0 
+        ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` 
+        : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
       
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
       document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
