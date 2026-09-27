@@ -304,7 +304,7 @@
 
     <div class="setting-group">
       <label>🔑 Gemini API Key</label>
-      <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()">
+	  <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()" onchange="saveSettings()" onblur="saveSettings()">
     </div>
 
     <div class="setting-group">
