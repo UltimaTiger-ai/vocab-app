@@ -1257,6 +1257,10 @@ ${hintPrompt}
       const aiTargetSelect = document.getElementById('ai-target-deck-select');
       const shareDeckSelect = document.getElementById('share-deck-select');
       
+      // 1. 取得當前測驗選單與統計選單已選擇的值 (若尚無選擇則預設為 'all')
+      const currentQuizSelected = quizDeckSelect ? (quizDeckSelect.value || 'all') : 'all';
+      const currentStatsSelected = statsDeckSelect ? (statsDeckSelect.value || 'all') : 'all';
+
       const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
       deckSelect.innerHTML = deckOptions;
       if (shareDeckSelect) shareDeckSelect.innerHTML = deckOptions;
@@ -1265,9 +1269,12 @@ ${hintPrompt}
         aiTargetSelect.innerHTML = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
       }
 
-      const allOption = `<option value="all">🌟 全部單字庫綜合</option>`;
-      quizDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name} (${d.words.length}字)</option>`).join('');
-      statsDeckSelect.innerHTML = allOption + decks.map(d => `<option value="${d.id}">📁 ${d.name}</option>`).join('');
+      // 2. 生成「測驗」與「統計」頁面的下拉選項，並動態判定 selected 狀態
+      const allOptionQuiz = `<option value="all" ${currentQuizSelected === 'all' ? 'selected' : ''}>🌟 全部單字庫綜合</option>`;
+      quizDeckSelect.innerHTML = allOptionQuiz + decks.map(d => `<option value="${d.id}" ${String(d.id) === String(currentQuizSelected) ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
+
+      const allOptionStats = `<option value="all" ${currentStatsSelected === 'all' ? 'selected' : ''}>🌟 全部單字庫綜合</option>`;
+      statsDeckSelect.innerHTML = allOptionStats + decks.map(d => `<option value="${d.id}" ${String(d.id) === String(currentStatsSelected) ? 'selected' : ''}>📁 ${d.name}</option>`).join('');
 
       const deck = getCurrentDeck();
       document.getElementById('current-deck-title').innerText = deck.name;
