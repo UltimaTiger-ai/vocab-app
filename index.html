@@ -1327,39 +1327,55 @@ ${hintPrompt}
 
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
-      let testedWords = pool.filter(w => (w.attempts || 0) > 0);
-      let newOrRareWords = pool.filter(w => (w.attempts || 0) === 0);
+      // 計算每個單字的平滑錯誤率（貝葉斯平滑）
+      const getScore = (item) => {
+        const attempts = item.attempts || 0;
+        const errors = item.errors || 0;
+        const globalAvgErrorRate = 0.3; // 全域預設平均錯誤率 30%
+        const C = 3; // 平滑常數
+        return (errors + C * globalAvgErrorRate) / (attempts + C);
+      };
 
-      // 引入貝葉斯平滑（Bayesian Average）機制修正分母過小的影響
-      testedWords.sort((a, b) => {
-        const getScore = (item) => {
-          const attempts = item.attempts || 0;
-          const errors = item.errors || 0;
-          const globalAvgErrorRate = 0.3; // 假設全域平均錯誤率約為 30%
-          const C = 3; // 平滑常數
-          return (errors + C * globalAvgErrorRate) / (attempts + C);
-        };
-        return getScore(b) - getScore(a); // 權重高者優先
-      });
+      // 1. 未測過的新題 (attempts === 0)
+      let unattemptedWords = pool.filter(w => (w.attempts || 0) === 0);
+      unattemptedWords.sort(() => Math.random() - 0.5);
 
-      newOrRareWords.sort(() => Math.random() - 0.5);
+      // 2. 已測過且常錯的題目 (errors > 0)，按錯誤率高到低排序
+      let errorWords = pool.filter(w => (w.attempts || 0) > 0 && (w.errors || 0) > 0);
+      errorWords.sort((a, b) => getScore(b) - getScore(a));
 
-      let errorQuota = Math.floor(targetLimit * 0.6);
-      let newQuota = targetLimit - errorQuota;
+      // 3. 測過且高通過率/全對的熟悉題目 (errors === 0)，隨機排序以利偶爾抽測
+      let familiarWords = pool.filter(w => (w.attempts || 0) > 0 && (w.errors || 0) === 0);
+      familiarWords.sort(() => Math.random() - 0.5);
+
+      // 配額分配：50% 常錯題、30% 新題、20% 熟悉抽測題
+      let errorQuota = Math.floor(targetLimit * 0.5);
+      let newQuota = Math.floor(targetLimit * 0.3);
+      let familiarQuota = targetLimit - errorQuota - newQuota; // 約 20%
 
       let selectedWords = [];
-      let selectedErrorWords = testedWords.splice(0, errorQuota);
-      selectedWords.push(...selectedErrorWords);
 
-      let selectedNewWords = newOrRareWords.splice(0, newQuota);
-      selectedWords.push(...selectedNewWords);
+      // 抽取常錯題
+      let selectedError = errorWords.splice(0, errorQuota);
+      selectedWords.push(...selectedError);
 
+      // 抽取新題
+      let selectedNew = unattemptedWords.splice(0, newQuota);
+      selectedWords.push(...selectedNew);
+
+      // 抽取熟悉題 (通過率 100% 或少錯題)
+      let selectedFamiliar = familiarWords.splice(0, familiarQuota);
+      selectedWords.push(...selectedFamiliar);
+
+      // 若有配額未填滿（例如常錯題不夠），從剩餘的所有池子中隨機補足
       let remainingSlots = targetLimit - selectedWords.length;
       if (remainingSlots > 0) {
-        let remainingPool = [...testedWords, ...newOrRareWords];
+        let remainingPool = [...errorWords, ...unattemptedWords, ...familiarWords];
+        remainingPool.sort(() => Math.random() - 0.5);
         selectedWords.push(...remainingPool.slice(0, remainingSlots));
       }
 
+      // 將最終選出的題目打亂順序
       selectedWords.sort(() => Math.random() - 0.5);
 
       quizQueue = selectedWords;
