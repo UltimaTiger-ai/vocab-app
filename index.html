@@ -92,7 +92,7 @@
 
   <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ UltimaTiger 的 App 已就緒！資料 100% 存於本機</span>
+    <span>✅ App 已就緒！資料 100% 存於本機</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
@@ -263,7 +263,7 @@
       </div>
       <div class="setting-group">
         <label>創作者暱稱</label>
-        <input type="text" id="share-author-input" placeholder="例如：UltimaTiger" style="margin-top:4px;">
+        <input type="text" id="share-author-input" placeholder="例如：User" style="margin-top:4px;">
       </div>
       <div class="setting-group">
         <label>單字庫簡介與說明</label>
@@ -304,7 +304,7 @@
 
     <div class="setting-group">
       <label>🔑 Gemini API Key</label>
-	  <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()" onchange="saveSettings()" onblur="saveSettings()">
+      <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()" onchange="saveSettings()" onblur="saveSettings()">
     </div>
 
     <div class="setting-group">
@@ -330,6 +330,17 @@
         <option value="30">30 題</option>
         <option value="0">全部單字集</option>
       </select>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+
+    <!-- JSON 資料備份與還原功能區塊 -->
+    <h3>💾 資料備份與還原 (JSON 匯入/匯出)</h3>
+    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。</p>
+    <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
+      <button type="button" class="btn-success" onclick="exportDataToJson()">📤 匯出全部單字庫</button>
+      <button type="button" class="btn-warning" onclick="document.getElementById('import-json-input').click()">📥 匯入單字庫</button>
+      <input type="file" id="import-json-input" accept=".json" style="display: none;" onchange="importDataFromJson(event)">
     </div>
   </div>
 
@@ -475,7 +486,7 @@
     }
 
     function updateAppVersion() {
-      const lastMod = new Date(document.lastModified);
+      const lastMod = new Date();
       const yyyy = lastMod.getFullYear();
       const mm = String(lastMod.getMonth() + 1).padStart(2, '0');
       const dd = String(lastMod.getDate()).padStart(2, '0');
@@ -508,6 +519,69 @@
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
     }
+
+    // ==== JSON 匯出與匯入功能 ====
+    function exportDataToJson() {
+      if (decks.length === 0) return alert('目前沒有單字庫可以匯出！');
+      
+      const dataStr = JSON.stringify(decks, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.download = `vocab_backup_${dateStr}.json`;
+      
+      document.body.appendChild(a);
+      a.click();
+      
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importDataFromJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          
+          if (!Array.isArray(importedData)) {
+            throw new Error("無效的檔案格式，應包含單字庫的陣列結構。");
+          }
+          
+          const confirmReplace = confirm("您想要【取代】現有單字庫嗎？\n\n按下「確定」：清空現有資料，完全使用匯入檔案\n按下「取消」：將檔案內的單字庫【附加】到現有列表後");
+          
+          if (confirmReplace) {
+            decks = importedData;
+          } else {
+            importedData.forEach(d => {
+              // 確保合併時 ID 不重複
+              d.id = d.id + '_import_' + Date.now() + Math.floor(Math.random() * 1000);
+              decks.push(d);
+            });
+          }
+          
+          if (decks.length > 0) {
+            currentDeckId = decks[0].id;
+          } else {
+            decks.push({ id: 'default_1', name: '預設單字庫', words: [], history: [] });
+            currentDeckId = decks[0].id;
+          }
+          
+          saveData();
+          alert("✅ 單字庫 JSON 匯入成功！");
+          event.target.value = ''; // 重置 file input
+          switchTab('list'); // 匯入成功後跳轉回單字庫頁面
+        } catch (error) {
+          alert("❌ 匯入失敗，請確認是否為正確的 JSON 備份檔案。\n錯誤訊息：" + error.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+    // ===========================
 
     function updateModelDropdown() {
       const availableModels = getCachedGenerateModels();
@@ -681,12 +755,6 @@
       }
 
       speakText(textToSpeak, aLang);
-    }
-
-    function speakCurrentQuestion() {
-      if (currentQuizItem) {
-        speakText(currentQuizItem.question, currentQuizItem.qLang || 'en-US');
-      }
     }
 
     async function fetchAvailableModels() {
@@ -1257,7 +1325,6 @@ ${hintPrompt}
       const aiTargetSelect = document.getElementById('ai-target-deck-select');
       const shareDeckSelect = document.getElementById('share-deck-select');
       
-      // 1. 取得當前測驗選單與統計選單已選擇的值 (若尚無選擇則預設為 'all')
       const currentQuizSelected = quizDeckSelect ? (quizDeckSelect.value || 'all') : 'all';
       const currentStatsSelected = statsDeckSelect ? (statsDeckSelect.value || 'all') : 'all';
 
@@ -1269,7 +1336,6 @@ ${hintPrompt}
         aiTargetSelect.innerHTML = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
       }
 
-      // 2. 生成「測驗」與「統計」頁面的下拉選項，並動態判定 selected 狀態
       const allOptionQuiz = `<option value="all" ${currentQuizSelected === 'all' ? 'selected' : ''}>🌟 全部單字庫綜合</option>`;
       quizDeckSelect.innerHTML = allOptionQuiz + decks.map(d => `<option value="${d.id}" ${String(d.id) === String(currentQuizSelected) ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
 
@@ -1334,47 +1400,32 @@ ${hintPrompt}
 
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
-      // 計算每個單字的平滑錯誤率（貝葉斯平滑）
       const getScore = (item) => {
         const attempts = item.attempts || 0;
         const errors = item.errors || 0;
-        const globalAvgErrorRate = 0.3; // 全域預設平均錯誤率 30%
-        const C = 3; // 平滑常數
+        const globalAvgErrorRate = 0.3; 
+        const C = 3; 
         return (errors + C * globalAvgErrorRate) / (attempts + C);
       };
 
-      // 1. 未測過的新題 (attempts === 0)
       let unattemptedWords = pool.filter(w => (w.attempts || 0) === 0);
       unattemptedWords.sort(() => Math.random() - 0.5);
 
-      // 2. 已測過且常錯的題目 (errors > 0)，按錯誤率高到低排序
       let errorWords = pool.filter(w => (w.attempts || 0) > 0 && (w.errors || 0) > 0);
       errorWords.sort((a, b) => getScore(b) - getScore(a));
 
-      // 3. 測過且高通過率/全對的熟悉題目 (errors === 0)，隨機排序以利偶爾抽測
       let familiarWords = pool.filter(w => (w.attempts || 0) > 0 && (w.errors || 0) === 0);
       familiarWords.sort(() => Math.random() - 0.5);
 
-      // 配額分配：50% 常錯題、30% 新題、20% 熟悉抽測題
       let errorQuota = Math.floor(targetLimit * 0.5);
       let newQuota = Math.floor(targetLimit * 0.3);
-      let familiarQuota = targetLimit - errorQuota - newQuota; // 約 20%
+      let familiarQuota = targetLimit - errorQuota - newQuota; 
 
       let selectedWords = [];
+      selectedWords.push(...errorWords.splice(0, errorQuota));
+      selectedWords.push(...unattemptedWords.splice(0, newQuota));
+      selectedWords.push(...familiarWords.splice(0, familiarQuota));
 
-      // 抽取常錯題
-      let selectedError = errorWords.splice(0, errorQuota);
-      selectedWords.push(...selectedError);
-
-      // 抽取新題
-      let selectedNew = unattemptedWords.splice(0, newQuota);
-      selectedWords.push(...selectedNew);
-
-      // 抽取熟悉題 (通過率 100% 或少錯題)
-      let selectedFamiliar = familiarWords.splice(0, familiarQuota);
-      selectedWords.push(...selectedFamiliar);
-
-      // 若有配額未填滿（例如常錯題不夠），從剩餘的所有池子中隨機補足
       let remainingSlots = targetLimit - selectedWords.length;
       if (remainingSlots > 0) {
         let remainingPool = [...errorWords, ...unattemptedWords, ...familiarWords];
@@ -1382,7 +1433,6 @@ ${hintPrompt}
         selectedWords.push(...remainingPool.slice(0, remainingSlots));
       }
 
-      // 將最終選出的題目打亂順序
       selectedWords.sort(() => Math.random() - 0.5);
 
       quizQueue = selectedWords;
