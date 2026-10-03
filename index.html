@@ -86,6 +86,26 @@
     .row-group > * { flex: 1; }
     .sub-label { font-size: 12px; color: var(--subtext-color); }
     .hint-box { margin-bottom: 12px; background: var(--hint-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--hint-border); }
+	/* AI 記憶建議表格樣式 */
+	.ai-tip-table {
+	  width: 100%;
+	  border-collapse: collapse;
+	  margin-top: 10px;
+	  font-size: 14px;
+	}
+	.ai-tip-table th, .ai-tip-table td {
+	  border: 1px solid var(--border-color);
+	  padding: 10px;
+	  text-align: left;
+	}
+	.ai-tip-table th {
+	  background: var(--hint-bg);
+	  color: #1a73e8;
+	}
+	body.dark-mode .ai-tip-table th {
+	  background: #1a2634;
+	  color: #66b2ff;
+	}
   </style>
 </head>
 <body>
@@ -181,6 +201,27 @@
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
+	  
+	  <!-- 新增：請求 AI 建議按鈕與表格 -->
+      <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
+      
+      <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
+        <table class="ai-tip-table">
+          <thead>
+            <tr><th>💡 AI 記憶建議</th></tr>
+          </thead>
+          <tbody>
+            <tr><td id="ai-tip-content">載入中...</td></tr>
+            <tr id="ai-tip-feedback-row">
+              <td style="text-align: center;">
+                <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
+                <button class="btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(true)">👍 實用，記下來</button>
+                <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(false)">👎 不好，請改進重想</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -1458,6 +1499,10 @@ ${hintPrompt}
       document.getElementById('btn-submit-ans').style.display = 'block';
       document.getElementById('btn-next-ans').classList.add('hidden');
 
+      // 新增：切換下一題時隱藏 AI 建議區塊
+      document.getElementById('btn-get-ai-tip').classList.add('hidden');
+      document.getElementById('ai-tip-box').classList.add('hidden');
+
       currentQuizItem = quizQueue.shift();
       totalAnswered++;
       document.getElementById('quiz-progress').innerText = `進度：第 ${totalAnswered} / ${targetLimit} 題`;
@@ -1520,6 +1565,14 @@ ${hintPrompt}
         resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.remove('hidden');
+        // 新增：判斷是否已經有儲存過的 AI 建議
+        if (originalWord && originalWord.aiTip) {
+          document.getElementById('ai-tip-box').classList.remove('hidden');
+          document.getElementById('ai-tip-content').innerText = originalWord.aiTip;
+          document.getElementById('ai-tip-feedback-row').classList.add('hidden'); // 已經記下的不再顯示評分按鈕
+        } else {
+          document.getElementById('btn-get-ai-tip').classList.remove('hidden');
+        }
       }
     }
 
@@ -1601,6 +1654,80 @@ ${hintPrompt}
           </div>
         `).join('');
     }
+	
+	// 用於暫存當次生成的建議
+    let currentAiTip = "";
+
+    async function fetchAiTip() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      if (!apiKey) return alert('請先到設定頁面設定 API Key！');
+
+      const btn = document.getElementById('btn-get-ai-tip');
+      btn.innerText = '⏳ AI 思考中...';
+      btn.disabled = true;
+
+      // 取得原始單字物件以確認是否有過去的不良回饋紀錄
+      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+      const originalWord = targetDeck.words[currentQuizItem.wordIndex];
+      
+      // 組合提示詞，若有被給予差評的紀錄，則告知 AI 避開
+      let badTipsContext = "";
+      if (originalWord && originalWord.badTips && originalWord.badTips.length > 0) {
+        badTipsContext = `\n【重要】請避開以下曾被使用者認為不實用的方向或說法：\n${originalWord.badTips.join('\n')}\n`;
+      }
+
+      const promptText = `你是一個專業的語言學習專家。請針對單字 "${currentQuizItem.question}" (正確答案: ${currentQuizItem.ans1}) 提供一個簡短、有趣且容易記住的記憶法（例如諧音、字根字首、聯想等）。${badTipsContext}請直接回覆記憶建議，無須多餘問候。`;
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }]
+          })
+        });
+
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message);
+
+        currentAiTip = data.candidates[0].content.parts[0].text.trim();
+        
+        // 顯示表格內容
+        document.getElementById('btn-get-ai-tip').classList.add('hidden');
+        document.getElementById('ai-tip-box').classList.remove('hidden');
+        document.getElementById('ai-tip-content').innerText = currentAiTip;
+        document.getElementById('ai-tip-feedback-row').classList.remove('hidden');
+
+      } catch (e) {
+        alert('取得 AI 建議失敗: ' + e.message);
+      } finally {
+        btn.innerText = '🤖 請 AI 提供記憶建議';
+        btn.disabled = false;
+      }
+    }
+
+    function submitAiTipFeedback(isGood) {
+      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+      const originalWord = targetDeck.words[currentQuizItem.wordIndex];
+
+      if (isGood) {
+        // 如果覺得實用，就儲存為專屬記憶法
+        originalWord.aiTip = currentAiTip;
+        document.getElementById('ai-tip-feedback-row').classList.add('hidden');
+        alert("✅ 已將此記憶法記錄到單字庫中！下次答錯時會直接顯示。");
+      } else {
+        // 如果覺得不好，記錄下來讓 AI 下次改進，並立刻重新生成
+        if (!originalWord.badTips) originalWord.badTips = [];
+        originalWord.badTips.push(currentAiTip);
+        document.getElementById('ai-tip-content').innerText = "重新產生改進後的建議中...";
+        document.getElementById('ai-tip-feedback-row').classList.add('hidden');
+        fetchAiTip(); // 自動觸發重新思考
+      }
+      saveData();
+    }
+	
   </script>
 </body>
 </html>
