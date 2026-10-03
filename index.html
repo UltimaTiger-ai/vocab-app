@@ -202,7 +202,7 @@
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
 	  
-	  <!-- 新增：請求 AI 建議按鈕與表格 -->
+	  <!-- 請求 AI 建議按鈕與表格 -->
       <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
       
       <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
@@ -244,7 +244,6 @@
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
 
-    <!-- 可選填表格提示框 -->
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
       <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px;">
@@ -264,7 +263,7 @@
       <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
     </div>
 
-    <!-- 階段 2：欄位對應（Column Mapping）區域 -->
+    <!-- 階段 2：欄位對應區域 -->
     <div id="ai-column-mapping-area" class="hidden" style="background:var(--mapping-bg); border:1px solid var(--mapping-border); padding:15px; border-radius:10px; margin-bottom:15px;">
       <h3 style="margin-top:0; color:#1a73e8; font-size:16px;">📌 請為表格欄位選擇對應角色：</h3>
       <p style="font-size:13px; color:var(--subtext-color); margin-bottom:12px;">查看下方欄位的範例資料，並選擇每一欄的角色（題目、答案或忽略）：</p>
@@ -295,7 +294,6 @@
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
 
-    <!-- 發布自己的單字庫 -->
     <div style="background: var(--stats-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
       <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
       <div class="setting-group">
@@ -313,7 +311,6 @@
       <button onclick="publishDeck()" class="btn-success">🚀 發布至社群市集</button>
     </div>
 
-    <!-- 熱門社群單字庫列表 -->
     <h3>🔥 熱門社群單字庫</h3>
     <div id="shared-deck-list"></div>
   </div>
@@ -375,7 +372,6 @@
 
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
-    <!-- JSON 資料備份與還原功能區塊 -->
     <h3>💾 資料備份與還原 (JSON 匯入/匯出)</h3>
     <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。</p>
     <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
@@ -561,7 +557,6 @@
       }
     }
 
-    // ==== JSON 匯出與匯入功能 ====
     function exportDataToJson() {
       if (decks.length === 0) return alert('目前沒有單字庫可以匯出！');
       
@@ -599,7 +594,6 @@
             decks = importedData;
           } else {
             importedData.forEach(d => {
-              // 確保合併時 ID 不重複
               d.id = d.id + '_import_' + Date.now() + Math.floor(Math.random() * 1000);
               decks.push(d);
             });
@@ -614,15 +608,14 @@
           
           saveData();
           alert("✅ 單字庫 JSON 匯入成功！");
-          event.target.value = ''; // 重置 file input
-          switchTab('list'); // 匯入成功後跳轉回單字庫頁面
+          event.target.value = ''; 
+          switchTab('list'); 
         } catch (error) {
           alert("❌ 匯入失敗，請確認是否為正確的 JSON 備份檔案。\n錯誤訊息：" + error.message);
         }
       };
       reader.readAsText(file);
     }
-    // ===========================
 
     function updateModelDropdown() {
       const availableModels = getCachedGenerateModels();
@@ -1499,7 +1492,7 @@ ${hintPrompt}
       document.getElementById('btn-submit-ans').style.display = 'block';
       document.getElementById('btn-next-ans').classList.add('hidden');
 
-      // 新增：切換下一題時隱藏 AI 建議區塊
+      // 隱藏 AI 建議區塊
       document.getElementById('btn-get-ai-tip').classList.add('hidden');
       document.getElementById('ai-tip-box').classList.add('hidden');
 
@@ -1526,9 +1519,10 @@ ${hintPrompt}
       
       sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
       
+      let originalWord = null;
       const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
       if (targetDeck) {
-        const originalWord = targetDeck.words[currentQuizItem.wordIndex];
+        originalWord = targetDeck.words[currentQuizItem.wordIndex];
         if (originalWord) {
           originalWord.attempts = (originalWord.attempts || 0) + 1;
           if (!isCorrect) {
@@ -1565,7 +1559,8 @@ ${hintPrompt}
         resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.remove('hidden');
-        // 新增：判斷是否已經有儲存過的 AI 建議
+        
+        // 判斷是否已經有儲存過的 AI 建議
         if (originalWord && originalWord.aiTip) {
           document.getElementById('ai-tip-box').classList.remove('hidden');
           document.getElementById('ai-tip-content').innerText = originalWord.aiTip;
@@ -1655,7 +1650,6 @@ ${hintPrompt}
         `).join('');
     }
 	
-	// 用於暫存當次生成的建議
     let currentAiTip = "";
 
     async function fetchAiTip() {
@@ -1667,11 +1661,9 @@ ${hintPrompt}
       btn.innerText = '⏳ AI 思考中...';
       btn.disabled = true;
 
-      // 取得原始單字物件以確認是否有過去的不良回饋紀錄
       const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
       const originalWord = targetDeck.words[currentQuizItem.wordIndex];
       
-      // 組合提示詞，若有被給予差評的紀錄，則告知 AI 避開
       let badTipsContext = "";
       if (originalWord && originalWord.badTips && originalWord.badTips.length > 0) {
         badTipsContext = `\n【重要】請避開以下曾被使用者認為不實用的方向或說法：\n${originalWord.badTips.join('\n')}\n`;
@@ -1694,7 +1686,6 @@ ${hintPrompt}
 
         currentAiTip = data.candidates[0].content.parts[0].text.trim();
         
-        // 顯示表格內容
         document.getElementById('btn-get-ai-tip').classList.add('hidden');
         document.getElementById('ai-tip-box').classList.remove('hidden');
         document.getElementById('ai-tip-content').innerText = currentAiTip;
@@ -1713,17 +1704,15 @@ ${hintPrompt}
       const originalWord = targetDeck.words[currentQuizItem.wordIndex];
 
       if (isGood) {
-        // 如果覺得實用，就儲存為專屬記憶法
         originalWord.aiTip = currentAiTip;
         document.getElementById('ai-tip-feedback-row').classList.add('hidden');
         alert("✅ 已將此記憶法記錄到單字庫中！下次答錯時會直接顯示。");
       } else {
-        // 如果覺得不好，記錄下來讓 AI 下次改進，並立刻重新生成
         if (!originalWord.badTips) originalWord.badTips = [];
         originalWord.badTips.push(currentAiTip);
         document.getElementById('ai-tip-content').innerText = "重新產生改進後的建議中...";
         document.getElementById('ai-tip-feedback-row').classList.add('hidden');
-        fetchAiTip(); // 自動觸發重新思考
+        fetchAiTip(); 
       }
       saveData();
     }
