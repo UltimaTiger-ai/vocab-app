@@ -112,7 +112,7 @@
 
   <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機</span>
+    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9]</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
@@ -211,7 +211,7 @@
             <tr><th>💡 AI 記憶建議</th></tr>
           </thead>
           <tbody>
-            <tr><td id="ai-tip-content">載入中...</td></tr>
+            <tr><td id="ai-tip-content">載入中...[cite: 9]</td></tr>
             <tr id="ai-tip-feedback-row">
               <td style="text-align: center;">
                 <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
@@ -433,7 +433,7 @@
           id: 'share_demo_1',
           name: 'TOEIC 職場必備高頻單字',
           author: 'UltimaTiger',
-          description: '整理自多益常考商務與職場英語高頻詞彙。',
+          description: '整理自多益常考商務與職場英語高頻詞彙。[cite: 9]',
           downloads: 42,
           likes: 18,
           createdAt: '2026-03-20',
@@ -447,7 +447,7 @@
           id: 'share_demo_2',
           name: 'JLPT N3 常用動詞精選',
           author: '櫻花貓貓',
-          description: '日檢 N3 必考高頻動詞與漢字。',
+          description: '日檢 N3 必考高頻動詞與漢字。[cite: 9]',
           downloads: 29,
           likes: 15,
           createdAt: '2026-03-21',
@@ -1492,7 +1492,7 @@ ${hintPrompt}
       document.getElementById('btn-submit-ans').style.display = 'block';
       document.getElementById('btn-next-ans').classList.add('hidden');
 
-      // 隱藏 AI 建議區塊
+      // 隱藏 AI 建議區塊與按鈕
       document.getElementById('btn-get-ai-tip').classList.add('hidden');
       document.getElementById('ai-tip-box').classList.add('hidden');
 
@@ -1560,12 +1560,13 @@ ${hintPrompt}
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.remove('hidden');
         
-        // 判斷是否已經有儲存過的 AI 建議
+        // 【修正重點】：答錯時檢查是否已有儲存過的 AI 建議，有則顯示表格，無則顯示「請 AI 提供記憶建議」按鈕
         if (originalWord && originalWord.aiTip) {
           document.getElementById('ai-tip-box').classList.remove('hidden');
           document.getElementById('ai-tip-content').innerText = originalWord.aiTip;
-          document.getElementById('ai-tip-feedback-row').classList.add('hidden'); // 已經記下的不再顯示評分按鈕
+          document.getElementById('ai-tip-feedback-row').classList.add('hidden'); // 已記下的不再顯示評分按鈕
         } else {
+          document.getElementById('ai-tip-box').classList.add('hidden');
           document.getElementById('btn-get-ai-tip').classList.remove('hidden');
         }
       }
