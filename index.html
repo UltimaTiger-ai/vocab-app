@@ -228,7 +228,13 @@
   <!-- 3. 統計頁面 -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
-    <select id="stats-deck-select" style="margin-bottom: 15px;" onchange="renderStats()"></select>
+    <!-- 單字庫選擇 -->
+    <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
+    <!-- 新增：排序條件選擇 -->
+    <select id="stats-sort-select" style="margin-bottom: 15px;" onchange="renderStats()">
+      <option value="recent">排序：依前 10 次錯誤率 (高到低)</option>
+      <option value="total">排序：依歷史總計錯誤率 (高到低)</option>
+    </select>
     
     <div class="stats-box">
       <p>📈 歷史通過率 <span id="stat-all-time">--</span></p>
@@ -1662,30 +1668,41 @@ ${hintPrompt}
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
       document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
 
-      // 改為依照「最近 10 次的錯誤率」由高至低進行排行
-      wordsStats.sort((a, b) => b.recentErrorRate - a.recentErrorRate);
+      // 取得排序條件 (預設為依前10次)
+      const sortSelect = document.getElementById('stats-sort-select');
+      const sortOption = sortSelect ? sortSelect.value : 'recent';
+
+      // 依照下拉選單的條件進行排序
+      if (sortOption === 'recent') {
+        wordsStats.sort((a, b) => b.recentErrorRate - a.recentErrorRate);
+      } else {
+        wordsStats.sort((a, b) => b.errorRate - a.errorRate);
+      }
       
       document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
         ? '<p style="color:var(--subtext-color);">尚未有足夠的測驗紀錄。</p>' 
-        : wordsStats.map(w => `
-          <div class="word-item" style="display:flex; justify-content:space-between;">
-            <div>
-              <strong>${w.question}</strong> <span style="font-size:14px; color:var(--subtext-color);">(${w.ans1})</span><br>
-              <span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span>
+        : wordsStats.map(w => {
+            // 決定畫面上最大字的那個百分比，要顯示哪一種數據
+            const displayRate = sortOption === 'recent' ? w.recentErrorRate : w.errorRate;
+            return `
+            <div class="word-item" style="display:flex; justify-content:space-between;">
+              <div>
+                <strong>${w.question}</strong> <span style="font-size:14px; color:var(--subtext-color);">(${w.ans1})</span><br>
+                <span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span>
+              </div>
+              <div style="text-align:right;">
+                <span class="${displayRate > 0.5 ? 'text-red' : (displayRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
+                  ${Math.round(displayRate * 100)}%
+                </span><br>
+                <span style="font-size:12px; color:var(--subtext-color);">
+                  近10次: ${Math.round(w.recentErrorRate * 100)}% (錯 ${w.recentErrors} / 考 ${w.recentTotal})
+                </span><br>
+                <span style="font-size:11px; color:var(--subtext-color);">
+                  總計: ${Math.round(w.errorRate * 100)}% (錯 ${w.errors} / 考 ${w.attempts})
+                </span>
+              </div>
             </div>
-            <div style="text-align:right;">
-              <span class="${w.recentErrorRate > 0.5 ? 'text-red' : (w.recentErrorRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
-                ${Math.round(w.recentErrorRate * 100)}%
-              </span><br>
-              <span style="font-size:12px; color:var(--subtext-color);">
-                近10次: 錯 ${w.recentErrors} / 考 ${w.recentTotal}
-              </span><br>
-              <span style="font-size:11px; color:var(--subtext-color);">
-                (總計錯 ${w.errors} / ${w.attempts})
-              </span>
-            </div>
-          </div>
-        `).join('');
+          `}).join('');
     }
 	
     let currentAiTip = "";
