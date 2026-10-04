@@ -1435,11 +1435,15 @@ ${hintPrompt}
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
       const getScore = (item) => {
+        // 改為參考最近 10 次的 fail rate
+        if (item.recentResults && item.recentResults.length > 0) {
+          const recentErrors = item.recentResults.filter(r => !r).length;
+          return recentErrors / item.recentResults.length;
+        }
+        // 若該單字尚無近 10 次紀錄，則退回以歷史總錯誤率計算
         const attempts = item.attempts || 0;
-        const errors = item.errors || 0;
-        const globalAvgErrorRate = 0.3; 
-        const C = 3; 
-        return (errors + C * globalAvgErrorRate) / (attempts + C);
+        if (attempts === 0) return 0;
+        return (item.errors || 0) / attempts;
       };
 
       let unattemptedWords = pool.filter(w => (w.attempts || 0) === 0);
@@ -1527,6 +1531,15 @@ ${hintPrompt}
           originalWord.attempts = (originalWord.attempts || 0) + 1;
           if (!isCorrect) {
             originalWord.errors = (originalWord.errors || 0) + 1;
+          }
+          
+          // 新增：紀錄最近 10 次的測驗結果 (true 為答對，false 為答錯)
+          if (!originalWord.recentResults) {
+            originalWord.recentResults = [];
+          }
+          originalWord.recentResults.push(isCorrect);
+          if (originalWord.recentResults.length > 10) {
+            originalWord.recentResults.shift(); // 確保最多只保留 10 筆
           }
         }
 
@@ -1619,7 +1632,25 @@ ${hintPrompt}
         (d.words || []).forEach(w => {
           if (w.attempts > 0) {
             const errRate = w.errors / w.attempts;
-            wordsStats.push({ ...w, deckName: d.name, errorRate: errRate });
+            let recentErrRate = errRate;
+            let recentErrors = 0;
+            let recentTotal = 0;
+            
+            // 計算最近 10 次的錯誤率
+            if (w.recentResults && w.recentResults.length > 0) {
+              recentTotal = w.recentResults.length;
+              recentErrors = w.recentResults.filter(r => !r).length;
+              recentErrRate = recentErrors / recentTotal;
+            }
+
+            wordsStats.push({ 
+              ...w, 
+              deckName: d.name, 
+              errorRate: errRate,
+              recentErrorRate: recentErrRate,
+              recentErrors: recentErrors,
+              recentTotal: recentTotal
+            });
           }
         });
       });
@@ -1631,7 +1662,8 @@ ${hintPrompt}
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
       document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
 
-      wordsStats.sort((a, b) => b.errorRate - a.errorRate);
+      // 改為依照「最近 10 次的錯誤率」由高至低進行排行
+      wordsStats.sort((a, b) => b.recentErrorRate - a.recentErrorRate);
       
       document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
         ? '<p style="color:var(--subtext-color);">尚未有足夠的測驗紀錄。</p>' 
@@ -1642,10 +1674,15 @@ ${hintPrompt}
               <span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span>
             </div>
             <div style="text-align:right;">
-              <span class="${w.errorRate > 0.5 ? 'text-red' : (w.errorRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
-                ${Math.round(w.errorRate * 100)}%
+              <span class="${w.recentErrorRate > 0.5 ? 'text-red' : (w.recentErrorRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
+                ${Math.round(w.recentErrorRate * 100)}%
               </span><br>
-              <span style="font-size:12px; color:var(--subtext-color);">錯 ${w.errors} / 考 ${w.attempts}</span>
+              <span style="font-size:12px; color:var(--subtext-color);">
+                近10次: 錯 ${w.recentErrors} / 考 ${w.recentTotal}
+              </span><br>
+              <span style="font-size:11px; color:var(--subtext-color);">
+                (總計錯 ${w.errors} / ${w.attempts})
+              </span>
             </div>
           </div>
         `).join('');
