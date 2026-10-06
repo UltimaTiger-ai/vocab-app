@@ -230,11 +230,19 @@
     <h2>📊 學習數據分析</h2>
     <!-- 單字庫選擇 -->
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
-    <!-- 排序條件選擇 -->
-    <select id="stats-sort-select" style="margin-bottom: 15px;" onchange="renderStats()">
-      <option value="recent">排序：依前 10 次錯誤率 (高到低)</option>
-      <option value="total">排序：依歷史總計錯誤率 (高到低)</option>
-    </select>
+    
+    <!-- 排序與最近次數切換選單 -->
+    <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+      <select id="stats-sort-select" style="margin-bottom: 0; flex: 2;" onchange="renderStats()">
+        <option value="recent">排序：依最近錯誤率 (高到低)</option>
+        <option value="total">排序：依歷史總計錯誤率 (高到低)</option>
+      </select>
+      <select id="stats-window-select" style="margin-bottom: 0; flex: 1;" onchange="changeRecentWindow(this.value)">
+        <option value="3">近 3 次</option>
+        <option value="5">近 5 次</option>
+        <option value="10" selected>近 10 次</option>
+      </select>
+    </div>
     
     <div class="stats-box">
       <p>📈 歷史通過率 <span id="stat-all-time">--</span></p>
@@ -376,14 +384,24 @@
       </select>
     </div>
 
-    <!-- 新增：選題方式與題型配額設定 -->
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
     <h3>🎯 測驗選題與題型分配</h3>
+
+    <!-- 新增：自訂最近錯誤率計算次數 -->
+    <div class="setting-group">
+      <label>🔢 最近錯誤率採計次數</label>
+      <select id="setting-recent-window" onchange="saveSettings(); renderStats();">
+        <option value="3">最近 3 次</option>
+        <option value="5">最近 5 次</option>
+        <option value="10" selected>最近 10 次 (預設)</option>
+      </select>
+    </div>
+
     <div class="setting-group">
       <label>📊 挑題錯誤率計算基準</label>
       <select id="setting-quiz-error-basis" onchange="saveSettings()">
-        <option value="recent" selected>最近測驗紀錄 (以最近 10 次錯誤率為主)</option>
+        <option value="recent" selected>最近測驗紀錄 (以最近錯誤率為主)</option>
         <option value="overall">整體歷史紀錄 (以累計總錯誤率為主)</option>
       </select>
     </div>
@@ -541,6 +559,19 @@
       return saved ? JSON.parse(saved) : DEFAULT_MODELS;
     }
 
+    // 取得 User 設定的最近錯誤率採計次數（預設 10 次）
+    function getRecentWindowSize() {
+      return parseInt(localStorage.getItem('vocab_recent_window') || '10');
+    }
+
+    // 快捷切換最近錯誤率採計次數
+    function changeRecentWindow(val) {
+      localStorage.setItem('vocab_recent_window', val);
+      const settingElem = document.getElementById('setting-recent-window');
+      if (settingElem) settingElem.value = val;
+      renderStats();
+    }
+
     window.onload = function() {
       updateAppVersion();
       loadLanguagePreferences();
@@ -620,12 +651,14 @@
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
 
-      // 新增：儲存選題錯誤率基準與三種配額比例
+      // 儲存最近採計次數與選題錯誤率基準、配額比例
+      const recentWindow = document.getElementById('setting-recent-window').value;
       const errorBasis = document.getElementById('setting-quiz-error-basis').value;
       const errorQuotaPct = document.getElementById('setting-error-quota').value;
       const newQuotaPct = document.getElementById('setting-new-quota').value;
       const familiarQuotaPct = document.getElementById('setting-familiar-quota').value;
 
+      localStorage.setItem('vocab_recent_window', recentWindow);
       localStorage.setItem('vocab_quiz_error_basis', errorBasis);
       localStorage.setItem('vocab_error_quota_pct', errorQuotaPct);
       localStorage.setItem('vocab_new_quota_pct', newQuotaPct);
@@ -1472,12 +1505,15 @@ ${hintPrompt}
       document.getElementById('setting-quiz-limit').value = quizLimit;
       if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
       
-      // 載入設定頁面的選項設定
+      // 載入設定頁面與統計頁面的最近採計次數等選項
+      const savedRecentWindow = localStorage.getItem('vocab_recent_window') || '10';
       const savedErrorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
       const savedErrorQuota = localStorage.getItem('vocab_error_quota_pct') || '50';
       const savedNewQuota = localStorage.getItem('vocab_new_quota_pct') || '30';
       const savedFamiliarQuota = localStorage.getItem('vocab_familiar_quota_pct') || '20';
 
+      if (document.getElementById('setting-recent-window')) document.getElementById('setting-recent-window').value = savedRecentWindow;
+      if (document.getElementById('stats-window-select')) document.getElementById('stats-window-select').value = savedRecentWindow;
       if (document.getElementById('setting-quiz-error-basis')) document.getElementById('setting-quiz-error-basis').value = savedErrorBasis;
       if (document.getElementById('setting-error-quota')) document.getElementById('setting-error-quota').value = savedErrorQuota;
       if (document.getElementById('setting-new-quota')) document.getElementById('setting-new-quota').value = savedNewQuota;
@@ -1520,8 +1556,9 @@ ${hintPrompt}
 
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
-      // 讀取設定：選擇以「整體錯誤率」或「最近 10 次錯誤率」挑題
+      // 讀取設定：選擇以「整體錯誤率」或「最近錯誤率」挑題
       const errorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
+      const recentWindowSize = getRecentWindowSize();
 
       const getScore = (item) => {
         if (errorBasis === 'overall') {
@@ -1530,10 +1567,11 @@ ${hintPrompt}
           if (attempts === 0) return 0;
           return (item.errors || 0) / attempts;
         } else {
-          // 依最近 10 次錯誤率計算（若無最近紀錄則降級參考歷史總體錯誤率）
+          // 依 User 設定的最近 N 次錯誤率計算（若無最近紀錄則降級參考歷史總體錯誤率）
           if (item.recentResults && item.recentResults.length > 0) {
-            const recentErrors = item.recentResults.filter(r => !r).length;
-            return recentErrors / item.recentResults.length;
+            const recentSlice = item.recentResults.slice(-recentWindowSize);
+            const recentErrors = recentSlice.filter(r => !r).length;
+            return recentErrors / recentSlice.length;
           }
           const attempts = item.attempts || 0;
           if (attempts === 0) return 0;
@@ -1634,7 +1672,7 @@ ${hintPrompt}
             originalWord.errors = (originalWord.errors || 0) + 1;
           }
           
-          // 紀錄最近 10 次的測驗結果
+          // 紀錄最近的測驗結果（上限保留 10 次，供 3/5/10 次視窗彈性動態分析）
           if (!originalWord.recentResults) {
             originalWord.recentResults = [];
           }
@@ -1712,6 +1750,17 @@ ${hintPrompt}
 
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
+      const recentWindow = getRecentWindowSize();
+
+      // 更新統計頁面下拉選單狀態與文字
+      const statsWindowSelect = document.getElementById('stats-window-select');
+      if (statsWindowSelect) statsWindowSelect.value = String(recentWindow);
+
+      const sortSelect = document.getElementById('stats-sort-select');
+      if (sortSelect && sortSelect.options[0]) {
+        sortSelect.options[0].text = `排序：依最近 ${recentWindow} 次錯誤率 (高到低)`;
+      }
+
       const targetDecks = selected === 'all' 
         ? decks 
         : decks.filter(d => String(d.id) === String(selected));
@@ -1736,10 +1785,11 @@ ${hintPrompt}
             let recentErrors = 0;
             let recentTotal = 0;
             
-            // 計算最近 10 次的錯誤率
+            // 依 User 設定的視窗 (3, 5, 10 次) 計算最近錯誤率
             if (w.recentResults && w.recentResults.length > 0) {
-              recentTotal = w.recentResults.length;
-              recentErrors = w.recentResults.filter(r => !r).length;
+              const recentSlice = w.recentResults.slice(-recentWindow);
+              recentTotal = recentSlice.length;
+              recentErrors = recentSlice.filter(r => !r).length;
               recentErrRate = recentErrors / recentTotal;
             }
 
@@ -1756,13 +1806,12 @@ ${hintPrompt}
       });
 
       const calcRate = (c, t) => t > 0 
-        ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}题)</span>` 
+        ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` 
         : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
       
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
       document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
 
-      const sortSelect = document.getElementById('stats-sort-select');
       const sortOption = sortSelect ? sortSelect.value : 'recent';
 
       if (sortOption === 'recent') {
@@ -1786,7 +1835,7 @@ ${hintPrompt}
                   ${Math.round(displayRate * 100)}%
                 </span><br>
                 <span style="font-size:12px; color:var(--subtext-color);">
-                  近10次: ${Math.round(w.recentErrorRate * 100)}% (錯 ${w.recentErrors} / 考 ${w.recentTotal})
+                  近${recentWindow}次: ${Math.round(w.recentErrorRate * 100)}% (錯 ${w.recentErrors} / 考 ${w.recentTotal})
                 </span><br>
                 <span style="font-size:11px; color:var(--subtext-color);">
                   總計: ${Math.round(w.errorRate * 100)}% (錯 ${w.errors} / 考 ${w.attempts})
