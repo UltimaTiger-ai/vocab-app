@@ -230,7 +230,7 @@
     <h2>📊 學習數據分析</h2>
     <!-- 單字庫選擇 -->
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
-    <!-- 新增：排序條件選擇 -->
+    <!-- 排序條件選擇 -->
     <select id="stats-sort-select" style="margin-bottom: 15px;" onchange="renderStats()">
       <option value="recent">排序：依前 10 次錯誤率 (高到低)</option>
       <option value="total">排序：依歷史總計錯誤率 (高到低)</option>
@@ -374,6 +374,64 @@
         <option value="30">30 題</option>
         <option value="0">全部單字集</option>
       </select>
+    </div>
+
+    <!-- 新增：選題方式與題型配額設定 -->
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+
+    <h3>🎯 測驗選題與題型分配</h3>
+    <div class="setting-group">
+      <label>📊 挑題錯誤率計算基準</label>
+      <select id="setting-quiz-error-basis" onchange="saveSettings()">
+        <option value="recent" selected>最近測驗紀錄 (以最近 10 次錯誤率為主)</option>
+        <option value="overall">整體歷史紀錄 (以累計總錯誤率為主)</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label>⚖️ 測驗題型抽題比例</label>
+      <div style="font-size: 13px; color: var(--subtext-color); margin-bottom: 8px;">
+        調整每次測驗中，不同學習狀態單字的抽取配額百分比：
+      </div>
+      <div class="row-group" style="margin-bottom: 8px;">
+        <div>
+          <label class="sub-label">🔴 錯題/加強單字比例</label>
+          <select id="setting-error-quota" onchange="saveSettings()">
+            <option value="0">0%</option>
+            <option value="20">20%</option>
+            <option value="30">30%</option>
+            <option value="40">40%</option>
+            <option value="50" selected>50% (預設)</option>
+            <option value="60">60%</option>
+            <option value="70">70%</option>
+            <option value="80">80%</option>
+            <option value="100">100%</option>
+          </select>
+        </div>
+        <div>
+          <label class="sub-label">🆕 未測驗新詞比例</label>
+          <select id="setting-new-quota" onchange="saveSettings()">
+            <option value="0">0%</option>
+            <option value="10">10%</option>
+            <option value="20">20%</option>
+            <option value="30" selected>30% (預設)</option>
+            <option value="40">40%</option>
+            <option value="50">50%</option>
+            <option value="60">60%</option>
+          </select>
+        </div>
+        <div>
+          <label class="sub-label">✅ 熟練單字複習比例</label>
+          <select id="setting-familiar-quota" onchange="saveSettings()">
+            <option value="0">0%</option>
+            <option value="10">10%</option>
+            <option value="20" selected>20% (預設)</option>
+            <option value="30">30%</option>
+            <option value="40">40%</option>
+            <option value="50">50%</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
@@ -561,6 +619,17 @@
       if (modelSelect && modelSelect.value) {
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
+
+      // 新增：儲存選題錯誤率基準與三種配額比例
+      const errorBasis = document.getElementById('setting-quiz-error-basis').value;
+      const errorQuotaPct = document.getElementById('setting-error-quota').value;
+      const newQuotaPct = document.getElementById('setting-new-quota').value;
+      const familiarQuotaPct = document.getElementById('setting-familiar-quota').value;
+
+      localStorage.setItem('vocab_quiz_error_basis', errorBasis);
+      localStorage.setItem('vocab_error_quota_pct', errorQuotaPct);
+      localStorage.setItem('vocab_new_quota_pct', newQuotaPct);
+      localStorage.setItem('vocab_familiar_quota_pct', familiarQuotaPct);
     }
 
     function exportDataToJson() {
@@ -1403,6 +1472,17 @@ ${hintPrompt}
       document.getElementById('setting-quiz-limit').value = quizLimit;
       if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
       
+      // 載入設定頁面的選項設定
+      const savedErrorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
+      const savedErrorQuota = localStorage.getItem('vocab_error_quota_pct') || '50';
+      const savedNewQuota = localStorage.getItem('vocab_new_quota_pct') || '30';
+      const savedFamiliarQuota = localStorage.getItem('vocab_familiar_quota_pct') || '20';
+
+      if (document.getElementById('setting-quiz-error-basis')) document.getElementById('setting-quiz-error-basis').value = savedErrorBasis;
+      if (document.getElementById('setting-error-quota')) document.getElementById('setting-error-quota').value = savedErrorQuota;
+      if (document.getElementById('setting-new-quota')) document.getElementById('setting-new-quota').value = savedNewQuota;
+      if (document.getElementById('setting-familiar-quota')) document.getElementById('setting-familiar-quota').value = savedFamiliarQuota;
+
       updateModelDropdown();
     }
 
@@ -1440,30 +1520,45 @@ ${hintPrompt}
 
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
 
+      // 讀取設定：選擇以「整體錯誤率」或「最近 10 次錯誤率」挑題
+      const errorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
+
       const getScore = (item) => {
-        // 改為參考最近 10 次的 fail rate
-        if (item.recentResults && item.recentResults.length > 0) {
-          const recentErrors = item.recentResults.filter(r => !r).length;
-          return recentErrors / item.recentResults.length;
+        if (errorBasis === 'overall') {
+          // 依歷史總體錯誤率計算
+          const attempts = item.attempts || 0;
+          if (attempts === 0) return 0;
+          return (item.errors || 0) / attempts;
+        } else {
+          // 依最近 10 次錯誤率計算（若無最近紀錄則降級參考歷史總體錯誤率）
+          if (item.recentResults && item.recentResults.length > 0) {
+            const recentErrors = item.recentResults.filter(r => !r).length;
+            return recentErrors / item.recentResults.length;
+          }
+          const attempts = item.attempts || 0;
+          if (attempts === 0) return 0;
+          return (item.errors || 0) / attempts;
         }
-        // 若該單字尚無近 10 次紀錄，則退回以歷史總錯誤率計算
-        const attempts = item.attempts || 0;
-        if (attempts === 0) return 0;
-        return (item.errors || 0) / attempts;
       };
 
       let unattemptedWords = pool.filter(w => (w.attempts || 0) === 0);
       unattemptedWords.sort(() => Math.random() - 0.5);
 
-      let errorWords = pool.filter(w => (w.attempts || 0) > 0 && (w.errors || 0) > 0);
+      let errorWords = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) > 0);
+      errorWords.sort(() => Math.random() - 0.5);
       errorWords.sort((a, b) => getScore(b) - getScore(a));
 
-      let familiarWords = pool.filter(w => (w.attempts || 0) > 0 && (w.errors || 0) === 0);
+      let familiarWords = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) === 0);
       familiarWords.sort(() => Math.random() - 0.5);
 
-      let errorQuota = Math.floor(targetLimit * 0.5);
-      let newQuota = Math.floor(targetLimit * 0.3);
-      let familiarQuota = targetLimit - errorQuota - newQuota; 
+      // 讀取設定：三種題型（錯題加強/未測驗新詞/熟練複習）配額比例
+      const errorQuotaPct = parseInt(localStorage.getItem('vocab_error_quota_pct') || '50') / 100;
+      const newQuotaPct = parseInt(localStorage.getItem('vocab_new_quota_pct') || '30') / 100;
+      const familiarQuotaPct = parseInt(localStorage.getItem('vocab_familiar_quota_pct') || '20') / 100;
+
+      let errorQuota = Math.floor(targetLimit * errorQuotaPct);
+      let newQuota = Math.floor(targetLimit * newQuotaPct);
+      let familiarQuota = Math.floor(targetLimit * familiarQuotaPct);
 
       let selectedWords = [];
       selectedWords.push(...errorWords.splice(0, errorQuota));
@@ -1539,13 +1634,13 @@ ${hintPrompt}
             originalWord.errors = (originalWord.errors || 0) + 1;
           }
           
-          // 新增：紀錄最近 10 次的測驗結果 (true 為答對，false 為答錯)
+          // 紀錄最近 10 次的測驗結果
           if (!originalWord.recentResults) {
             originalWord.recentResults = [];
           }
           originalWord.recentResults.push(isCorrect);
           if (originalWord.recentResults.length > 10) {
-            originalWord.recentResults.shift(); // 確保最多只保留 10 筆
+            originalWord.recentResults.shift();
           }
         }
 
@@ -1579,11 +1674,10 @@ ${hintPrompt}
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.remove('hidden');
         
-        // 【修正重點】：答錯時檢查是否已有儲存過的 AI 建議，有則顯示表格，無則顯示「請 AI 提供記憶建議」按鈕
         if (originalWord && originalWord.aiTip) {
           document.getElementById('ai-tip-box').classList.remove('hidden');
           document.getElementById('ai-tip-content').innerText = originalWord.aiTip;
-          document.getElementById('ai-tip-feedback-row').classList.add('hidden'); // 已記下的不再顯示評分按鈕
+          document.getElementById('ai-tip-feedback-row').classList.add('hidden');
         } else {
           document.getElementById('ai-tip-box').classList.add('hidden');
           document.getElementById('btn-get-ai-tip').classList.remove('hidden');
@@ -1668,11 +1762,9 @@ ${hintPrompt}
       document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
       document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
 
-      // 取得排序條件 (預設為依前10次)
       const sortSelect = document.getElementById('stats-sort-select');
       const sortOption = sortSelect ? sortSelect.value : 'recent';
 
-      // 依照下拉選單的條件進行排序
       if (sortOption === 'recent') {
         wordsStats.sort((a, b) => b.recentErrorRate - a.recentErrorRate);
       } else {
@@ -1682,7 +1774,6 @@ ${hintPrompt}
       document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
         ? '<p style="color:var(--subtext-color);">尚未有足夠的測驗紀錄。</p>' 
         : wordsStats.map(w => {
-            // 決定畫面上最大字的那個百分比，要顯示哪一種數據
             const displayRate = sortOption === 'recent' ? w.recentErrorRate : w.errorRate;
             return `
             <div class="word-item" style="display:flex; justify-content:space-between;">
