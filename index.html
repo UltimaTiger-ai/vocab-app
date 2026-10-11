@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字 App - AI 智慧多語言版</title>
+  <title>背單字與 AI 口語 App - 多語言智慧版</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -71,8 +71,8 @@
     .btn-success { background-color: #28a745; color: white; }
     .btn-warning { background-color: #ffc107; color: #333; }
     .word-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border-color); }
-    .nav { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
-    .nav button { flex: 1; background-color: var(--nav-btn-bg); color: var(--nav-btn-color); margin: 0; font-size: 13px; padding: 10px 4px; white-space: nowrap; }
+    .nav { display: flex; gap: 4px; margin-bottom: 15px; flex-wrap: wrap; }
+    .nav button { flex: 1 1 22%; background-color: var(--nav-btn-bg); color: var(--nav-btn-color); margin: 0; font-size: 12px; padding: 8px 2px; white-space: nowrap; }
     .nav button.active { background-color: #1a73e8; color: white; }
     .hidden { display: none; }
     .deck-header { display: flex; gap: 8px; margin-bottom: 15px; }
@@ -86,26 +86,19 @@
     .row-group > * { flex: 1; }
     .sub-label { font-size: 12px; color: var(--subtext-color); }
     .hint-box { margin-bottom: 12px; background: var(--hint-bg); padding: 10px; border-radius: 8px; border: 1px solid var(--hint-border); }
-	/* AI 記憶建議表格樣式 */
-	.ai-tip-table {
-	  width: 100%;
-	  border-collapse: collapse;
-	  margin-top: 10px;
-	  font-size: 14px;
-	}
-	.ai-tip-table th, .ai-tip-table td {
-	  border: 1px solid var(--border-color);
-	  padding: 10px;
-	  text-align: left;
-	}
-	.ai-tip-table th {
-	  background: var(--hint-bg);
-	  color: #1a73e8;
-	}
-	body.dark-mode .ai-tip-table th {
-	  background: #1a2634;
-	  color: #66b2ff;
-	}
+    
+    /* 對話聊天與評分樣式 */
+    .chat-container { display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; padding: 12px; background: var(--stats-bg); border-radius: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); }
+    .chat-bubble { padding: 10px 14px; border-radius: 12px; max-width: 85%; font-size: 15px; line-height: 1.5; word-break: break-all; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .chat-ai { background: var(--card-bg); align-self: flex-start; border: 1px solid var(--border-color); color: var(--text-color); }
+    .chat-user { background: #1a73e8; color: white; align-self: flex-end; }
+    .eval-box { background: var(--hint-bg); border: 1px solid var(--hint-border); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; }
+
+    /* AI 記憶建議表格樣式 */
+    .ai-tip-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    .ai-tip-table th, .ai-tip-table td { border: 1px solid var(--border-color); padding: 10px; text-align: left; }
+    .ai-tip-table th { background: var(--hint-bg); color: #1a73e8; }
+    body.dark-mode .ai-tip-table th { background: #1a2634; color: #66b2ff; }
   </style>
 </head>
 <body>
@@ -119,7 +112,8 @@
   <!-- 分頁導覽 -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
-    <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 測驗</button>
+    <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 拼寫測驗</button>
+    <button id="tab-roleplay" onclick="switchTab('roleplay')">💬 AI 口語對話</button>
     <button id="tab-stats" onclick="switchTab('stats')">📊 統計</button>
     <button id="tab-ai" onclick="switchTab('ai')">📸 AI 拍照</button>
     <button id="tab-share" onclick="switchTab('share')">🌐 社群分享</button>
@@ -202,7 +196,7 @@
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
 	  
-	  <!-- 請求 AI 建議按鈕與表格 -->
+      <!-- 請求 AI 建議按鈕與表格 -->
       <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
       
       <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
@@ -225,7 +219,37 @@
     </div>
   </div>
 
-  <!-- 3. 統計頁面 -->
+  <!-- 3. AI 口語對話角色扮演頁面 -->
+  <div id="page-roleplay" class="card hidden">
+    <h2>💬 AI 角色扮演口語練功坊</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">上傳課本對話照片（如《日本語GoGoGo》），AI 將帶領您進行即時口語對話與文法糾正！</p>
+    
+    <div class="setting-group">
+      <label>1. 上傳課本對話照片</label>
+      <input type="file" id="roleplay-img-input" accept="image/*" onchange="initRoleplayFromImage(event)">
+    </div>
+
+    <div id="roleplay-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
+      ⏳ AI 正在解析課本情境並建立對話，請稍候...
+    </div>
+
+    <div id="roleplay-session-area" class="hidden">
+      <div id="roleplay-scenario-info" class="hint-box" style="font-weight: bold; color: #1a73e8;"></div>
+      
+      <div id="roleplay-chat-box" class="chat-container"></div>
+
+      <div id="roleplay-eval-area" class="eval-box hidden"></div>
+
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="roleplay-user-input" placeholder="請輸入日文回答..." autocomplete="off" onkeydown="handleRoleplayKey(event)" style="margin-top:0;">
+        <button type="button" class="btn-secondary" style="width: auto; margin-top:0; padding: 0 12px; white-space: nowrap;" onclick="startVoiceRecognition()" title="語音輸入">🎙️ 說日文</button>
+        <button onclick="sendRoleplayReply()" class="btn-success" style="width: auto; margin-top:0; white-space: nowrap;">發送 ➔</button>
+      </div>
+      <button onclick="resetRoleplay()" class="btn-secondary" style="margin-top: 10px;">🔄 重新開始對話</button>
+    </div>
+  </div>
+
+  <!-- 4. 統計頁面 -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
     <!-- 單字庫選擇 -->
@@ -253,7 +277,7 @@
     <div id="stats-word-list"></div>
   </div>
 
-  <!-- 4. AI 拍照辨識頁面 -->
+  <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
@@ -303,7 +327,7 @@
     </div>
   </div>
 
-  <!-- 5. 社群單字庫分享頁面 -->
+  <!-- 6. 社群單字庫分享頁面 -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
@@ -329,7 +353,7 @@
     <div id="shared-deck-list"></div>
   </div>
 
-  <!-- 6. ListModels 模型清單頁面 -->
+  <!-- 7. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">點擊下方按鈕呼叫 <code>ModelService.ListModels</code>，查詢你的 API Key 目前可用的完整模型清單：</p>
@@ -341,7 +365,7 @@
     </div>
   </div>
 
-  <!-- 7. 設定頁面 -->
+  <!-- 8. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
 
@@ -388,7 +412,7 @@
 
     <h3>🎯 測驗選題與題型分配</h3>
 
-    <!-- 新增：自訂最近錯誤率計算次數 -->
+    <!-- 自訂最近錯誤率計算次數 -->
     <div class="setting-group">
       <label>🔢 最近錯誤率採計次數</label>
       <select id="setting-recent-window" onchange="saveSettings(); renderStats();">
@@ -515,7 +539,7 @@
           id: 'share_demo_1',
           name: 'TOEIC 職場必備高頻單字',
           author: 'UltimaTiger',
-          description: '整理自多益常考商務與職場英語高頻詞彙。[cite: 9]',
+          description: '整理自多益常考商務與職場英語高頻詞彙[cite: 9]。',
           downloads: 42,
           likes: 18,
           createdAt: '2026-03-20',
@@ -529,7 +553,7 @@
           id: 'share_demo_2',
           name: 'JLPT N3 常用動詞精選',
           author: '櫻花貓貓',
-          description: '日檢 N3 必考高頻動詞與漢字。[cite: 9]',
+          description: '日檢 N3 必考高頻動詞與漢字[cite: 9]。',
           downloads: 29,
           likes: 15,
           createdAt: '2026-03-21',
@@ -548,6 +572,14 @@
     let rawParsedRows = []; 
     let lastCapturedFile = null;
 
+    // AI 口語對話狀態變數
+    let currentRoleplayData = {
+      scenario: '',
+      aiRole: 'AI',
+      history: [],
+      isFinished: false
+    };
+
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
 
     function getGeminiModel() {
@@ -559,12 +591,10 @@
       return saved ? JSON.parse(saved) : DEFAULT_MODELS;
     }
 
-    // 取得 User 設定的最近錯誤率採計次數（預設 10 次）
     function getRecentWindowSize() {
       return parseInt(localStorage.getItem('vocab_recent_window') || '10');
     }
 
-    // 快捷切換最近錯誤率採計次數
     function changeRecentWindow(val) {
       localStorage.setItem('vocab_recent_window', val);
       const settingElem = document.getElementById('setting-recent-window');
@@ -582,9 +612,7 @@
       if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
           const savedTheme = localStorage.getItem('vocab_theme') || 'light';
-          if (savedTheme === 'auto') {
-            applyTheme('auto');
-          }
+          if (savedTheme === 'auto') applyTheme('auto');
         });
       }
     };
@@ -596,11 +624,8 @@
         document.body.classList.remove('dark-mode');
       } else if (theme === 'auto') {
         const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (prefersDark) {
-          document.body.classList.add('dark-mode');
-        } else {
-          document.body.classList.remove('dark-mode');
-        }
+        if (prefersDark) document.body.classList.add('dark-mode');
+        else document.body.classList.remove('dark-mode');
       }
     }
 
@@ -651,7 +676,6 @@
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
 
-      // 儲存最近採計次數與選題錯誤率基準、配額比例
       const recentWindow = document.getElementById('setting-recent-window').value;
       const errorBasis = document.getElementById('setting-quiz-error-basis').value;
       const errorQuotaPct = document.getElementById('setting-error-quota').value;
@@ -667,7 +691,6 @@
 
     function exportDataToJson() {
       if (decks.length === 0) return alert('目前沒有單字庫可以匯出！');
-      
       const dataStr = JSON.stringify(decks, null, 2);
       const blob = new Blob([dataStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -675,10 +698,8 @@
       a.href = url;
       const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       a.download = `vocab_backup_${dateStr}.json`;
-      
       document.body.appendChild(a);
       a.click();
-      
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }
@@ -691,35 +712,25 @@
       reader.onload = function(e) {
         try {
           const importedData = JSON.parse(e.target.result);
-          
-          if (!Array.isArray(importedData)) {
-            throw new Error("無效的檔案格式，應包含單字庫的陣列結構。");
-          }
+          if (!Array.isArray(importedData)) throw new Error("無效的檔案格式，應包含單字庫的陣列結構。");
           
           const confirmReplace = confirm("您想要【取代】現有單字庫嗎？\n\n按下「確定」：清空現有資料，完全使用匯入檔案\n按下「取消」：將檔案內的單字庫【附加】到現有列表後");
           
-          if (confirmReplace) {
-            decks = importedData;
-          } else {
+          if (confirmReplace) decks = importedData;
+          else {
             importedData.forEach(d => {
               d.id = d.id + '_import_' + Date.now() + Math.floor(Math.random() * 1000);
               decks.push(d);
             });
           }
           
-          if (decks.length > 0) {
-            currentDeckId = decks[0].id;
-          } else {
-            decks.push({ id: 'default_1', name: '預設單字庫', words: [], history: [] });
-            currentDeckId = decks[0].id;
-          }
-          
+          currentDeckId = decks.length > 0 ? decks[0].id : 'default_1';
           saveData();
           alert("✅ 單字庫 JSON 匯入成功！");
           event.target.value = ''; 
           switchTab('list'); 
         } catch (error) {
-          alert("❌ 匯入失敗，請確認是否為正確的 JSON 備份檔案。\n錯誤訊息：" + error.message);
+          alert("❌ 匯入失敗：" + error.message);
         }
       };
       reader.readAsText(file);
@@ -738,10 +749,8 @@
     }
 
     function saveLanguagePreferences() {
-      const qLang = document.getElementById('input-q-lang').value;
-      const aLang = document.getElementById('input-a-lang').value;
-      localStorage.setItem('vocab_q_lang', qLang);
-      localStorage.setItem('vocab_a_lang', aLang);
+      localStorage.setItem('vocab_q_lang', document.getElementById('input-q-lang').value);
+      localStorage.setItem('vocab_a_lang', document.getElementById('input-a-lang').value);
     }
 
     function loadLanguagePreferences() {
@@ -809,40 +818,18 @@
       closeEditModal();
     }
 
-    let globalVoices = [];
     let currentUtterance = null;
-
-    if (typeof speechSynthesis !== 'undefined') {
-      globalVoices = speechSynthesis.getVoices();
-      if (speechSynthesis.onvoiceschanged !== undefined) {
-        speechSynthesis.onvoiceschanged = () => {
-          globalVoices = window.speechSynthesis.getVoices();
-        };
-      }
-    }
-
     function speakText(text, lang = 'zh-TW') {
-      if (!text) return;
-      if (typeof speechSynthesis === 'undefined') return;
-
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-      }
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
+      if (!text || typeof speechSynthesis === 'undefined') return;
+      if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
 
       let targetLang = lang.replace('_', '-').toLowerCase();
-
       const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test(text);
-      if (hasKana && targetLang.startsWith('zh')) {
-        targetLang = 'ja-JP';
-      }
+      if (hasKana && targetLang.startsWith('zh')) targetLang = 'ja-JP';
 
       let speakContent = text;
-      if (targetLang.startsWith('ja') && !/[。！？!?.]$/.test(speakContent)) {
-        speakContent += '。';
-      }
+      if (targetLang.startsWith('ja') && !/[。！？!?.]$/.test(speakContent)) speakContent += '。';
 
       currentUtterance = new SpeechSynthesisUtterance(speakContent);
       currentUtterance.lang = targetLang;
@@ -850,17 +837,12 @@
       const voices = window.speechSynthesis.getVoices();
       if (voices && voices.length > 0) {
         let matchedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === targetLang);
-
         if (!matchedVoice) {
           const mainLang = targetLang.split('-')[0];
           matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(mainLang));
         }
-
-        if (matchedVoice) {
-          currentUtterance.voice = matchedVoice;
-        }
+        if (matchedVoice) currentUtterance.voice = matchedVoice;
       }
-
       window.speechSynthesis.speak(currentUtterance);
     }
 
@@ -868,34 +850,14 @@
       const deck = getCurrentDeck();
       if (!deck || !deck.words[index]) return;
       const item = deck.words[index];
-
       let textToSpeak = (type === 'ans1') ? item.ans1 : item.ans2;
       if (!textToSpeak) return;
-
       textToSpeak = cleanAnswerText(textToSpeak);
       if (!textToSpeak) return;
 
       let aLang = item.aLang || 'zh-TW';
-
       const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test((item.ans1 || '') + (item.ans2 || ''));
-      if ((item.qLang === 'ja-JP' || hasKana) && aLang.startsWith('zh')) {
-        aLang = 'ja-JP';
-      }
-
-      if (aLang.startsWith('ja') || hasKana) {
-        const isPureKana = /^[\u3040-\u309F\u30A0-\u30FF\s]+$/.test(textToSpeak.trim());
-        const hasKanji = (str) => /[\u4E00-\u9FFF]/.test(str || '');
-
-        if (isPureKana) {
-          if (type === 'ans1' && hasKanji(cleanAnswerText(item.ans2))) {
-            textToSpeak = cleanAnswerText(item.ans2);
-          } 
-          else if (item.qLang === 'ja-JP' && hasKanji(item.question)) {
-            textToSpeak = item.question;
-          }
-        }
-      }
-
+      if ((item.qLang === 'ja-JP' || hasKana) && aLang.startsWith('zh')) aLang = 'ja-JP';
       speakText(textToSpeak, aLang);
     }
 
@@ -905,11 +867,11 @@
       
       if (!apiKey) {
         alert('請先在設定頁面輸入 API Key！');
-        if (container) container.innerHTML = '<p style="color:red;">❌ 未輸入 API Key，無法向 ListModels 發送請求。</p>';
+        if (container) container.innerHTML = '<p style="color:red;">❌ 未輸入 API Key。</p>';
         return;
       }
 
-      if (container) container.innerHTML = '<p style="color:#1a73e8; font-weight:bold;">⏳ 正在呼叫 ModelService.ListModels API...<br><code style="font-size:12px; font-weight:normal;">https://generativelanguage.googleapis.com/v1beta/models</code></p>';
+      if (container) container.innerHTML = '<p style="color:#1a73e8; font-weight:bold;">⏳ 正在查詢模型清單...</p>';
 
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
@@ -923,7 +885,6 @@
 
         const rawModels = data.models || [];
         const currentModel = getGeminiModel();
-
         const generateContentModelNames = rawModels
           .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
           .map(m => m.name.replace('models/', ''));
@@ -934,7 +895,6 @@
             localStorage.setItem('gemini_selected_model', generateContentModelNames[0]);
           }
         }
-
         updateModelDropdown();
 
         if (container) {
@@ -942,33 +902,27 @@
             const cleanName = m.name.replace('models/', '');
             const isCurrent = (cleanName === getGeminiModel());
             const supportsGenerate = m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent');
-
             return `
               <div style="border: 1px solid ${isCurrent ? '#1a73e8' : 'var(--input-border)'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? 'var(--hint-bg)' : 'var(--card-bg)'};">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>${isCurrent 
-                    ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' 
-                    : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用此模型</button>` : '<span style="color:var(--subtext-color); font-size:12px;">不支援內容生成</span>')
-                  }
+                  <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>
+                  ${isCurrent ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用</button>` : '')}
                 </div>
-                <p style="margin:6px 0 3px 0; font-size:13px; color:var(--subtext-color);">${m.description || '無詳細描述'}</p>
-                <p style="margin:0; font-size:11px; color:var(--subtext-color);">支援方法: ${(m.supportedGenerationMethods || []).join(', ')}</p>
+                <p style="margin:6px 0 3px 0; font-size:13px; color:var(--subtext-color);">${m.description || '無描述'}</p>
               </div>
             `;
           }).join('');
         }
-
-        alert(`✅ ListModels 查詢成功！已更新模型選擇清單 (共找到 ${generateContentModelNames.length} 個可用生成模型)`);
-
+        alert(`✅ 查詢成功！找到 ${generateContentModelNames.length} 個可用模型。`);
       } catch (e) {
-        if (container) container.innerHTML = `<p style="color:red;">❌ 網路或請求發生錯誤：${e.message}</p>`;
+        if (container) container.innerHTML = `<p style="color:red;">❌ 錯誤：${e.message}</p>`;
       }
     }
 
     function selectModel(modelName) {
       localStorage.setItem('gemini_selected_model', modelName);
       updateModelDropdown();
-      alert(`已將預設 AI 模型切換為：${modelName}`);
+      alert(`已切換模型為：${modelName}`);
       fetchAvailableModels();
     }
 
@@ -984,150 +938,91 @@
       }
 
       resElem.style.color = '#1a73e8';
-      resElem.innerText = `⏳ 正在測試與模型 [${currentModel}] 的連線...`;
+      resElem.innerText = `⏳ 正在測試 [${currentModel}] 連線...`;
 
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: '請回覆「OK」' }] }]
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: '請回覆「OK」' }] }] })
         });
-
         const data = await resp.json();
         
         if (data.error) {
           resElem.style.color = 'red';
-          resElem.innerText = `❌ 連線失敗 (${currentModel})：${data.error.message}`;
+          resElem.innerText = `❌ 失敗：${data.error.message}`;
         } else {
           resElem.style.color = 'green';
-          resElem.innerText = `✅ 模型 [${currentModel}] 連線測試成功！`;
+          resElem.innerText = `✅ 模型 [${currentModel}] 連線成功！`;
         }
       } catch (e) {
         resElem.style.color = 'red';
-        resElem.innerText = `❌ 網路或請求異常：${e.message}`;
+        resElem.innerText = `❌ 異常：${e.message}`;
       }
     }
 
     async function aiSuggestAnswer() {
       const apiKey = localStorage.getItem('gemini_api_key');
       const q = document.getElementById('input-question').value.trim();
-      const qLang = document.getElementById('input-q-lang') ? document.getElementById('input-q-lang').value : 'auto';
-      const aLang = document.getElementById('input-a-lang') ? document.getElementById('input-a-lang').value : 'zh-TW';
       const currentModel = getGeminiModel();
 
-      if (!apiKey) return alert('請先到設定頁面設定 API Key！');
+      if (!apiKey) return alert('請先設定 API Key！');
       if (!q) return alert('請先輸入題目！');
 
       const btn = document.getElementById('btn-ai-suggest');
-      const originalText = btn ? btn.innerText : '✨ AI 智慧建議答案';
-      if (btn) {
-        btn.innerText = '⏳ AI 思考中...';
-        btn.disabled = true;
-      }
+      btn.innerText = '⏳ AI 思考中...';
+      btn.disabled = true;
 
-      const promptText = `你是一個語言學習單字卡助手。請針對以下題目提供翻譯或對應答案：
-題目："${q}"
-題目語言：${qLang}
-目標答案語言：${aLang}
-
-【嚴格遵守語言規則】：
-若「目標答案語言」為日文（ja-JP 或含日文）：
-1. "ans1" 必須【完全不可包含任何漢字】，只能是純假名/平假名（例如：にほんご、たべる、かんじ）。
-2. "ans2" 必須是【包含漢字】的標準寫法（例如：日本語、食べる、漢字）。
-
-若為其他語言：
-1. "ans1" 為主要標準翻譯。
-2. "ans2" 為同義詞或備用翻譯。
-
-請嚴格回傳純 JSON 格式：
-{"ans1": "答案一", "ans2": "答案二"}`;
-
+      const promptText = `請針對日文題目 "${q}" 提供答案。ans1為純假名，ans2為漢字寫法。回傳純 JSON: {"ans1": "", "ans2": ""}`;
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
+        const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }], generationConfig: { responseMimeType: "application/json" } })
         });
-
-        const data = await response.json();
-        if (data.error) throw new Error(`[${currentModel}] ${data.error.message}`);
-
-        let text = data.candidates[0].content.parts[0].text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        
+        const data = await resp.json();
+        const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
         if (parsed.ans1) document.getElementById('input-ans1').value = parsed.ans1;
         if (parsed.ans2) document.getElementById('input-ans2').value = parsed.ans2;
       } catch (e) {
-        console.error('AI 建議失敗:', e);
         alert('AI 建議失敗: ' + e.message);
       } finally {
-        if (btn) {
-          btn.innerText = originalText;
-          btn.disabled = false;
-        }
+        btn.innerText = '✨ AI 智慧建議答案';
+        btn.disabled = false;
       }
     }
 
-    function handleImageCapture(event) {
+    // ==========================================
+    // 💬 AI 角色扮演口語對話功能實現
+    // ==========================================
+    async function initRoleplayFromImage(event) {
       const file = event.target.files[0];
       if (!file) return;
-      lastCapturedFile = file;
-      
-      document.getElementById('btn-reanalyze').classList.remove('hidden');
-      processImageFile(file);
-    }
 
-    function retryAiCapture() {
-      if (!lastCapturedFile) return alert('找不到上次的照片檔案，請重新選擇！');
-      processImageFile(lastCapturedFile);
-    }
-
-    async function processImageFile(file) {
       const apiKey = localStorage.getItem('gemini_api_key');
       const currentModel = getGeminiModel();
-      
       if (!apiKey) return alert('請先至設定頁面填寫 Gemini API Key！');
 
-      document.getElementById('ai-loading').classList.remove('hidden');
-      document.getElementById('ai-error-area').classList.add('hidden');
-      document.getElementById('ai-column-mapping-area').classList.add('hidden');
-      document.getElementById('ai-result-area').classList.add('hidden');
+      document.getElementById('roleplay-loading').classList.remove('hidden');
+      document.getElementById('roleplay-session-area').classList.add('hidden');
 
-      const userHint = document.getElementById('ai-user-hint') ? document.getElementById('ai-user-hint').value.trim() : '';
-      const hintPrompt = userHint ? `\n【使用者提供的表格格式說明】：${userHint}\n` : '';
-
-      const promptText = `你是一個專業的二維表格與 OCR 解析助手。
-請讀取圖片中的內容，並將其整理為二維陣列 (Rows & Columns)。
-
-解析規則：
-1. 請保留表格原本的欄位順序，將每一列 (Row) 解析為包含所有欄位字串的陣列。
-2. 自動忽略頁碼或無關圖樣，但表格內所有欄位（如序號、單字、詞性、例句、中文）請完整保留在對應欄位中。
-${hintPrompt}
+      const promptText = `你是一個專業的日文口語會話老師。請分析這張日文課本圖片中的句型與對話練習（例如問生日或時間等對話），建立一個互動角色扮演（Role-play）情境。
 請嚴格回傳純 JSON 格式：
 {
-  "raw_text": "圖片完整 OCR 原始文字",
-  "rows": [
-    ["1", "apple", "n.", "蘋果", "I eat an apple."],
-    ["2", "banana", "n.", "香蕉", "Bananas are yellow."]
-  ]
+  "scenario": "情境描述（中文，例如：與同學討論生日與時間）",
+  "ai_role_name": "對話角色名稱（例如：山下）",
+  "initial_ai_line": "AI 的第一句日文問話（日文，例如：田中さんの誕生日はいつですか。）",
+  "user_goal": "使用者的任務目標（中文，例如：回答 4月1日並反問對方）"
 }`;
 
       const reader = new FileReader();
       reader.onload = async function() {
         const base64Data = reader.result.split(',')[1];
-
         try {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-          const response = await fetch(url, {
+          const resp = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1140,39 +1035,227 @@ ${hintPrompt}
               generationConfig: { responseMimeType: "application/json" }
             })
           });
+          const data = await resp.json();
+          document.getElementById('roleplay-loading').classList.add('hidden');
 
-          const data = await response.json();
-          document.getElementById('ai-loading').classList.add('hidden');
-
-          if (data.error) {
-            document.getElementById('ai-error-msg').innerText = `❌ AI 辨識錯誤 (${currentModel}): ${data.error.message}`;
-            document.getElementById('ai-error-area').classList.remove('hidden');
-            return;
-          }
+          if (data.error) throw new Error(data.error.message);
 
           const text = data.candidates[0].content.parts[0].text;
           const jsonMatch = text.match(/\{[\s\S]*\}/);
-          const cleaned = jsonMatch ? jsonMatch[0] : text.replace(/```json/gi, '').replace(/```/g, '').trim();
-          const parsed = JSON.parse(cleaned);
+          const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
 
+          currentRoleplayData = {
+            scenario: parsed.scenario,
+            aiRole: parsed.ai_role_name || 'AI',
+            history: [{ sender: 'ai', text: parsed.initial_ai_line }],
+            isFinished: false
+          };
+
+          document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>情境：</strong>${parsed.scenario}<br>🎯 <strong>您的任務：</strong>${parsed.user_goal}`;
+          renderRoleplayChat();
+          document.getElementById('roleplay-session-area').classList.remove('hidden');
+
+          // 自動朗讀 AI 第一句話
+          speakText(parsed.initial_ai_line, 'ja-JP');
+
+        } catch (e) {
+          document.getElementById('roleplay-loading').classList.add('hidden');
+          alert('解析對話失敗： ' + e.message);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function renderRoleplayChat() {
+      const container = document.getElementById('roleplay-chat-box');
+      container.innerHTML = currentRoleplayData.history.map(h => `
+        <div class="chat-bubble ${h.sender === 'ai' ? 'chat-ai' : 'chat-user'}">
+          <strong>${h.sender === 'ai' ? currentRoleplayData.aiRole : '您'}：</strong> ${escapeHtml(h.text)}
+          ${h.sender === 'ai' ? `<button onclick="speakText('${escapeHtml(h.text)}', 'ja-JP')" style="width:auto; padding:2px 6px; font-size:11px; margin-left:6px;" class="btn-secondary">🔊 朗讀</button>` : ''}
+        </div>
+      `).join('');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendRoleplayReply() {
+      const inputElem = document.getElementById('roleplay-user-input');
+      const userText = inputElem.value.trim();
+      if (!userText || currentRoleplayData.isFinished) return;
+
+      currentRoleplayData.history.push({ sender: 'user', text: userText });
+      inputElem.value = '';
+      renderRoleplayChat();
+
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      const evalArea = document.getElementById('roleplay-eval-area');
+      evalArea.classList.remove('hidden');
+      evalArea.innerHTML = '⏳ AI 老師正在評估您的口語回答並給予建議...';
+
+      const promptText = `你是一位親切且專業的日文會話教練。以下是目前的對話紀錄：
+${JSON.stringify(currentRoleplayData.history)}
+
+使用者剛剛的回覆是："${userText}"。
+請針對使用者的回覆進行文法、禮貌度及口語自然度的糾正與對話推進，回傳純 JSON 格式：
+{
+  "score": 90,
+  "correction": "若有文法或用詞錯誤，請提供建議修正的完整日文句子；若完全正確則填 null",
+  "explanation": "文法或發音/假名補充說明（例如：提醒日期發音、助詞用法等）",
+  "next_ai_line": "AI 接下來的對話回應（日文），若對話已圓滿達成課本練習目標則填 null",
+  "is_finished": false
+}`;
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptText }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+        const data = await resp.json();
+        if (data.error) throw new Error(data.error.message);
+
+        const text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+
+        let evalHtml = `<strong>📊 口語評分：${parsed.score} 分</strong><br>`;
+        if (parsed.correction) {
+          evalHtml += `✨ <strong>建議優化句型：</strong> <span style="color:#1a73e8; font-weight:bold;">${escapeHtml(parsed.correction)}</span><br>`;
+        }
+        if (parsed.explanation) {
+          evalHtml += `💡 <strong>老師解析：</strong> ${escapeHtml(parsed.explanation)}`;
+        }
+        evalArea.innerHTML = evalHtml;
+
+        if (parsed.next_ai_line) {
+          currentRoleplayData.history.push({ sender: 'ai', text: parsed.next_ai_line });
+          renderRoleplayChat();
+          speakText(parsed.next_ai_line, 'ja-JP');
+        } else {
+          currentRoleplayData.isFinished = true;
+          evalArea.innerHTML += `<br><br>🎉 <strong>對話圓滿結束！您已經成功掌握這個句型了！</strong>`;
+        }
+
+      } catch (e) {
+        evalArea.innerHTML = `<span style="color:red;">❌ 評估失敗：${e.message}</span>`;
+      }
+    }
+
+    function handleRoleplayKey(event) {
+      if (event.key === 'Enter') sendRoleplayReply();
+    }
+
+    function resetRoleplay() {
+      document.getElementById('roleplay-img-input').value = '';
+      document.getElementById('roleplay-session-area').classList.add('hidden');
+      document.getElementById('roleplay-eval-area').classList.add('hidden');
+      currentRoleplayData = { scenario: '', aiRole: 'AI', history: [], isFinished: false };
+    }
+
+    // 結合瀏覽器 SpeechRecognition 實現日文口語辨識輸入
+    function startVoiceRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        return alert('您的瀏覽器不支援語音辨識功能，建議使用 Chrome 或 Safari。');
+      }
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      const inputElem = document.getElementById('roleplay-user-input');
+      inputElem.placeholder = '🎙️ 請對著麥克風說日文...';
+
+      recognition.onresult = function(event) {
+        const speechResult = event.results[0][0].transcript;
+        inputElem.value = speechResult;
+        inputElem.placeholder = '請輸入日文回答...';
+      };
+
+      recognition.onerror = function(event) {
+        alert('語音辨識錯誤: ' + event.error);
+        inputElem.placeholder = '請輸入日文回答...';
+      };
+
+      recognition.onend = function() {
+        inputElem.placeholder = '請輸入日文回答...';
+      };
+
+      recognition.start();
+    }
+
+    // ==========================================
+    // 📸 AI 拍照辨識單字功能
+    // ==========================================
+    function handleImageCapture(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      lastCapturedFile = file;
+      document.getElementById('btn-reanalyze').classList.remove('hidden');
+      processImageFile(file);
+    }
+
+    function retryAiCapture() {
+      if (!lastCapturedFile) return alert('找不到上次的照片檔案！');
+      processImageFile(lastCapturedFile);
+    }
+
+    async function processImageFile(file) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      if (!apiKey) return alert('請先填寫 API Key！');
+
+      document.getElementById('ai-loading').classList.remove('hidden');
+      document.getElementById('ai-error-area').classList.add('hidden');
+      document.getElementById('ai-column-mapping-area').classList.add('hidden');
+      document.getElementById('ai-result-area').classList.add('hidden');
+
+      const userHint = document.getElementById('ai-user-hint') ? document.getElementById('ai-user-hint').value.trim() : '';
+      const hintPrompt = userHint ? `\n【說明】：${userHint}\n` : '';
+
+      const promptText = `請讀取圖片內容並整理為二維陣列 (Rows & Columns)。${hintPrompt}回傳純 JSON: {"raw_text": "", "rows": [["1", "apple", "蘋果"]]}`;
+
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64Data = reader.result.split(',')[1];
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: promptText },
+                  { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data } }
+                ]
+              }],
+              generationConfig: { responseMimeType: "application/json" }
+            })
+          });
+          const data = await resp.json();
+          document.getElementById('ai-loading').classList.add('hidden');
+
+          if (data.error) throw new Error(data.error.message);
+
+          const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
           document.getElementById('ai-raw-text').value = parsed.raw_text || '';
           rawParsedRows = parsed.rows || [];
 
           if (rawParsedRows.length > 0) {
             renderColumnMappingUI();
             document.getElementById('ai-column-mapping-area').classList.remove('hidden');
-          } else if (parsed.words && parsed.words.length > 0) {
-            tempParsedAiWords = parsed.words;
-            renderAiPreview();
-            document.getElementById('ai-result-area').classList.remove('hidden');
           } else {
-            document.getElementById('ai-error-msg').innerText = '❌ 無法從照片中解析出有效的表格內容。請嘗試在上方加入「補充說明」後，點擊重新分析。';
+            document.getElementById('ai-error-msg').innerText = '❌ 無法解析表格。';
             document.getElementById('ai-error-area').classList.remove('hidden');
           }
-
         } catch (e) {
           document.getElementById('ai-loading').classList.add('hidden');
-          document.getElementById('ai-error-msg').innerText = `❌ 網路或解析失敗 (${currentModel})：${e.message}`;
+          document.getElementById('ai-error-msg').innerText = '❌ 錯誤： ' + e.message;
           document.getElementById('ai-error-area').classList.remove('hidden');
         }
       };
@@ -1182,45 +1265,21 @@ ${hintPrompt}
     function renderColumnMappingUI() {
       const container = document.getElementById('ai-col-mapping-container');
       if (!rawParsedRows || rawParsedRows.length === 0) return;
-
       const maxCols = Math.max(...rawParsedRows.map(r => r.length));
       let html = '';
-
       for (let i = 0; i < maxCols; i++) {
         const samples = rawParsedRows.slice(0, 3).map(r => r[i] || '').filter(Boolean);
-        
-        let defaultRole = 'ignore';
-        if (maxCols === 2) {
-          defaultRole = i === 0 ? 'question' : 'ans1';
-        } else {
-          if (i === 0) {
-            const firstSample = samples[0] || '';
-            defaultRole = /^\d+$/.test(firstSample.trim()) ? 'ignore' : 'question';
-          } else if (i === 1) {
-            const col0IsNum = /^\d+$/.test((rawParsedRows[0][0] || '').trim());
-            defaultRole = col0IsNum ? 'question' : 'ans1';
-          } else if (i === 2) {
-            defaultRole = 'ans1';
-          }
-        }
-
         html += `
-          <div style="border: 1px solid var(--input-border); background: var(--card-bg); padding: 10px; border-radius: 8px; min-width: 140px; flex: 1 0 140px;">
+          <div style="border: 1px solid var(--input-border); background: var(--card-bg); padding: 10px; border-radius: 8px; min-width: 140px; flex: 1;">
             <div style="font-weight: bold; font-size: 13px; color: #1a73e8; margin-bottom: 6px;">第 ${i + 1} 欄</div>
             <select class="col-map-select" data-col="${i}" style="margin-top:0; padding:6px; font-size:13px;">
-              <option value="ignore" ${defaultRole === 'ignore' ? 'selected' : ''}>❌ 忽略 (序號/詞性/例句)</option>
-              <option value="question" ${defaultRole === 'question' ? 'selected' : ''}>📖 設為題目</option>
-              <option value="ans1" ${defaultRole === 'ans1' ? 'selected' : ''}>💡 設為答案一</option>
-              <option value="ans2" ${defaultRole === 'ans2' ? 'selected' : ''}>📝 設為答案二</option>
+              <option value="ignore">❌ 忽略</option>
+              <option value="question" ${i === 0 ? 'selected' : ''}>📖 題目</option>
+              <option value="ans1" ${i === 1 ? 'selected' : ''}>💡 答案一</option>
             </select>
-            <div style="margin-top:8px; font-size:11px; color:var(--subtext-color); background:var(--mapping-bg); padding:6px; border-radius:4px; max-height:80px; overflow-y:auto;">
-              <strong>範例資料：</strong><br>
-              ${samples.map(s => `• ${escapeHtml(s)}`).join('<br>') || '<span style="color:#aaa;">(空白)</span>'}
-            </div>
           </div>
         `;
       }
-
       container.innerHTML = html;
     }
 
@@ -1230,273 +1289,67 @@ ${hintPrompt}
 
     function applyColumnMapping() {
       const selects = document.querySelectorAll('.col-map-select');
-      let qCol = -1, a1Col = -1, a2Col = -1;
-
+      let qCol = -1, a1Col = -1;
       selects.forEach(s => {
-        const colIdx = parseInt(s.getAttribute('data-col'));
-        if (s.value === 'question') qCol = colIdx;
-        if (s.value === 'ans1') a1Col = colIdx;
-        if (s.value === 'ans2') a2Col = colIdx;
+        if (s.value === 'question') qCol = parseInt(s.getAttribute('data-col'));
+        if (s.value === 'ans1') a1Col = parseInt(s.getAttribute('data-col'));
       });
+      if (qCol === -1 || a1Col === -1) return alert('請指定題目與答案欄位！');
 
-      if (qCol === -1 || a1Col === -1) {
-        return alert('請至少指定一個「📖 設為題目」欄位與一個「💡 設為答案一」欄位！');
-      }
-
-      tempParsedAiWords = rawParsedRows.map(row => {
-        const q = row[qCol] ? String(row[qCol]).trim() : '';
-        const a1 = row[a1Col] ? String(row[a1Col]).trim() : '';
-        const a2 = (a2Col !== -1 && row[a2Col]) ? String(row[a2Col]).trim() : '';
-        return {
-          question: q,
-          ans1: a1,
-          ans2: a2,
-          qLang: 'en-US',
-          aLang: 'zh-TW'
-        };
-      }).filter(w => w.question && w.ans1);
-
-      if (tempParsedAiWords.length === 0) {
-        return alert('轉換失敗，未能從您指定的欄位中導出有效單字，請重新確認欄位設定。');
-      }
+      tempParsedAiWords = rawParsedRows.map(row => ({
+        question: row[qCol] || '',
+        ans1: row[a1Col] || '',
+        ans2: '',
+        qLang: 'en-US',
+        aLang: 'zh-TW'
+      })).filter(w => w.question && w.ans1);
 
       renderAiPreview();
       document.getElementById('ai-result-area').classList.remove('hidden');
-      document.getElementById('ai-result-area').scrollIntoView({ behavior: 'smooth' });
     }
 
     function renderAiPreview() {
       const previewDiv = document.getElementById('ai-parsed-preview');
-      if (!tempParsedAiWords || tempParsedAiWords.length === 0) {
-        previewDiv.innerHTML = '<p style="color:var(--subtext-color);">目前沒有解析出的單字。</p>';
-        return;
-      }
-      previewDiv.innerHTML = tempParsedAiWords.map((w, index) => `
-        <div class="word-item" style="border-bottom:1px solid var(--border-color); padding:8px 0;">
-          <div style="flex:1; margin-right:10px;">
-            <strong>${w.question}</strong> ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}
-          </div>
-          <div style="display:flex; gap:5px; flex-shrink:0;">
-            <button type="button" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" onclick="openEditAiWordModal(${index})">編輯</button>
-            <button type="button" class="btn-danger" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" onclick="deleteAiWord(${index})">刪除</button>
-          </div>
+      previewDiv.innerHTML = tempParsedAiWords.map((w, i) => `
+        <div class="word-item" style="padding:6px 0;">
+          <strong>${w.question}</strong> ➔ ${w.ans1}
         </div>
       `).join('');
-    }
-
-    function deleteAiWord(index) {
-      tempParsedAiWords.splice(index, 1);
-      renderAiPreview();
-    }
-
-    function openEditAiWordModal(index) {
-      const w = tempParsedAiWords[index];
-      document.getElementById('edit-ai-index').value = index;
-      document.getElementById('edit-ai-question').value = w.question || '';
-      document.getElementById('edit-ai-ans1').value = w.ans1 || '';
-      document.getElementById('edit-ai-ans2').value = w.ans2 || '';
-      document.getElementById('edit-ai-modal').classList.remove('hidden');
-    }
-
-    function closeEditAiModal() {
-      document.getElementById('edit-ai-modal').classList.add('hidden');
-    }
-
-    function saveEditedAiWord() {
-      const idx = parseInt(document.getElementById('edit-ai-index').value);
-      if (!isNaN(idx) && tempParsedAiWords[idx]) {
-        tempParsedAiWords[idx].question = document.getElementById('edit-ai-question').value.trim();
-        tempParsedAiWords[idx].ans1 = document.getElementById('edit-ai-ans1').value.trim();
-        tempParsedAiWords[idx].ans2 = document.getElementById('edit-ai-ans2').value.trim();
-      }
-      closeEditAiModal();
-      renderAiPreview();
     }
 
     function confirmImportAiWords() {
-      if (!tempParsedAiWords || tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
-      
-      const targetDeckId = document.getElementById('ai-target-deck-select').value;
-      const targetDeck = decks.find(d => d.id === targetDeckId);
-      
-      if (!targetDeck) return alert('找不到目標單字庫！');
-
-      let addedCount = 0;
-      let skippedCount = 0;
-
-      tempParsedAiWords.forEach(w => {
-        const qClean = (w.question || '').trim().toLowerCase();
-        const a1Clean = (w.ans1 || '').trim().toLowerCase();
-        const a2Clean = (w.ans2 || '').trim().toLowerCase();
-
-        const isDuplicate = targetDeck.words.some(existing => {
-          const exQ = (existing.question || '').trim().toLowerCase();
-          const exA1 = (existing.ans1 || '').trim().toLowerCase();
-          const exA2 = (existing.ans2 || '').trim().toLowerCase();
-
-          const sameQuestion = qClean && exQ && (qClean === exQ);
-          const sameAns1 = a1Clean && (a1Clean === exA1 || (exA2 && a1Clean === exA2));
-          const sameAns2 = a2Clean && (a2Clean === exA1 || (exA2 && a2Clean === exA2));
-
-          return sameQuestion || sameAns1 || sameAns2;
-        });
-
-        if (isDuplicate) {
-          skippedCount++;
-        } else {
-          targetDeck.words.push({
-            question: w.question,
-            ans1: w.ans1,
-            ans2: w.ans2 || '',
-            qLang: w.qLang || 'en-US',
-            aLang: w.aLang || 'zh-TW',
-            attempts: 0,
-            errors: 0
-          });
-          addedCount++;
-        }
-      });
-
+      if (!tempParsedAiWords.length) return alert('沒有單字可匯入！');
+      const targetDeck = decks.find(d => d.id === document.getElementById('ai-target-deck-select').value);
+      if (!targetDeck) return alert('找不到單字庫！');
+      tempParsedAiWords.forEach(w => targetDeck.words.push(w));
       saveData();
-      alert(`匯入結果結算：\n✅ 成功匯入 ${addedCount} 個單字\n⚠️ 略過 ${skippedCount} 個重複單字 (與「${targetDeck.name}」中已有題目/答案相同)`);
+      alert('✅ 匯入成功！');
       switchTab('list');
     }
 
-    function publishDeck() {
-      const deckId = document.getElementById('share-deck-select').value;
-      const author = document.getElementById('share-author-input').value.trim() || '匿名創作者';
-      const desc = document.getElementById('share-desc-input').value.trim() || '尚無詳細介紹';
-
-      const target = decks.find(d => d.id === deckId);
-      if (!target) return alert('請選擇有效的單字庫！');
-      if (!target.words || target.words.length === 0) return alert('選取的單字庫為空，無法進行分享！');
-
-      const newShared = {
-        id: 'share_' + Date.now(),
-        name: target.name,
-        author: author,
-        description: desc,
-        downloads: 0,
-        likes: 0,
-        createdAt: new Date().toISOString().split('T')[0],
-        words: JSON.parse(JSON.stringify(target.words))
-      };
-
-      sharedDecks.unshift(newShared);
-      saveSharedData();
-
-      document.getElementById('share-desc-input').value = '';
-      alert(`🎉 成功發布「${target.name}」到社群市集！`);
-    }
-
-    function likeSharedDeck(shareId) {
-      const item = sharedDecks.find(s => s.id === shareId);
-      if (item) {
-        item.likes = (item.likes || 0) + 1;
-        saveSharedData();
-      }
-    }
-
-    function downloadSharedDeck(shareId) {
-      const item = sharedDecks.find(s => s.id === shareId);
-      if (!item) return alert('找不到指定的分享單字庫！');
-
-      const newDeck = {
-        id: 'deck_' + Date.now(),
-        name: `${item.name} (社群下載)`,
-        words: JSON.parse(JSON.stringify(item.words)),
-        history: []
-      };
-
-      decks.push(newDeck);
-      currentDeckId = newDeck.id;
-      saveData();
-
-      item.downloads = (item.downloads || 0) + 1;
-      saveSharedData();
-
-      alert(`✅ 成功下載「${item.name}」！已新增至您的單字庫列表。`);
-    }
-
-    function previewSharedDeck(shareId) {
-      const item = sharedDecks.find(s => s.id === shareId);
-      if (!item) return;
-
-      const previewText = item.words.slice(0, 15).map((w, i) => `${i + 1}. ${w.question} ➔ ${w.ans1} ${w.ans2 ? '(' + w.ans2 + ')' : ''}`).join('\n');
-      const extraMsg = item.words.length > 15 ? `\n...以及其他 ${item.words.length - 15} 個單字` : '';
-      alert(`📖 「${item.name}」內容預覽 (共 ${item.words.length} 字)：\n\n${previewText}${extraMsg}`);
-    }
-
-    function renderSharedDecks() {
-      const container = document.getElementById('shared-deck-list');
-      if (!container) return;
-
-      if (sharedDecks.length === 0) {
-        container.innerHTML = '<p style="color:var(--subtext-color);">目前社群尚無分享的單字庫。</p>';
-        return;
-      }
-
-      container.innerHTML = sharedDecks.map(item => `
-        <div style="border: 1px solid var(--border-color); background: var(--card-bg); padding: 12px; margin-bottom: 12px; border-radius: 10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <strong style="font-size:16px; color:#1a73e8;">${escapeHtml(item.name)}</strong>
-            <span style="font-size:12px; color:var(--subtext-color);">作者：${escapeHtml(item.author)}</span>
-          </div>
-          <p style="margin:6px 0; font-size:13px; color:var(--subtext-color);">${escapeHtml(item.description)}</p>
-          
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; flex-wrap:wrap; gap:8px;">
-            <div style="font-size:12px; color:var(--subtext-color); display:flex; gap:12px;">
-              <span>📚 ${item.words.length} 個單字</span>
-              <span>📥 ${item.downloads || 0} 次下載</span>
-              <span>👍 ${item.likes || 0} 個讚</span>
-            </div>
-            <div style="display:flex; gap:6px;">
-              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-secondary" onclick="previewSharedDeck('${item.id}')">👁️ 預覽</button>
-              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-warning" onclick="likeSharedDeck('${item.id}')">👍 按讚</button>
-              <button type="button" style="width:auto; padding:5px 10px; font-size:12px; margin:0;" class="btn-success" onclick="downloadSharedDeck('${item.id}')">📥 下載</button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
+    // ==========================================
+    // 📚 拼寫測驗與 UI 基礎函數
+    // ==========================================
     function renderUI() {
       const deckSelect = document.getElementById('deck-select');
       const quizDeckSelect = document.getElementById('quiz-deck-select');
       const statsDeckSelect = document.getElementById('stats-deck-select');
       const aiTargetSelect = document.getElementById('ai-target-deck-select');
-      const shareDeckSelect = document.getElementById('share-deck-select');
       
-      const currentQuizSelected = quizDeckSelect ? (quizDeckSelect.value || 'all') : 'all';
-      const currentStatsSelected = statsDeckSelect ? (statsDeckSelect.value || 'all') : 'all';
-
       const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
       deckSelect.innerHTML = deckOptions;
-      if (shareDeckSelect) shareDeckSelect.innerHTML = deckOptions;
-      
-      if (aiTargetSelect) {
-        aiTargetSelect.innerHTML = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
-      }
-
-      const allOptionQuiz = `<option value="all" ${currentQuizSelected === 'all' ? 'selected' : ''}>🌟 全部單字庫綜合</option>`;
-      quizDeckSelect.innerHTML = allOptionQuiz + decks.map(d => `<option value="${d.id}" ${String(d.id) === String(currentQuizSelected) ? 'selected' : ''}>📁 ${d.name} (${d.words.length}字)</option>`).join('');
-
-      const allOptionStats = `<option value="all" ${currentStatsSelected === 'all' ? 'selected' : ''}>🌟 全部單字庫綜合</option>`;
-      statsDeckSelect.innerHTML = allOptionStats + decks.map(d => `<option value="${d.id}" ${String(d.id) === String(currentStatsSelected) ? 'selected' : ''}>📁 ${d.name}</option>`).join('');
+      if (aiTargetSelect) aiTargetSelect.innerHTML = deckOptions;
+      if (quizDeckSelect) quizDeckSelect.innerHTML = `<option value="all">🌟 全部單字庫</option>` + deckOptions;
+      if (statsDeckSelect) statsDeckSelect.innerHTML = `<option value="all">🌟 全部單字庫</option>` + deckOptions;
 
       const deck = getCurrentDeck();
       document.getElementById('current-deck-title').innerText = deck.name;
       document.getElementById('word-count').innerText = deck.words.length;
-      document.getElementById('word-list').innerHTML = deck.words.length === 0 
-      ? '<p style="color:var(--subtext-color);">此單字庫目前沒有單字。</p>'
-      : deck.words.map((item, index) => `
+      document.getElementById('word-list').innerHTML = deck.words.length === 0 ? '<p style="color:var(--subtext-color);">此單字庫尚無單字。</p>' : deck.words.map((item, index) => `
         <div class="word-item">
-          <div>
-            <strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)}${item.ans2 ? ' / ' + escapeHtml(item.ans2) : ''})</span>
-          </div>
-          <div style="display:flex; gap:4px; align-items:center;">
-            <button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" title="播放答案" onclick="playWordAudio(${index}, 'ans1')">🔊 答案</button>
-            <button style="width:auto; padding:5px 8px; margin:0;" onclick="openEditModal(${index})">編輯</button>
+          <div><strong>${escapeHtml(item.question)}</strong> <span style="color:var(--subtext-color);">(${escapeHtml(item.ans1)})</span></div>
+          <div style="display:flex; gap:4px;">
+            <button class="btn-secondary" style="width:auto; padding:5px 8px; margin:0;" onclick="playWordAudio(${index}, 'ans1')">🔊</button>
             <button class="btn-danger" style="width:auto; padding:5px 8px; margin:0;" onclick="deleteWord(${index})">刪除</button>
           </div>
         </div>
@@ -1504,414 +1357,89 @@ ${hintPrompt}
 
       document.getElementById('setting-quiz-limit').value = quizLimit;
       if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
-      
-      // 載入設定頁面與統計頁面的最近採計次數等選項
-      const savedRecentWindow = localStorage.getItem('vocab_recent_window') || '10';
-      const savedErrorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
-      const savedErrorQuota = localStorage.getItem('vocab_error_quota_pct') || '50';
-      const savedNewQuota = localStorage.getItem('vocab_new_quota_pct') || '30';
-      const savedFamiliarQuota = localStorage.getItem('vocab_familiar_quota_pct') || '20';
-
-      if (document.getElementById('setting-recent-window')) document.getElementById('setting-recent-window').value = savedRecentWindow;
-      if (document.getElementById('stats-window-select')) document.getElementById('stats-window-select').value = savedRecentWindow;
-      if (document.getElementById('setting-quiz-error-basis')) document.getElementById('setting-quiz-error-basis').value = savedErrorBasis;
-      if (document.getElementById('setting-error-quota')) document.getElementById('setting-error-quota').value = savedErrorQuota;
-      if (document.getElementById('setting-new-quota')) document.getElementById('setting-new-quota').value = savedNewQuota;
-      if (document.getElementById('setting-familiar-quota')) document.getElementById('setting-familiar-quota').value = savedFamiliarQuota;
-
       updateModelDropdown();
     }
 
     function switchTab(tab) {
-      ['list', 'quiz', 'stats', 'ai', 'share', 'models', 'settings'].forEach(t => {
+      ['list', 'quiz', 'roleplay', 'stats', 'ai', 'share', 'models', 'settings'].forEach(t => {
         document.getElementById(`page-${t}`).classList.add('hidden');
         document.getElementById(`tab-${t}`).classList.remove('active');
       });
       document.getElementById(`page-${tab}`).classList.remove('hidden');
       document.getElementById(`tab-${tab}`).classList.add('active');
-      
       if (tab === 'stats') renderStats();
-      if (tab === 'share') renderSharedDecks();
-      if (tab === 'models') fetchAvailableModels();
     }
 
     let quizAutoNextTimeout = null;
-
     function initQuizSession() {
       if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
       const selected = document.getElementById('quiz-deck-select').value;
-      let pool = [];
-      
-      if (selected === 'all') {
-        pool = decks.flatMap(d => d.words.map((w, index) => ({...w, deckId: String(d.id), wordIndex: index})));
-      } else {
-        const target = decks.find(d => String(d.id) === String(selected));
-        if(target) pool = target.words.map((w, index) => ({...w, deckId: String(target.id), wordIndex: index}));
-      }
+      let pool = selected === 'all' ? decks.flatMap(d => d.words.map((w, index) => ({...w, deckId: String(d.id), wordIndex: index}))) : (decks.find(d => String(d.id) === String(selected))?.words.map((w, index) => ({...w, deckId: String(selected), wordIndex: index})) || []);
 
-      if (pool.length === 0) {
-        document.getElementById('quiz-prompt').innerText = '無單字可測驗！';
-        return;
-      }
-
+      if (pool.length === 0) return alert('無單字可測驗！');
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-
-      // 讀取設定：選擇以「整體錯誤率」或「最近錯誤率」挑題
-      const errorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
-      const recentWindowSize = getRecentWindowSize();
-
-      const getScore = (item) => {
-        if (errorBasis === 'overall') {
-          // 依歷史總體錯誤率計算
-          const attempts = item.attempts || 0;
-          if (attempts === 0) return 0;
-          return (item.errors || 0) / attempts;
-        } else {
-          // 依 User 設定的最近 N 次錯誤率計算（若無最近紀錄則降級參考歷史總體錯誤率）
-          if (item.recentResults && item.recentResults.length > 0) {
-            const recentSlice = item.recentResults.slice(-recentWindowSize);
-            const recentErrors = recentSlice.filter(r => !r).length;
-            return recentErrors / recentSlice.length;
-          }
-          const attempts = item.attempts || 0;
-          if (attempts === 0) return 0;
-          return (item.errors || 0) / attempts;
-        }
-      };
-
-      let unattemptedWords = pool.filter(w => (w.attempts || 0) === 0);
-      unattemptedWords.sort(() => Math.random() - 0.5);
-
-      let errorWords = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) > 0);
-      errorWords.sort(() => Math.random() - 0.5);
-      errorWords.sort((a, b) => getScore(b) - getScore(a));
-
-      let familiarWords = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) === 0);
-      familiarWords.sort(() => Math.random() - 0.5);
-
-      // 讀取設定：三種題型（錯題加強/未測驗新詞/熟練複習）配額比例
-      const errorQuotaPct = parseInt(localStorage.getItem('vocab_error_quota_pct') || '50') / 100;
-      const newQuotaPct = parseInt(localStorage.getItem('vocab_new_quota_pct') || '30') / 100;
-      const familiarQuotaPct = parseInt(localStorage.getItem('vocab_familiar_quota_pct') || '20') / 100;
-
-      let errorQuota = Math.floor(targetLimit * errorQuotaPct);
-      let newQuota = Math.floor(targetLimit * newQuotaPct);
-      let familiarQuota = Math.floor(targetLimit * familiarQuotaPct);
-
-      let selectedWords = [];
-      selectedWords.push(...errorWords.splice(0, errorQuota));
-      selectedWords.push(...unattemptedWords.splice(0, newQuota));
-      selectedWords.push(...familiarWords.splice(0, familiarQuota));
-
-      let remainingSlots = targetLimit - selectedWords.length;
-      if (remainingSlots > 0) {
-        let remainingPool = [...errorWords, ...unattemptedWords, ...familiarWords];
-        remainingPool.sort(() => Math.random() - 0.5);
-        selectedWords.push(...remainingPool.slice(0, remainingSlots));
-      }
-
-      selectedWords.sort(() => Math.random() - 0.5);
-
-      quizQueue = selectedWords;
+      quizQueue = pool.sort(() => Math.random() - 0.5).slice(0, targetLimit);
       sessionResults = [];
       totalAnswered = 0;
       nextQuizQuestion();
     }
 
     function nextQuizQuestion() {
-      if (quizAutoNextTimeout) {
-        clearTimeout(quizAutoNextTimeout);
-        quizAutoNextTimeout = null;
-      }
-
       if (quizQueue.length === 0) {
-        endQuizSession();
+        document.getElementById('quiz-prompt').innerText = `🎉 測驗完成！答對 ${sessionResults.filter(r => r.correct).length} / ${totalAnswered} 題`;
+        document.getElementById('quiz-answer').style.display = 'none';
+        document.getElementById('btn-submit-ans').style.display = 'none';
+        document.getElementById('btn-next-ans').classList.add('hidden');
         return;
       }
-
+      currentQuizItem = quizQueue.shift();
+      totalAnswered++;
+      document.getElementById('quiz-progress').innerText = `進度：${totalAnswered} / ${targetLimit}`;
+      document.getElementById('quiz-prompt').innerText = currentQuizItem.question;
       const inputElem = document.getElementById('quiz-answer');
       inputElem.style.display = 'block';
       inputElem.disabled = false;
-      document.getElementById('btn-submit-ans').style.display = 'block';
-      document.getElementById('btn-next-ans').classList.add('hidden');
-
-      // 隱藏 AI 建議區塊與按鈕
-      document.getElementById('btn-get-ai-tip').classList.add('hidden');
-      document.getElementById('ai-tip-box').classList.add('hidden');
-
-      currentQuizItem = quizQueue.shift();
-      totalAnswered++;
-      document.getElementById('quiz-progress').innerText = `進度：第 ${totalAnswered} / ${targetLimit} 題`;
-      document.getElementById('quiz-prompt').innerText = currentQuizItem.question;
       inputElem.value = '';
       document.getElementById('quiz-result').innerText = '';
-      
+      document.getElementById('btn-submit-ans').style.display = 'block';
+      document.getElementById('btn-next-ans').classList.add('hidden');
       setTimeout(() => inputElem.focus(), 50);
     }
 
     function checkAnswer() {
       if (!currentQuizItem) return;
-      
-      const inputElem = document.getElementById('quiz-answer');
-      const userAns = inputElem.value.trim().replace(/\s+/g, ' ').toLowerCase();
-      
-      const ans1 = cleanAnswerText(currentQuizItem.ans1 || '').trim().replace(/\s+/g, ' ').toLowerCase();
-      const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').trim().replace(/\s+/g, ' ').toLowerCase();
-      
-      const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
-      
-      sessionResults.push({ deckId: currentQuizItem.deckId, correct: isCorrect });
-      
-      let originalWord = null;
-      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
-      if (targetDeck) {
-        originalWord = targetDeck.words[currentQuizItem.wordIndex];
-        if (originalWord) {
-          originalWord.attempts = (originalWord.attempts || 0) + 1;
-          if (!isCorrect) {
-            originalWord.errors = (originalWord.errors || 0) + 1;
-          }
-          
-          // 紀錄最近的測驗結果（上限保留 10 次，供 3/5/10 次視窗彈性動態分析）
-          if (!originalWord.recentResults) {
-            originalWord.recentResults = [];
-          }
-          originalWord.recentResults.push(isCorrect);
-          if (originalWord.recentResults.length > 10) {
-            originalWord.recentResults.shift();
-          }
-        }
+      const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
+      const ans1 = cleanAnswerText(currentQuizItem.ans1).toLowerCase();
+      const isCorrect = (userAns === ans1);
 
-        if (!Array.isArray(targetDeck.history)) {
-          targetDeck.history = [];
-        }
-        targetDeck.history.push({
-          timestamp: Date.now(),
-          correct: isCorrect ? 1 : 0,
-          total: 1
-        });
-      }
-      
-      saveData();
+      sessionResults.push({ correct: isCorrect });
+      document.getElementById('quiz-answer').disabled = true;
+      document.getElementById('btn-submit-ans').style.display = 'none';
+      document.getElementById('btn-next-ans').classList.remove('hidden');
 
-      const resultElem = document.getElementById('quiz-result');
-      inputElem.disabled = true;
-
+      const resElem = document.getElementById('quiz-result');
       if (isCorrect) {
-        resultElem.style.color = '#28a745';
-        resultElem.innerText = '⭕ 答對了！';
-        document.getElementById('btn-submit-ans').style.display = 'none';
-
-        if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
-        quizAutoNextTimeout = setTimeout(() => {
-          nextQuizQuestion();
-        }, 600);
+        resElem.style.color = '#28a745';
+        resElem.innerText = '⭕ 答對了！';
+        quizAutoNextTimeout = setTimeout(nextQuizQuestion, 600);
       } else {
-        resultElem.style.color = '#dc3545';
-        resultElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}${currentQuizItem.ans2 ? ' / ' + currentQuizItem.ans2 : ''}`;
-        document.getElementById('btn-submit-ans').style.display = 'none';
-        document.getElementById('btn-next-ans').classList.remove('hidden');
-        
-        if (originalWord && originalWord.aiTip) {
-          document.getElementById('ai-tip-box').classList.remove('hidden');
-          document.getElementById('ai-tip-content').innerText = originalWord.aiTip;
-          document.getElementById('ai-tip-feedback-row').classList.add('hidden');
-        } else {
-          document.getElementById('ai-tip-box').classList.add('hidden');
-          document.getElementById('btn-get-ai-tip').classList.remove('hidden');
-        }
+        resElem.style.color = '#dc3545';
+        resElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}`;
       }
     }
 
     function handleQuizKeyDown(event) {
       if (event.key === 'Enter') {
-        const btnNext = document.getElementById('btn-next-ans');
-        const btnSubmit = document.getElementById('btn-submit-ans');
-        
-        if (!btnNext.classList.contains('hidden')) {
-          nextQuizQuestion();
-        } else if (btnSubmit.style.display !== 'none') {
-          checkAnswer();
-        }
+        if (!document.getElementById('btn-next-ans').classList.contains('hidden')) nextQuizQuestion();
+        else checkAnswer();
       }
-    }
-
-    function endQuizSession() {
-      const correctCount = sessionResults.filter(r => r.correct).length;
-      document.getElementById('quiz-progress').innerText = `📊 測驗結算`;
-      document.getElementById('quiz-prompt').innerText = `恭喜完成！總題數：${totalAnswered} 題，答對：${correctCount} 題`;
-      document.getElementById('quiz-answer').style.display = 'none';
-      document.getElementById('btn-submit-ans').style.display = 'none';
-      document.getElementById('btn-next-ans').classList.add('hidden');
-      document.getElementById('quiz-result').innerText = '';
-      
-      saveData();
     }
 
     function renderStats() {
-      const selected = document.getElementById('stats-deck-select').value;
-      const recentWindow = getRecentWindowSize();
-
-      // 更新統計頁面下拉選單狀態與文字
-      const statsWindowSelect = document.getElementById('stats-window-select');
-      if (statsWindowSelect) statsWindowSelect.value = String(recentWindow);
-
-      const sortSelect = document.getElementById('stats-sort-select');
-      if (sortSelect && sortSelect.options[0]) {
-        sortSelect.options[0].text = `排序：依最近 ${recentWindow} 次錯誤率 (高到低)`;
-      }
-
-      const targetDecks = selected === 'all' 
-        ? decks 
-        : decks.filter(d => String(d.id) === String(selected));
-      
-      let allTotal = 0, allCorrect = 0, monthTotal = 0, monthCorrect = 0;
-      const now = Date.now(), oneMonthMs = 30 * 24 * 60 * 60 * 1000;
-      let wordsStats = [];
-
-      targetDecks.forEach(d => {
-        (d.history || []).forEach(h => {
-          allTotal += (h.total || 0);
-          allCorrect += (h.correct || 0);
-          if (now - h.timestamp <= oneMonthMs) {
-            monthTotal += (h.total || 0);
-            monthCorrect += (h.correct || 0);
-          }
-        });
-        (d.words || []).forEach(w => {
-          if (w.attempts > 0) {
-            const errRate = w.errors / w.attempts;
-            let recentErrRate = errRate;
-            let recentErrors = 0;
-            let recentTotal = 0;
-            
-            // 依 User 設定的視窗 (3, 5, 10 次) 計算最近錯誤率
-            if (w.recentResults && w.recentResults.length > 0) {
-              const recentSlice = w.recentResults.slice(-recentWindow);
-              recentTotal = recentSlice.length;
-              recentErrors = recentSlice.filter(r => !r).length;
-              recentErrRate = recentErrors / recentTotal;
-            }
-
-            wordsStats.push({ 
-              ...w, 
-              deckName: d.name, 
-              errorRate: errRate,
-              recentErrorRate: recentErrRate,
-              recentErrors: recentErrors,
-              recentTotal: recentTotal
-            });
-          }
-        });
-      });
-
-      const calcRate = (c, t) => t > 0 
-        ? `<span class="${c/t >= 0.8 ? 'text-green' : (c/t < 0.5 ? 'text-red' : '')}">${Math.round((c/t)*100)}%</span> <span style="font-size:12px; font-weight:normal; color:var(--subtext-color);">(${c}/${t}題)</span>` 
-        : '<span style="color:var(--subtext-color);">尚無紀錄</span>';
-      
-      document.getElementById('stat-all-time').innerHTML = calcRate(allCorrect, allTotal);
-      document.getElementById('stat-month').innerHTML = calcRate(monthCorrect, monthTotal);
-
-      const sortOption = sortSelect ? sortSelect.value : 'recent';
-
-      if (sortOption === 'recent') {
-        wordsStats.sort((a, b) => b.recentErrorRate - a.recentErrorRate);
-      } else {
-        wordsStats.sort((a, b) => b.errorRate - a.errorRate);
-      }
-      
-      document.getElementById('stats-word-list').innerHTML = wordsStats.length === 0 
-        ? '<p style="color:var(--subtext-color);">尚未有足夠的測驗紀錄。</p>' 
-        : wordsStats.map(w => {
-            const displayRate = sortOption === 'recent' ? w.recentErrorRate : w.errorRate;
-            return `
-            <div class="word-item" style="display:flex; justify-content:space-between;">
-              <div>
-                <strong>${w.question}</strong> <span style="font-size:14px; color:var(--subtext-color);">(${w.ans1})</span><br>
-                <span style="font-size:12px; color:var(--subtext-color);">📁 ${w.deckName}</span>
-              </div>
-              <div style="text-align:right;">
-                <span class="${displayRate > 0.5 ? 'text-red' : (displayRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
-                  ${Math.round(displayRate * 100)}%
-                </span><br>
-                <span style="font-size:12px; color:var(--subtext-color);">
-                  近${recentWindow}次: ${Math.round(w.recentErrorRate * 100)}% (錯 ${w.recentErrors} / 考 ${w.recentTotal})
-                </span><br>
-                <span style="font-size:11px; color:var(--subtext-color);">
-                  總計: ${Math.round(w.errorRate * 100)}% (錯 ${w.errors} / 考 ${w.attempts})
-                </span>
-              </div>
-            </div>
-          `}).join('');
+      let allTotal = 0, allCorrect = 0;
+      decks.forEach(d => (d.history || []).forEach(h => { allTotal += h.total; allCorrect += h.correct; }));
+      document.getElementById('stat-all-time').innerHTML = allTotal > 0 ? `${Math.round((allCorrect/allTotal)*100)}%` : '尚無紀錄';
     }
-	
-    let currentAiTip = "";
-
-    async function fetchAiTip() {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      const currentModel = getGeminiModel();
-      if (!apiKey) return alert('請先到設定頁面設定 API Key！');
-
-      const btn = document.getElementById('btn-get-ai-tip');
-      btn.innerText = '⏳ AI 思考中...';
-      btn.disabled = true;
-
-      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
-      const originalWord = targetDeck.words[currentQuizItem.wordIndex];
-      
-      let badTipsContext = "";
-      if (originalWord && originalWord.badTips && originalWord.badTips.length > 0) {
-        badTipsContext = `\n【重要】請避開以下曾被使用者認為不實用的方向或說法：\n${originalWord.badTips.join('\n')}\n`;
-      }
-
-      const promptText = `你是一個專業的語言學習專家。請針對單字 "${currentQuizItem.question}" (正確答案: ${currentQuizItem.ans1}) 提供一個簡短、有趣且容易記住的記憶法（例如諧音、字根字首、聯想等）。${badTipsContext}請直接回覆記憶建議，無須多餘問候。`;
-
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }]
-          })
-        });
-
-        const data = await response.json();
-        if (data.error) throw new Error(data.error.message);
-
-        currentAiTip = data.candidates[0].content.parts[0].text.trim();
-        
-        document.getElementById('btn-get-ai-tip').classList.add('hidden');
-        document.getElementById('ai-tip-box').classList.remove('hidden');
-        document.getElementById('ai-tip-content').innerText = currentAiTip;
-        document.getElementById('ai-tip-feedback-row').classList.remove('hidden');
-
-      } catch (e) {
-        alert('取得 AI 建議失敗: ' + e.message);
-      } finally {
-        btn.innerText = '🤖 請 AI 提供記憶建議';
-        btn.disabled = false;
-      }
-    }
-
-    function submitAiTipFeedback(isGood) {
-      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
-      const originalWord = targetDeck.words[currentQuizItem.wordIndex];
-
-      if (isGood) {
-        originalWord.aiTip = currentAiTip;
-        document.getElementById('ai-tip-feedback-row').classList.add('hidden');
-        alert("✅ 已將此記憶法記錄到單字庫中！下次答錯時會直接顯示。");
-      } else {
-        if (!originalWord.badTips) originalWord.badTips = [];
-        originalWord.badTips.push(currentAiTip);
-        document.getElementById('ai-tip-content').innerText = "重新產生改進後的建議中...";
-        document.getElementById('ai-tip-feedback-row').classList.add('hidden');
-        fetchAiTip(); 
-      }
-      saveData();
-    }
-	
   </script>
 </body>
 </html>
