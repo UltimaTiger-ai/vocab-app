@@ -195,66 +195,52 @@
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
-	  
-      <!-- 請求 AI 建議按鈕與表格 -->
-      <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
-      
-      <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
-        <table class="ai-tip-table">
-          <thead>
-            <tr><th>💡 AI 記憶建議</th></tr>
-          </thead>
-          <tbody>
-            <tr><td id="ai-tip-content">載入中...[cite: 9]</td></tr>
-            <tr id="ai-tip-feedback-row">
-              <td style="text-align: center;">
-                <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
-                <button class="btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(true)">👍 實用，記下來</button>
-                <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(false)">👎 不好，請改進重想</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演練功坊 (支援對話模式與中翻日考試模式) -->
+  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
   <div id="page-roleplay" class="card hidden">
-    <h2>💬 AI 角色扮演與口語練功坊</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫或拍照匯入課本句型，可進行 AI 情境對話或全新的中文出題 ➔ 日文翻譯考試！</p>
+    <h2>💬 AI 角色扮演與中翻日考試練功坊</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">可選擇「AI 情境對話模式」（練習課本句型）或「中翻日考試測驗模式」（直接從您的單字庫中出題測驗）！</p>
     
-    <!-- 文法庫管理區 -->
+    <!-- 設定區 -->
     <div style="background: var(--stats-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-      <h3 style="margin-top:0; font-size:15px;">📚 練習模式與文法庫設定</h3>
+      <h3 style="margin-top:0; font-size:15px;">📚 練習模式與題庫設定</h3>
       
       <div class="setting-group" style="margin-bottom: 10px;">
         <label>選擇練習模式</label>
-        <select id="practice-mode-select">
-          <option value="roleplay">💬 AI 情境對話模式</option>
-          <option value="exam">✍️ 中翻日考試測驗模式 (中文出題 ➔ 日文作答)</option>
+        <select id="practice-mode-select" onchange="onPracticeModeChange()">
+          <option value="roleplay">💬 AI 情境對話模式 (使用文法庫)</option>
+          <option value="exam">✍️ 中翻日考試測驗模式 (從您的單字庫出題)</option>
         </select>
       </div>
 
-      <div class="setting-group" style="margin-bottom: 10px;">
+      <!-- 對話模式：文法庫選單 -->
+      <div id="grammar-deck-section" class="setting-group" style="margin-bottom: 10px;">
         <label>選擇練習文法庫</label>
         <select id="grammar-deck-select" onchange="changeCurrentGrammarDeck()"></select>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <input type="text" id="new-grammar-deck-name" placeholder="新文法庫名稱 (例如: 第3課 句型練習)" style="margin-top:0;">
+          <button onclick="createGrammarDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增文法庫</button>
+        </div>
+        <div class="hint-box" style="margin-top:10px;">
+          <label style="font-size:13px; font-weight:bold; color:#1a73e8;">📸 拍照匯入至當前文法庫：</label>
+          <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
+        </div>
       </div>
-      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-        <input type="text" id="new-grammar-deck-name" placeholder="新文法庫名稱 (例如: 第3課 句型練習)" style="margin-top:0;">
-        <button onclick="createGrammarDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增文法庫</button>
+
+      <!-- 考試模式：單字庫選單 -->
+      <div id="exam-deck-section" class="setting-group hidden" style="margin-bottom: 10px;">
+        <label>選擇測驗單字庫</label>
+        <select id="exam-vocab-deck-select"></select>
+        <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">考試模式將直接從您建立的單字庫中挑選已學過的單字，由 AI 自動出具體的中文翻譯題！</p>
       </div>
-      
-      <!-- 拍照匯入文法庫 -->
-      <div class="hint-box" style="margin-top:10px;">
-        <label style="font-size:13px; font-weight:bold; color:#1a73e8;">📸 拍照匯入至當前文法庫：</label>
-        <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
-      </div>
+
       <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 10px;">🚀 開始練功與測驗</button>
     </div>
 
     <div id="roleplay-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在解析課本情境並建立題庫，請稍候...
+      ⏳ AI 正在準備題目，請稍候...
     </div>
 
     <!-- 練功對話主介面 -->
@@ -278,10 +264,8 @@
   <!-- 4. 統計頁面 -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
-    <!-- 單字庫選擇 -->
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
     
-    <!-- 排序與最近次數切換選單 -->
     <div style="display: flex; gap: 8px; margin-bottom: 15px;">
       <select id="stats-sort-select" style="margin-bottom: 0; flex: 2;" onchange="renderStats()">
         <option value="recent">排序：依最近錯誤率 (高到低)</option>
@@ -306,7 +290,7 @@
   <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字[cite: 9]！</p>
 
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
@@ -314,26 +298,20 @@
     </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
-
     <button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
     
     <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
+      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候[cite: 9]...
     </div>
 
-    <!-- 錯誤與重試區域 -->
     <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
       <p id="ai-error-msg" style="margin: 0 0 10px 0; font-weight: bold; font-size: 14px;"></p>
       <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
     </div>
 
-    <!-- 階段 2：欄位對應區域 -->
     <div id="ai-column-mapping-area" class="hidden" style="background:var(--mapping-bg); border:1px solid var(--mapping-border); padding:15px; border-radius:10px; margin-bottom:15px;">
       <h3 style="margin-top:0; color:#1a73e8; font-size:16px;">📌 請為表格欄位選擇對應角色：</h3>
-      <p style="font-size:13px; color:var(--subtext-color); margin-bottom:12px;">查看下方欄位的範例資料，並選擇每一欄的角色（題目、答案或忽略）：</p>
-      
       <div id="ai-col-mapping-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:12px;"></div>
-
       <button type="button" onclick="applyColumnMapping()" class="btn-success">✅ 確認對應並生成單字預覽</button>
     </div>
 
@@ -341,14 +319,13 @@
       <h3>🔍 AI 解讀出的原始文字：</h3>
       <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border);"></textarea>
 
-      <h3 style="margin-top:15px;">📋 解析出的單字預覽 (可編輯/刪除)：</h3>
+      <h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
       <div id="ai-parsed-preview" style="background:var(--stats-bg); padding:10px; border-radius:8px; margin-bottom:15px; max-height:250px; overflow-y:auto;"></div>
 
       <div style="margin-bottom: 15px;">
         <label style="font-weight:bold; font-size:14px; color:var(--subtext-color);">📥 選擇要匯入的單字庫：</label>
         <select id="ai-target-deck-select" style="margin-top:5px;"></select>
       </div>
-
       <button onclick="confirmImportAiWords()" class="btn-success">確認並批量加入單字庫</button>
     </div>
   </div>
@@ -357,24 +334,13 @@
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
-
     <div style="background: var(--stats-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
       <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
-      <div class="setting-group">
-        <label>選擇要分享的單字庫</label>
-        <select id="share-deck-select"></select>
-      </div>
-      <div class="setting-group">
-        <label>創作者暱稱</label>
-        <input type="text" id="share-author-input" placeholder="例如：User" style="margin-top:4px;">
-      </div>
-      <div class="setting-group">
-        <label>單字庫簡介與說明</label>
-        <input type="text" id="share-desc-input" placeholder="例如：包含 N3 必考高頻動詞 20 個" style="margin-top:4px;">
-      </div>
+      <div class="setting-group"><label>選擇要分享的單字庫</label><select id="share-deck-select"></select></div>
+      <div class="setting-group"><label>創作者暱稱</label><input type="text" id="share-author-input" placeholder="例如：User" style="margin-top:4px;"></div>
+      <div class="setting-group"><label>單字庫簡介與說明</label><input type="text" id="share-desc-input" placeholder="例如：包含 N3 必考高頻動詞" style="margin-top:4px;"></div>
       <button onclick="publishDeck()" class="btn-success">🚀 發布至社群市集</button>
     </div>
-
     <h3>🔥 熱門社群單字庫</h3>
     <div id="shared-deck-list"></div>
   </div>
@@ -382,19 +348,14 @@
   <!-- 7. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">點擊下方按鈕呼叫 <code>ModelService.ListModels</code>，查詢你的 API Key 目前可用的完整模型清單：</p>
-    
-    <button onclick="fetchAvailableModels()" class="btn-success" style="margin-bottom: 15px;">📡 向 Google API 查詢你帳號支援的模型 (ListModels)</button>
-
-    <div id="models-list-container">
-      <p style="color:var(--subtext-color);">尚未查詢，請點擊上方按鈕取得資料。</p>
-    </div>
+    <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：</p>
+    <button onclick="fetchAvailableModels()" class="btn-success" style="margin-bottom: 15px;">📡 查詢支援的模型 (ListModels)</button>
+    <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
 
   <!-- 8. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
-
     <div class="setting-group">
       <label>🎨 背景主題</label>
       <select id="setting-theme" onchange="changeTheme()">
@@ -403,26 +364,20 @@
         <option value="auto">跟隨系統設定 (Auto)</option>
       </select>
     </div>
-
     <div class="setting-group">
       <label>🔑 Gemini API Key</label>
-      <input type="password" id="input-api-key" placeholder="貼上你的 API Key" oninput="saveSettings()" onchange="saveSettings()" onblur="saveSettings()">
+      <input type="password" id="input-api-key" placeholder="貼上您的 API Key" oninput="saveSettings()" onchange="saveSettings()" onblur="saveSettings()">
     </div>
-
     <div class="setting-group">
       <label>🤖 當前選擇的 Gemini 模型</label>
       <select id="setting-gemini-model" onchange="saveSettings()"></select>
-      <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">此選單是由 ListModels 查詢結果動態生成。</p>
-      <button type="button" class="btn-secondary" style="margin-top: 4px; font-size: 12px; padding: 8px;" onclick="fetchAvailableModels()">📡 重新呼叫 ListModels 更新選項</button>
+      <button type="button" class="btn-secondary" style="margin-top: 4px; font-size: 12px; padding: 8px;" onclick="fetchAvailableModels()">📡 更新模型選項</button>
     </div>
-
     <div class="setting-group">
-      <button type="button" class="btn-warning" onclick="testGeminiConnection()">🧪 測試當前模型連線狀態</button>
+      <button type="button" class="btn-warning" onclick="testGeminiConnection()">🧪 測試連線狀態</button>
       <p id="test-result" style="font-size: 14px; margin-top: 8px; font-weight: bold;"></p>
     </div>
-
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
-
     <div class="setting-group">
       <label>🎯 每次測驗題數</label>
       <select id="setting-quiz-limit" onchange="saveSettings()">
@@ -433,79 +388,8 @@
         <option value="0">全部單字集</option>
       </select>
     </div>
-
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
-
-    <h3>🎯 測驗選題與題型分配</h3>
-
-    <!-- 自訂最近錯誤率計算次數 -->
-    <div class="setting-group">
-      <label>🔢 最近錯誤率採計次數</label>
-      <select id="setting-recent-window" onchange="saveSettings(); renderStats();">
-        <option value="3">最近 3 次</option>
-        <option value="5">最近 5 次</option>
-        <option value="10" selected>最近 10 次 (預設)</option>
-      </select>
-    </div>
-
-    <div class="setting-group">
-      <label>📊 挑題錯誤率計算基準</label>
-      <select id="setting-quiz-error-basis" onchange="saveSettings()">
-        <option value="recent" selected>最近測驗紀錄 (以最近錯誤率為主)</option>
-        <option value="overall">整體歷史紀錄 (以累計總錯誤率為主)</option>
-      </select>
-    </div>
-
-    <div class="setting-group">
-      <label>⚖️ 測驗題型抽題比例</label>
-      <div style="font-size: 13px; color: var(--subtext-color); margin-bottom: 8px;">
-        調整每次測驗中，不同學習狀態單字的抽取配額百分比：
-      </div>
-      <div class="row-group" style="margin-bottom: 8px;">
-        <div>
-          <label class="sub-label">🔴 錯題/加強單字比例</label>
-          <select id="setting-error-quota" onchange="saveSettings()">
-            <option value="0">0%</option>
-            <option value="20">20%</option>
-            <option value="30">30%</option>
-            <option value="40">40%</option>
-            <option value="50" selected>50% (預設)</option>
-            <option value="60">60%</option>
-            <option value="70">70%</option>
-            <option value="80">80%</option>
-            <option value="100">100%</option>
-          </select>
-        </div>
-        <div>
-          <label class="sub-label">🆕 未測驗新詞比例</label>
-          <select id="setting-new-quota" onchange="saveSettings()">
-            <option value="0">0%</option>
-            <option value="10">10%</option>
-            <option value="20">20%</option>
-            <option value="30" selected>30% (預設)</option>
-            <option value="40">40%</option>
-            <option value="50">50%</option>
-            <option value="60">60%</option>
-          </select>
-        </div>
-        <div>
-          <label class="sub-label">✅ 熟練單字複習比例</label>
-          <select id="setting-familiar-quota" onchange="saveSettings()">
-            <option value="0">0%</option>
-            <option value="10">10%</option>
-            <option value="20" selected>20% (預設)</option>
-            <option value="30">30%</option>
-            <option value="40">40%</option>
-            <option value="50">50%</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
-
-    <h3>💾 資料備份與還原 (JSON 匯入/匯出)</h3>
-    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。</p>
+    <h3>💾 資料備份與還原 (JSON)</h3>
     <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
       <button type="button" class="btn-success" onclick="exportDataToJson()">📤 匯出全部單字庫</button>
       <button type="button" class="btn-warning" onclick="document.getElementById('import-json-input').click()">📥 匯入單字庫</button>
@@ -513,7 +397,7 @@
     </div>
   </div>
 
-  <!-- 編輯一般單字彈窗 -->
+  <!-- 編輯單字彈窗 -->
   <div id="edit-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: var(--modal-bg);">
     <h2>✏️ 編輯單字</h2>
     <input type="hidden" id="edit-index">
@@ -528,21 +412,6 @@
     <div style="display:flex; gap:10px; margin-top:15px;">
       <button onclick="saveEditedWord()" class="btn-success">儲存修改</button>
       <button onclick="closeEditModal()" class="btn-secondary">取消</button>
-    </div>
-  </div>
-
-  <!-- 編輯 AI 辨識單字彈窗 -->
-  <div id="edit-ai-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: var(--modal-bg);">
-    <h2>✏️ 編輯 AI 辨識單字</h2>
-    <input type="hidden" id="edit-ai-index">
-    <label>題目</label>
-    <input type="text" id="edit-ai-question">
-    <label style="margin-top:10px; display:block;">答案一 / 答案二</label>
-    <input type="text" id="edit-ai-ans1" placeholder="答案一">
-    <input type="text" id="edit-ai-ans2" placeholder="答案二">
-    <div style="display:flex; gap:10px; margin-top:15px;">
-      <button type="button" onclick="saveEditedAiWord()" class="btn-success">儲存修改</button>
-      <button type="button" onclick="closeEditAiModal()" class="btn-secondary">取消</button>
     </div>
   </div>
 
@@ -616,7 +485,9 @@
       aiRole: 'AI',
       history: [],
       isFinished: false,
-      isExam: false
+      isExam: false,
+      expectedJapanese: '',
+      vocabItem: null
     };
 
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
@@ -634,13 +505,6 @@
       return parseInt(localStorage.getItem('vocab_recent_window') || '10');
     }
 
-    function changeRecentWindow(val) {
-      localStorage.setItem('vocab_recent_window', val);
-      const settingElem = document.getElementById('setting-recent-window');
-      if (settingElem) settingElem.value = val;
-      renderStats();
-    }
-
     window.onload = function() {
       updateAppVersion();
       loadLanguagePreferences();
@@ -648,6 +512,7 @@
       updateModelDropdown();
       renderUI();
       renderGrammarDecksUI();
+      renderExamVocabDecksUI();
 
       if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -689,7 +554,6 @@
       const dd = String(lastMod.getDate()).padStart(2, '0');
       const hh = String(lastMod.getHours()).padStart(2, '0');
       const min = String(lastMod.getMinutes()).padStart(2, '0');
-      
       const verStr = `Ver: ${yyyy}.${mm}.${dd}-${hh}${min}`;
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
@@ -699,6 +563,7 @@
       localStorage.setItem('vocab_decks', JSON.stringify(decks));
       localStorage.setItem('vocab_current_deck', currentDeckId);
       renderUI();
+      renderExamVocabDecksUI();
     }
 
     function saveGrammarData() {
@@ -707,32 +572,14 @@
       renderGrammarDecksUI();
     }
 
-    function saveSharedData() {
-      localStorage.setItem('vocab_shared_decks', JSON.stringify(sharedDecks));
-      renderSharedDecks();
-    }
-
     function saveSettings() {
       quizLimit = parseInt(document.getElementById('setting-quiz-limit').value);
       localStorage.setItem('vocab_quiz_limit', quizLimit);
       localStorage.setItem('gemini_api_key', document.getElementById('input-api-key').value.trim());
-      
       const modelSelect = document.getElementById('setting-gemini-model');
       if (modelSelect && modelSelect.value) {
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
-
-      const recentWindow = document.getElementById('setting-recent-window').value;
-      const errorBasis = document.getElementById('setting-quiz-error-basis').value;
-      const errorQuotaPct = document.getElementById('setting-error-quota').value;
-      const newQuotaPct = document.getElementById('setting-new-quota').value;
-      const familiarQuotaPct = document.getElementById('setting-familiar-quota').value;
-
-      localStorage.setItem('vocab_recent_window', recentWindow);
-      localStorage.setItem('vocab_quiz_error_basis', errorBasis);
-      localStorage.setItem('vocab_error_quota_pct', errorQuotaPct);
-      localStorage.setItem('vocab_new_quota_pct', newQuotaPct);
-      localStorage.setItem('vocab_familiar_quota_pct', familiarQuotaPct);
     }
 
     function exportDataToJson() {
@@ -753,7 +600,6 @@
     function importDataFromJson(event) {
       const file = event.target.files[0];
       if (!file) return;
-
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
@@ -776,7 +622,6 @@
       const availableModels = getCachedGenerateModels();
       const currentModel = getGeminiModel();
       const modelSelect = document.getElementById('setting-gemini-model');
-
       if (modelSelect) {
         modelSelect.innerHTML = availableModels.map(m => `
           <option value="${m}" ${m === currentModel ? 'selected' : ''}>${m}</option>
@@ -813,7 +658,6 @@
       saveData();
     }
 
-    // 文法庫管理函數
     function createGrammarDeck() {
       const name = document.getElementById('new-grammar-deck-name').value.trim();
       if (!name) return alert('請輸入文法庫名稱！');
@@ -832,8 +676,25 @@
     function renderGrammarDecksUI() {
       const selectElem = document.getElementById('grammar-deck-select');
       if (!selectElem) return;
-      const opts = `<option value="all">🌟 全部文法庫綜合</option>` + grammarDecks.map(g => `<option value="${g.id}" ${g.id === currentGrammarDeckId ? 'selected' : ''}>${g.name} (${g.items.length}句型)</option>`).join('');
-      selectElem.innerHTML = opts;
+      selectElem.innerHTML = `<option value="all">🌟 全部文法庫綜合</option>` + grammarDecks.map(g => `<option value="${g.id}" ${g.id === currentGrammarDeckId ? 'selected' : ''}>${g.name} (${g.items.length}句型)</option>`).join('');
+    }
+
+    function renderExamVocabDecksUI() {
+      const selectElem = document.getElementById('exam-vocab-deck-select');
+      if (!selectElem) return;
+      selectElem.innerHTML = `<option value="all">🌟 全部單字庫綜合</option>` + decks.map(d => `<option value="${d.id}">${d.name} (${d.words.length}字)</option>`).join('');
+    }
+
+    function onPracticeModeChange() {
+      const mode = document.getElementById('practice-mode-select').value;
+      currentPracticeMode = mode;
+      if (mode === 'exam') {
+        document.getElementById('grammar-deck-section').classList.add('hidden');
+        document.getElementById('exam-deck-section').classList.remove('hidden');
+      } else {
+        document.getElementById('grammar-deck-section').classList.remove('hidden');
+        document.getElementById('exam-deck-section').classList.add('hidden');
+      }
     }
 
     function addWord() {
@@ -853,29 +714,6 @@
     }
 
     function deleteWord(index) { getCurrentDeck().words.splice(index, 1); saveData(); }
-
-    function openEditModal(index) {
-      const w = getCurrentDeck().words[index];
-      document.getElementById('edit-index').value = index;
-      document.getElementById('edit-question').value = w.question;
-      document.getElementById('edit-ans1').value = w.ans1;
-      document.getElementById('edit-ans2').value = w.ans2 || '';
-      if(w.qLang) document.getElementById('edit-q-lang').value = w.qLang;
-      document.getElementById('edit-modal').classList.remove('hidden');
-    }
-
-    function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
-
-    function saveEditedWord() {
-      const idx = document.getElementById('edit-index').value;
-      const w = getCurrentDeck().words[idx];
-      w.question = document.getElementById('edit-question').value.trim();
-      w.ans1 = document.getElementById('edit-ans1').value.trim();
-      w.ans2 = document.getElementById('edit-ans2').value.trim();
-      w.qLang = document.getElementById('edit-q-lang').value;
-      saveData();
-      closeEditModal();
-    }
 
     let currentUtterance = null;
     function speakText(text, lang = 'zh-TW') {
@@ -923,25 +761,20 @@
     async function fetchAvailableModels() {
       const apiKey = localStorage.getItem('gemini_api_key') || document.getElementById('input-api-key').value.trim();
       const container = document.getElementById('models-list-container');
-      
       if (!apiKey) {
         alert('請先在設定頁面輸入 API Key！');
         if (container) container.innerHTML = '<p style="color:red;">❌ 未輸入 API Key。</p>';
         return;
       }
-
       if (container) container.innerHTML = '<p style="color:#1a73e8; font-weight:bold;">⏳ 正在查詢模型清單...</p>';
-
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
         const resp = await fetch(url);
         const data = await resp.json();
-
         if (data.error) {
           if (container) container.innerHTML = `<p style="color:red;">❌ 查詢失敗：${data.error.message}</p>`;
           return;
         }
-
         const rawModels = data.models || [];
         const currentModel = getGeminiModel();
         const generateContentModelNames = rawModels
@@ -955,50 +788,37 @@
           }
         }
         updateModelDropdown();
-
         if (container) {
           container.innerHTML = rawModels.map(m => {
             const cleanName = m.name.replace('models/', '');
             const isCurrent = (cleanName === getGeminiModel());
-            const supportsGenerate = m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent');
             return `
               <div style="border: 1px solid ${isCurrent ? '#1a73e8' : 'var(--input-border)'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? 'var(--hint-bg)' : 'var(--card-bg)'};">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                   <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>
-                  ${isCurrent ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' : (supportsGenerate ? `<button onclick="selectModel('${cleanName}')" style="width:auto; padding:4px 8px; font-size:12px; margin:0;" class="btn-success">套用</button>` : '')}
+                  ${isCurrent ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' : ''}
                 </div>
-                <p style="margin:6px 0 3px 0; font-size:13px; color:var(--subtext-color);">${m.description || '無描述'}</p>
               </div>
             `;
           }).join('');
         }
-        alert(`✅ 查詢成功！找到 ${generateContentModelNames.length} 個可用模型。`);
+        alert(`✅ 查詢成功！`);
       } catch (e) {
         if (container) container.innerHTML = `<p style="color:red;">❌ 錯誤：${e.message}</p>`;
       }
-    }
-
-    function selectModel(modelName) {
-      localStorage.setItem('gemini_selected_model', modelName);
-      updateModelDropdown();
-      alert(`已切換模型為：${modelName}`);
-      fetchAvailableModels();
     }
 
     async function testGeminiConnection() {
       const apiKey = localStorage.getItem('gemini_api_key');
       const resElem = document.getElementById('test-result');
       const currentModel = getGeminiModel();
-      
       if (!apiKey) {
         resElem.style.color = 'red';
         resElem.innerText = '❌ 請先輸入 API Key！';
         return;
       }
-
       resElem.style.color = '#1a73e8';
-      resElem.innerText = `⏳ 正在測試 [${currentModel}] 連線...`;
-
+      resElem.innerText = `⏳ 正在測試連線...`;
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
@@ -1007,13 +827,12 @@
           body: JSON.stringify({ contents: [{ parts: [{ text: '請回覆「OK」' }] }] })
         });
         const data = await resp.json();
-        
         if (data.error) {
           resElem.style.color = 'red';
           resElem.innerText = `❌ 失敗：${data.error.message}`;
         } else {
           resElem.style.color = 'green';
-          resElem.innerText = `✅ 模型 [${currentModel}] 連線成功！`;
+          resElem.innerText = `✅ 連線成功！`;
         }
       } catch (e) {
         resElem.style.color = 'red';
@@ -1025,7 +844,6 @@
       const apiKey = localStorage.getItem('gemini_api_key');
       const q = document.getElementById('input-question').value.trim();
       const currentModel = getGeminiModel();
-
       if (!apiKey) return alert('請先設定 API Key！');
       if (!q) return alert('請先輸入題目！');
 
@@ -1054,94 +872,41 @@
     }
 
     // ==========================================
-    // 📸 AI 拍照匯入文法庫功能
-    // ==========================================
-    async function importGrammarFromImage(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const apiKey = localStorage.getItem('gemini_api_key');
-      const currentModel = getGeminiModel();
-      if (!apiKey) return alert('請先至設定頁面填寫 Gemini API Key！');
-
-      document.getElementById('roleplay-loading').classList.remove('hidden');
-
-      const promptText = `你是一個專業的日文口語會話與教材解析老師。請分析這張日文課本圖片中的練習或句型對話，將其解析為一組或多組角色扮演或翻譯題組。
-請嚴格回傳純 JSON 陣列格式：
-[
-  {
-    "question": "句型標題摘要（例如：詢問生日與時間）",
-    "scenario": "情境與出題中文描述（中文，例如：請將『我的生日是4月1日』翻譯成日文）",
-    "ai_role_name": "對話角色名稱",
-    "initial_ai_line": "AI 的第一句日文問話",
-    "user_goal": "使用者的任務目標或考試中文題目（中文）"
-  }
-]`;
-
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const base64Data = reader.result.split(',')[1];
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: promptText },
-                  { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data } }
-                ]
-              }],
-              generationConfig: { responseMimeType: "application/json" }
-            })
-          });
-          const data = await resp.json();
-          document.getElementById('roleplay-loading').classList.add('hidden');
-          event.target.value = '';
-
-          if (data.error) throw new Error(data.error.message);
-
-          const text = data.candidates[0].content.parts[0].text;
-          const jsonMatch = text.match(/\[[\s\S]*\]/);
-          const parsedArray = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-
-          const targetDeck = getCurrentGrammarDeck();
-          let addedCount = 0;
-          parsedArray.forEach(p => {
-            targetDeck.items.push({
-              id: 'gitem_' + Date.now() + Math.random(),
-              question: p.question || '句型練習',
-              scenario: p.scenario || '',
-              aiRole: p.ai_role_name || 'AI',
-              initialAiLine: p.initial_ai_line || '',
-              userGoal: p.user_goal || p.question || '',
-              attempts: 0,
-              errors: 0,
-              recentResults: []
-            });
-            addedCount++;
-          });
-
-          saveGrammarData();
-          alert(`✅ 成功從照片中解析並匯入 ${addedCount} 個練功題目至「${targetDeck.name}」！`);
-
-        } catch (e) {
-          document.getElementById('roleplay-loading').classList.add('hidden');
-          alert('解析照片失敗： ' + e.message);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    // ==========================================
     // 💬 練功坊與考試測驗初始化與邏輯
     // ==========================================
     function initRoleplaySession() {
       currentPracticeMode = document.getElementById('practice-mode-select').value;
+
+      if (currentPracticeMode === 'exam') {
+        // 從單字庫出題
+        const selectedId = document.getElementById('exam-vocab-deck-select').value;
+        let pool = [];
+        if (selectedId === 'all') {
+          decks.forEach(d => {
+            d.words.forEach((w, idx) => {
+              pool.push({ ...w, deckId: d.id, wordIndex: idx });
+            });
+          });
+        } else {
+          const target = decks.find(d => String(d.id) === String(selectedId));
+          if (target) {
+            pool = target.words.map((w, idx) => ({ ...w, deckId: target.id, wordIndex: idx }));
+          }
+        }
+
+        if (pool.length === 0) return alert('所選單字庫中沒有任何單字！請先至「單字庫」新增單字。');
+
+        roleplayTargetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
+        roleplayQueue = pool.sort(() => Math.random() - 0.5).slice(0, roleplayTargetLimit);
+        roleplaySessionResults = [];
+        roleplayTotalAnswered = 0;
+        nextRoleplayScenario();
+        return;
+      }
+
+      // 對話模式 (文法庫)
       const selectedId = document.getElementById('grammar-deck-select').value;
       let pool = [];
-
       if (selectedId === 'all') {
         grammarDecks.forEach(g => {
           g.items.forEach((item, idx) => {
@@ -1155,64 +920,18 @@
         }
       }
 
-      if (pool.length === 0) return alert('所選文法庫中沒有任何句型，請先新增或拍照匯入！');
-
-      const errorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
-      const recentWindowSize = getRecentWindowSize();
-
-      const getScore = (item) => {
-        if (errorBasis === 'overall') {
-          const attempts = item.attempts || 0;
-          if (attempts === 0) return 0;
-          return (item.errors || 0) / attempts;
-        } else {
-          if (item.recentResults && item.recentResults.length > 0) {
-            const recentSlice = item.recentResults.slice(-recentWindowSize);
-            const recentErrors = recentSlice.filter(r => !r).length;
-            return recentErrors / recentSlice.length;
-          }
-          const attempts = item.attempts || 0;
-          if (attempts === 0) return 0;
-          return (item.errors || 0) / attempts;
-        }
-      };
-
-      let unattempted = pool.filter(w => (w.attempts || 0) === 0).sort(() => Math.random() - 0.5);
-      let errorsPool = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) > 0).sort((a, b) => getScore(b) - getScore(a));
-      let familiarPool = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) === 0).sort(() => Math.random() - 0.5);
-
-      const errorQuotaPct = parseInt(localStorage.getItem('vocab_error_quota_pct') || '50') / 100;
-      const newQuotaPct = parseInt(localStorage.getItem('vocab_new_quota_pct') || '30') / 100;
-      const familiarQuotaPct = parseInt(localStorage.getItem('vocab_familiar_quota_pct') || '20') / 100;
+      if (pool.length === 0) return alert('所選文法庫中沒有任何句型！');
 
       roleplayTargetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-
-      let eq = Math.floor(roleplayTargetLimit * errorQuotaPct);
-      let nq = Math.floor(roleplayTargetLimit * newQuotaPct);
-      let fq = Math.floor(roleplayTargetLimit * familiarQuotaPct);
-
-      let selected = [];
-      selected.push(...errorsPool.splice(0, eq));
-      selected.push(...unattempted.splice(0, nq));
-      selected.push(...familiarPool.splice(0, fq));
-
-      let rem = roleplayTargetLimit - selected.length;
-      if (rem > 0) {
-        let leftPool = [...errorsPool, ...unattempted, ...familiarPool].sort(() => Math.random() - 0.5);
-        selected.push(...leftPool.slice(0, rem));
-      }
-
-      selected.sort(() => Math.random() - 0.5);
-      roleplayQueue = selected;
+      roleplayQueue = pool.sort(() => Math.random() - 0.5).slice(0, roleplayTargetLimit);
       roleplaySessionResults = [];
       roleplayTotalAnswered = 0;
-
       nextRoleplayScenario();
     }
 
     function nextRoleplayScenario() {
       if (roleplayQueue.length === 0) {
-        document.getElementById('roleplay-scenario-info').innerHTML = `📊 <strong>練功/考試測驗完成！</strong> 共完成 ${roleplayTotalAnswered} 題。`;
+        document.getElementById('roleplay-scenario-info').innerHTML = `📊 <strong>測驗完成！</strong> 共完成 ${roleplayTotalAnswered} 題。`;
         document.getElementById('roleplay-chat-box').innerHTML = '';
         document.getElementById('roleplay-eval-area').classList.add('hidden');
         document.getElementById('roleplay-input-area').classList.add('hidden');
@@ -1224,20 +943,31 @@
       roleplayTotalAnswered++;
 
       if (currentPracticeMode === 'exam') {
-        const themeOrGoal = currentRoleplayItem.userGoal || currentRoleplayItem.question || currentRoleplayItem.scenario || '請將下列中文翻譯成日文';
-        const examPromptText = `請根據以下文法主題/情境「${themeOrGradeName = currentRoleplayItem.question}」（情境說明：${currentRoleplayItem.scenario || themeOrGoal}），出一道自然的中文翻譯成日文的考題（例如：「木村是公司職員。」或類似的實用句子）。請直接給出中文題目，不要包含多餘的對話前綴。`;
-        
-        // 為了讓 AI 直接給出題目，我們帶入非同步請求
-        fetchExamQuestion(examPromptText);
+        // 考試模式：從單字庫單字出題
+        const vocabWord = currentRoleplayItem.question;
+        const vocabMeaning = currentRoleplayItem.ans1;
+        const promptText = `你是一位專業的日文老師。請使用已學過的單字：「${vocabWord}」（中文意思：${vocabMeaning}），出一道實用的「中翻日」考試題目。
+要求：
+1. 給出一句包含這個單字的自然日常中文句子（例如若單字是食べる，可以出中文：「我每天早上吃麵包。」）。
+2. 同時提供這句中文對應的標準日文解答。
+請嚴格回傳純 JSON 格式：
+{
+  "chinese_question": "出題的中文句子",
+  "expected_japanese": "標準正確的日文解答"
+}`;
+        fetchExamQuestion(promptText, currentRoleplayItem);
       } else {
+        // 對話模式
         currentRoleplayData = {
           scenario: currentRoleplayItem.scenario,
           aiRole: currentRoleplayItem.aiRole || 'AI',
           history: [{ sender: 'ai', text: currentRoleplayItem.initialAiLine }],
           isFinished: false,
-          isExam: false
+          isExam: false,
+          expectedJapanese: '',
+          vocabItem: null
         };
-        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>進度 (${roleplayTotalAnswered}/${roleplayTargetLimit}) - 句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>📝 <strong>情境：</strong>${escapeHtml(currentRoleplayItem.scenario)}<br>🎯 <strong>任務：</strong>${escapeHtml(currentRoleplayItem.userGoal)}`;
+        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>進度 (${roleplayTotalAnswered}/${roleplayTargetLimit}) - 句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>📝 <strong>情境：</strong>${escapeHtml(currentRoleplayItem.scenario)}`;
         renderRoleplayChat();
         document.getElementById('roleplay-session-area').classList.remove('hidden');
         document.getElementById('roleplay-input-area').style.display = 'flex';
@@ -1246,7 +976,7 @@
       }
     }
 
-    async function fetchExamQuestion(promptHint) {
+    async function fetchExamQuestion(promptHint, vocabItem) {
       const apiKey = localStorage.getItem('gemini_api_key');
       const currentModel = getGeminiModel();
       document.getElementById('roleplay-loading').classList.remove('hidden');
@@ -1258,7 +988,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: promptHint + ' 回傳純 JSON格式: {"chinese_question": "出題的中文句子"}' }] }],
+            contents: [{ parts: [{ text: promptHint }] }],
             generationConfig: { responseMimeType: "application/json" }
           })
         });
@@ -1269,17 +999,20 @@
         const text = data.candidates[0].content.parts[0].text;
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-        const qText = parsed.chinese_question || currentRoleplayItem.userGoal || '木村是公司職員。';
+        const qText = parsed.chinese_question || `請將「${vocabItem.ans1} (${vocabItem.question})」翻成日文`;
+        const expectedJa = parsed.expected_japanese || vocabItem.question;
 
         currentRoleplayData = {
-          scenario: currentRoleplayItem.scenario,
+          scenario: `目標單字：${vocabItem.question} (${vocabItem.ans1})`,
           aiRole: '考官',
           history: [{ sender: 'ai', text: qText }],
+          expectedJapanese: expectedJa,
+          vocabItem: vocabItem,
           isFinished: false,
           isExam: true
         };
 
-        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日考試 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>📝 <strong>考點/句型：</strong>${escapeHtml(currentRoleplayItem.question)}`;
+        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日單字測驗 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>🎯 <strong>本題目標單字：</strong><span style="color:#1a73e8; font-size:16px;">${escapeHtml(vocabItem.question)} (${escapeHtml(vocabItem.ans1)})</span>`;
         renderRoleplayChat();
         document.getElementById('roleplay-session-area').classList.remove('hidden');
         document.getElementById('roleplay-eval-area').classList.add('hidden');
@@ -1317,14 +1050,19 @@
       const currentModel = getGeminiModel();
       const evalArea = document.getElementById('roleplay-eval-area');
       evalArea.classList.remove('hidden');
-      evalArea.innerHTML = '⏳ AI 正在評估您的回答與翻譯...';
+      evalArea.innerHTML = '⏳ AI 正在評估您的翻譯與文法...';
 
       let promptText = '';
       if (currentRoleplayData.isExam) {
         const currentAiQuestion = currentRoleplayData.history.find(h => h.sender === 'ai')?.text || '';
-        promptText = `你是一位嚴格且專業的日文考試評分老師。剛剛出的中文題目是："${currentAiQuestion}"。
+        const targetVocab = currentRoleplayData.vocabItem ? currentRoleplayData.vocabItem.question : '';
+        const expectedJa = currentRoleplayData.expectedJapanese || '';
+        promptText = `你是一位嚴格且專業的日文考試評分老師。
+剛剛出的中文題目是："${currentAiQuestion}"。
+測驗要求的目標單字是："${targetVocab}"。
+標準參考日文解答是："${expectedJa}"。
 使用者提交的日文翻譯是："${userText}"。
-請評估其日文翻譯的文法正確性、用詞精準度與自然度，回傳純 JSON 格式：
+請評估其日文翻譯是否正確運用了目標單字、文法正確性及自然度，回傳純 JSON 格式：
 {
   "score": 95,
   "correction": "若有錯誤或可更優化的日文句子，請提供標準正確的日文範例；若完全正確則填 null",
@@ -1333,18 +1071,7 @@
   "is_finished": true
 }`;
       } else {
-        promptText = `你是一位親切且專業的日文會話教練。以下是目前的對話紀錄：
-${JSON.stringify(currentRoleplayData.history)}
-
-使用者剛剛的回覆是："${userText}"。
-請針對使用者的回覆進行文法、禮貌度及口語自然度的糾正與對話推進，回傳純 JSON 格式：
-{
-  "score": 90,
-  "correction": "若有文法或用詞錯誤，請提供建議修正的完整日文句子；若完全正確則填 null",
-  "explanation": "文法或發音/假名補充說明",
-  "next_ai_line": "AI 接下來的對話回應（日文），若對話已圓滿達成課本練習目標則填 null",
-  "is_finished": false
-}`;
+        promptText = `你是一位親切且專業的日文會話教練。對話紀錄：${JSON.stringify(currentRoleplayData.history)}。使用者回覆："${userText}"。回傳純 JSON: {"score": 90, "correction": null, "explanation": "說明", "next_ai_line": "AI回應", "is_finished": false}`;
       }
 
       try {
@@ -1373,18 +1100,14 @@ ${JSON.stringify(currentRoleplayData.history)}
         }
         evalArea.innerHTML = evalHtml;
 
-        // 記錄成績與統計數據
         const isSuccess = (parsed.score >= 75);
-        if (currentRoleplayItem) {
-          const targetDeck = grammarDecks.find(g => String(g.id) === String(currentRoleplayItem.grammarDeckId));
-          if (targetDeck && targetDeck.items[currentRoleplayItem.itemIndex]) {
-            const itemObj = targetDeck.items[currentRoleplayItem.itemIndex];
-            itemObj.attempts = (itemObj.attempts || 0) + 1;
-            if (!isSuccess) itemObj.errors = (itemObj.errors || 0) + 1;
-            if (!itemObj.recentResults) itemObj.recentResults = [];
-            itemObj.recentResults.push(isSuccess);
-            if (itemObj.recentResults.length > 10) itemObj.recentResults.shift();
-            saveGrammarData();
+        if (currentPracticeMode === 'exam' && currentRoleplayData.vocabItem) {
+          const targetDeck = decks.find(d => String(d.id) === String(currentRoleplayData.vocabItem.deckId));
+          if (targetDeck && targetDeck.words[currentRoleplayData.vocabItem.wordIndex]) {
+            const wordObj = targetDeck.words[currentRoleplayData.vocabItem.wordIndex];
+            wordObj.attempts = (wordObj.attempts || 0) + 1;
+            if (!isSuccess) wordObj.errors = (wordObj.errors || 0) + 1;
+            saveData();
           }
         }
 
@@ -1433,142 +1156,8 @@ ${JSON.stringify(currentRoleplayData.history)}
       recognition.start();
     }
 
-    // ==========================================
-    // 📸 AI 拍照辨識單字功能
-    // ==========================================
-    function handleImageCapture(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      lastCapturedFile = file;
-      document.getElementById('btn-reanalyze').classList.remove('hidden');
-      processImageFile(file);
-    }
-
-    function retryAiCapture() {
-      if (!lastCapturedFile) return alert('找不到上次的照片檔案！');
-      processImageFile(lastCapturedFile);
-    }
-
-    async function processImageFile(file) {
-      const apiKey = localStorage.getItem('gemini_api_key');
-      const currentModel = getGeminiModel();
-      if (!apiKey) return alert('請先填寫 API Key！');
-
-      document.getElementById('ai-loading').classList.remove('hidden');
-      document.getElementById('ai-error-area').classList.add('hidden');
-      document.getElementById('ai-column-mapping-area').classList.add('hidden');
-      document.getElementById('ai-result-area').classList.add('hidden');
-
-      const userHint = document.getElementById('ai-user-hint') ? document.getElementById('ai-user-hint').value.trim() : '';
-      const hintPrompt = userHint ? `\n【說明】：${userHint}\n` : '';
-
-      const promptText = `請讀取圖片內容並整理為二維陣列 (Rows & Columns)。${hintPrompt}回傳純 JSON: {"raw_text": "", "rows": [["1", "apple", "蘋果"]]}`;
-
-      const reader = new FileReader();
-      reader.onload = async function() {
-        const base64Data = reader.result.split(',')[1];
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
-          const resp = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{
-                parts: [
-                  { text: promptText },
-                  { inline_data: { mime_type: file.type || 'image/jpeg', data: base64Data } }
-                ]
-              }],
-              generationConfig: { responseMimeType: "application/json" }
-            })
-          });
-          const data = await resp.json();
-          document.getElementById('ai-loading').classList.add('hidden');
-
-          if (data.error) throw new Error(data.error.message);
-
-          const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
-          document.getElementById('ai-raw-text').value = parsed.raw_text || '';
-          rawParsedRows = parsed.rows || [];
-
-          if (rawParsedRows.length > 0) {
-            renderColumnMappingUI();
-            document.getElementById('ai-column-mapping-area').classList.remove('hidden');
-          } else {
-            document.getElementById('ai-error-msg').innerText = '❌ 無法解析表格。';
-            document.getElementById('ai-error-area').classList.remove('hidden');
-          }
-        } catch (e) {
-          document.getElementById('ai-loading').classList.add('hidden');
-          document.getElementById('ai-error-msg').innerText = '❌ 錯誤： ' + e.message;
-          document.getElementById('ai-error-area').classList.remove('hidden');
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function renderColumnMappingUI() {
-      const container = document.getElementById('ai-col-mapping-container');
-      if (!rawParsedRows || rawParsedRows.length === 0) return;
-      const maxCols = Math.max(...rawParsedRows.map(r => r.length));
-      let html = '';
-      for (let i = 0; i < maxCols; i++) {
-        html += `
-          <div style="border: 1px solid var(--input-border); background: var(--card-bg); padding: 10px; border-radius: 8px; min-width: 140px; flex: 1;">
-            <div style="font-weight: bold; font-size: 13px; color: #1a73e8; margin-bottom: 6px;">第 ${i + 1} 欄</div>
-            <select class="col-map-select" data-col="${i}" style="margin-top:0; padding:6px; font-size:13px;">
-              <option value="ignore">❌ 忽略</option>
-              <option value="question" ${i === 0 ? 'selected' : ''}>📖 題目</option>
-              <option value="ans1" ${i === 1 ? 'selected' : ''}>💡 答案一</option>
-            </select>
-          </div>
-        `;
-      }
-      container.innerHTML = html;
-    }
-
     function escapeHtml(str) {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
-
-    function applyColumnMapping() {
-      const selects = document.querySelectorAll('.col-map-select');
-      let qCol = -1, a1Col = -1;
-      selects.forEach(s => {
-        if (s.value === 'question') qCol = parseInt(s.getAttribute('data-col'));
-        if (s.value === 'ans1') a1Col = parseInt(s.getAttribute('data-col'));
-      });
-      if (qCol === -1 || a1Col === -1) return alert('請指定題目與答案欄位！');
-
-      tempParsedAiWords = rawParsedRows.map(row => ({
-        question: row[qCol] || '',
-        ans1: row[a1Col] || '',
-        ans2: '',
-        qLang: 'en-US',
-        aLang: 'zh-TW'
-      })).filter(w => w.question && w.ans1);
-
-      renderAiPreview();
-      document.getElementById('ai-result-area').classList.remove('hidden');
-    }
-
-    function renderAiPreview() {
-      const previewDiv = document.getElementById('ai-parsed-preview');
-      previewDiv.innerHTML = tempParsedAiWords.map((w, i) => `
-        <div class="word-item" style="padding:6px 0;">
-          <strong>${w.question}</strong> ➔ ${w.ans1}
-        </div>
-      `).join('');
-    }
-
-    function confirmImportAiWords() {
-      if (!tempParsedAiWords.length) return alert('沒有單字可匯入！');
-      const targetDeck = decks.find(d => d.id === document.getElementById('ai-target-deck-select').value);
-      if (!targetDeck) return alert('找不到單字庫！');
-      tempParsedAiWords.forEach(w => targetDeck.words.push(w));
-      saveData();
-      alert('✅ 匯入成功！');
-      switchTab('list');
     }
 
     // ==========================================
@@ -1579,10 +1168,12 @@ ${JSON.stringify(currentRoleplayData.history)}
       const quizDeckSelect = document.getElementById('quiz-deck-select');
       const statsDeckSelect = document.getElementById('stats-deck-select');
       const aiTargetSelect = document.getElementById('ai-target-deck-select');
+      const shareSelect = document.getElementById('share-deck-select');
       
       const deckOptions = decks.map(d => `<option value="${d.id}" ${d.id === currentDeckId ? 'selected' : ''}>${d.name} (${d.words.length}字)</option>`).join('');
       deckSelect.innerHTML = deckOptions;
       if (aiTargetSelect) aiTargetSelect.innerHTML = deckOptions;
+      if (shareSelect) shareSelect.innerHTML = deckOptions;
       if (quizDeckSelect) quizDeckSelect.innerHTML = `<option value="all">🌟 全部單字庫</option>` + deckOptions;
       if (statsDeckSelect) statsDeckSelect.innerHTML = `<option value="all">🌟 全部單字庫</option>` + deckOptions;
 
