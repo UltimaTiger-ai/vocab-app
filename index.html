@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字與 AI 口語練功坊 - 智慧多語言版</title>
+  <title>背單字與 AI 口語練功坊 - 智慧考試版</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -219,20 +219,29 @@
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演練功坊 (支援智慧文法庫與策略選題) -->
+  <!-- 3. AI 口語對話角色扮演練功坊 (支援對話模式與中翻日考試模式) -->
   <div id="page-roleplay" class="card hidden">
-    <h2>💬 AI 角色扮演口語練功坊</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫或拍照匯入課本句型，AI 將依據您的學習策略（錯題/新詞比例）進行智慧出題與口語練功！</p>
+    <h2>💬 AI 角色扮演與口語練功坊</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫或拍照匯入課本句型，可進行 AI 情境對話或全新的中文出題 ➔ 日文翻譯考試！</p>
     
     <!-- 文法庫管理區 -->
     <div style="background: var(--stats-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-      <h3 style="margin-top:0; font-size:15px;">📚 選擇文法庫與練習設定</h3>
+      <h3 style="margin-top:0; font-size:15px;">📚 練習模式與文法庫設定</h3>
+      
+      <div class="setting-group" style="margin-bottom: 10px;">
+        <label>選擇練習模式</label>
+        <select id="practice-mode-select">
+          <option value="roleplay">💬 AI 情境對話模式</option>
+          <option value="exam">✍️ 中翻日考試測驗模式 (中文出題 ➔ 日文作答)</option>
+        </select>
+      </div>
+
       <div class="setting-group" style="margin-bottom: 10px;">
         <label>選擇練習文法庫</label>
         <select id="grammar-deck-select" onchange="changeCurrentGrammarDeck()"></select>
       </div>
       <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-        <input type="text" id="new-grammar-deck-name" placeholder="新文法庫名稱 (例如: 第3課 生日與時間)" style="margin-top:0;">
+        <input type="text" id="new-grammar-deck-name" placeholder="新文法庫名稱 (例如: 第3課 句型練習)" style="margin-top:0;">
         <button onclick="createGrammarDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增文法庫</button>
       </div>
       
@@ -241,11 +250,11 @@
         <label style="font-size:13px; font-weight:bold; color:#1a73e8;">📸 拍照匯入至當前文法庫：</label>
         <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
       </div>
-      <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 10px;">🚀 開始智慧口語練功測驗</button>
+      <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 10px;">🚀 開始練功與測驗</button>
     </div>
 
     <div id="roleplay-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在解析課本情境並建立對話，請稍候...
+      ⏳ AI 正在解析課本情境並建立題庫，請稍候...
     </div>
 
     <!-- 練功對話主介面 -->
@@ -261,7 +270,7 @@
         <button type="button" class="btn-secondary" style="width: auto; margin-top:0; padding: 0 12px; white-space: nowrap;" onclick="startVoiceRecognition()" title="語音輸入">🎙️ 說日文</button>
         <button onclick="sendRoleplayReply()" class="btn-success" style="width: auto; margin-top:0; white-space: nowrap;">發送 ➔</button>
       </div>
-      <button id="btn-next-roleplay" onclick="nextRoleplayScenario()" class="btn-success hidden" style="margin-top: 10px;">下一題練功 ➔</button>
+      <button id="btn-next-roleplay" onclick="nextRoleplayScenario()" class="btn-success hidden" style="margin-top: 10px;">下一題 ➔</button>
       <button onclick="resetRoleplaySession()" class="btn-secondary" style="margin-top: 10px;">🔄 結束並返回選單</button>
     </div>
   </div>
@@ -595,7 +604,8 @@
     let rawParsedRows = []; 
     let lastCapturedFile = null;
 
-    // AI 口語對話測驗隊列與狀態
+    // AI 口語對話與考試模式變數
+    let currentPracticeMode = 'roleplay'; // 'roleplay' 或 'exam'
     let roleplayQueue = [];
     let currentRoleplayItem = null;
     let roleplaySessionResults = [];
@@ -605,7 +615,8 @@
       scenario: '',
       aiRole: 'AI',
       history: [],
-      isFinished: false
+      isFinished: false,
+      isExam: false
     };
 
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
@@ -1043,7 +1054,7 @@
     }
 
     // ==========================================
-    // 💬 AI 角色扮演口語練功坊 (支援拍照存入文法庫與策略選題)
+    // 📸 AI 拍照匯入文法庫功能
     // ==========================================
     async function importGrammarFromImage(event) {
       const file = event.target.files[0];
@@ -1055,15 +1066,15 @@
 
       document.getElementById('roleplay-loading').classList.remove('hidden');
 
-      const promptText = `你是一個專業的日文口語會話與教材解析老師。請分析這張日文課本圖片中的練習或句型對話（例如詢問生日、時間、購物等），將其解析為一組或多組角色扮演情境。
-請嚴格回傳純 JSON 陣列格式（若有多個句型練習請列出多個物件）：
+      const promptText = `你是一個專業的日文口語會話與教材解析老師。請分析這張日文課本圖片中的練習或句型對話，將其解析為一組或多組角色扮演或翻譯題組。
+請嚴格回傳純 JSON 陣列格式：
 [
   {
     "question": "句型標題摘要（例如：詢問生日與時間）",
-    "scenario": "情境描述（中文）",
-    "ai_role_name": "對話角色名稱（例如：山下）",
-    "initial_ai_line": "AI 的第一句日文問話（日文）",
-    "user_goal": "使用者的任務目標（中文）"
+    "scenario": "情境與出題中文描述（中文，例如：請將『我的生日是4月1日』翻譯成日文）",
+    "ai_role_name": "對話角色名稱",
+    "initial_ai_line": "AI 的第一句日文問話",
+    "user_goal": "使用者的任務目標或考試中文題目（中文）"
   }
 ]`;
 
@@ -1104,7 +1115,7 @@
               scenario: p.scenario || '',
               aiRole: p.ai_role_name || 'AI',
               initialAiLine: p.initial_ai_line || '',
-              userGoal: p.user_goal || '',
+              userGoal: p.user_goal || p.question || '',
               attempts: 0,
               errors: 0,
               recentResults: []
@@ -1113,7 +1124,7 @@
           });
 
           saveGrammarData();
-          alert(`✅ 成功從照片中解析並匯入 ${addedCount} 個句型練習至「${targetDeck.name}」！`);
+          alert(`✅ 成功從照片中解析並匯入 ${addedCount} 個練功題目至「${targetDeck.name}」！`);
 
         } catch (e) {
           document.getElementById('roleplay-loading').classList.add('hidden');
@@ -1123,7 +1134,11 @@
       reader.readAsDataURL(file);
     }
 
+    // ==========================================
+    // 💬 練功坊與考試測驗初始化與邏輯
+    // ==========================================
     function initRoleplaySession() {
+      currentPracticeMode = document.getElementById('practice-mode-select').value;
       const selectedId = document.getElementById('grammar-deck-select').value;
       let pool = [];
 
@@ -1140,7 +1155,7 @@
         }
       }
 
-      if (pool.length === 0) return alert('所選文法庫中沒有任何句型練習，請先拍照匯入！');
+      if (pool.length === 0) return alert('所選文法庫中沒有任何句型，請先新增或拍照匯入！');
 
       const errorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
       const recentWindowSize = getRecentWindowSize();
@@ -1197,7 +1212,7 @@
 
     function nextRoleplayScenario() {
       if (roleplayQueue.length === 0) {
-        document.getElementById('roleplay-scenario-info').innerHTML = `📊 <strong>口語練功測驗完成！</strong> 共練習 ${roleplayTotalAnswered} 個句型。`;
+        document.getElementById('roleplay-scenario-info').innerHTML = `📊 <strong>練功/考試測驗完成！</strong> 共完成 ${roleplayTotalAnswered} 題。`;
         document.getElementById('roleplay-chat-box').innerHTML = '';
         document.getElementById('roleplay-eval-area').classList.add('hidden');
         document.getElementById('roleplay-input-area').classList.add('hidden');
@@ -1208,22 +1223,36 @@
       currentRoleplayItem = roleplayQueue.shift();
       roleplayTotalAnswered++;
 
-      currentRoleplayData = {
-        scenario: currentRoleplayItem.scenario,
-        aiRole: currentRoleplayItem.aiRole || 'AI',
-        history: [{ sender: 'ai', text: currentRoleplayItem.initialAiLine }],
-        isFinished: false
-      };
-
-      document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>進度 (${roleplayTotalAnswered}/${roleplayTargetLimit}) - 句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>📝 <strong>情境：</strong>${escapeHtml(currentRoleplayItem.scenario)}<br>🎯 <strong>任務：</strong>${escapeHtml(currentRoleplayItem.userGoal)}`;
-      
-      document.getElementById('roleplay-eval-area').classList.add('hidden');
-      document.getElementById('roleplay-input-area').style.display = 'flex';
-      document.getElementById('btn-next-roleplay').classList.add('hidden');
-
-      renderRoleplayChat();
-      document.getElementById('roleplay-session-area').classList.remove('hidden');
-      speakText(currentRoleplayItem.initialAiLine, 'ja-JP');
+      if (currentPracticeMode === 'exam') {
+        const examPromptText = `請將以下中文翻譯成日文：\n「${currentRoleplayItem.userGoal || currentRoleplayItem.question}」`;
+        currentRoleplayData = {
+          scenario: currentRoleplayItem.scenario,
+          aiRole: '考官',
+          history: [{ sender: 'ai', text: examPromptText }],
+          isFinished: false,
+          isExam: true
+        };
+        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日考試 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>📝 <strong>題型：</strong>${escapeHtml(currentRoleplayItem.question)}`;
+        renderRoleplayChat();
+        document.getElementById('roleplay-session-area').classList.remove('hidden');
+        document.getElementById('roleplay-input-area').style.display = 'flex';
+        document.getElementById('btn-next-roleplay').classList.add('hidden');
+        speakText(examPromptText, 'zh-TW');
+      } else {
+        currentRoleplayData = {
+          scenario: currentRoleplayItem.scenario,
+          aiRole: currentRoleplayItem.aiRole || 'AI',
+          history: [{ sender: 'ai', text: currentRoleplayItem.initialAiLine }],
+          isFinished: false,
+          isExam: false
+        };
+        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>進度 (${roleplayTotalAnswered}/${roleplayTargetLimit}) - 句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>📝 <strong>情境：</strong>${escapeHtml(currentRoleplayItem.scenario)}<br>🎯 <strong>任務：</strong>${escapeHtml(currentRoleplayItem.userGoal)}`;
+        renderRoleplayChat();
+        document.getElementById('roleplay-session-area').classList.remove('hidden');
+        document.getElementById('roleplay-input-area').style.display = 'flex';
+        document.getElementById('btn-next-roleplay').classList.add('hidden');
+        speakText(currentRoleplayItem.initialAiLine, 'ja-JP');
+      }
     }
 
     function renderRoleplayChat() {
@@ -1231,7 +1260,7 @@
       container.innerHTML = currentRoleplayData.history.map(h => `
         <div class="chat-bubble ${h.sender === 'ai' ? 'chat-ai' : 'chat-user'}">
           <strong>${h.sender === 'ai' ? currentRoleplayData.aiRole : '您'}：</strong> ${escapeHtml(h.text)}
-          ${h.sender === 'ai' ? `<button onclick="speakText('${escapeHtml(h.text)}', 'ja-JP')" style="width:auto; padding:2px 6px; font-size:11px; margin-left:6px;" class="btn-secondary">🔊 朗讀</button>` : ''}
+          ${h.sender === 'ai' ? `<button onclick="speakText('${escapeHtml(h.text)}', '${currentRoleplayData.isExam ? 'zh-TW' : 'ja-JP'}')" style="width:auto; padding:2px 6px; font-size:11px; margin-left:6px;" class="btn-secondary">🔊 朗讀</button>` : ''}
         </div>
       `).join('');
       container.scrollTop = container.scrollHeight;
@@ -1250,9 +1279,22 @@
       const currentModel = getGeminiModel();
       const evalArea = document.getElementById('roleplay-eval-area');
       evalArea.classList.remove('hidden');
-      evalArea.innerHTML = '⏳ AI 老師正在評估您的口語回答並給予建議...';
+      evalArea.innerHTML = '⏳ AI 正在評估您的回答與翻譯...';
 
-      const promptText = `你是一位親切且專業的日文會話教練。以下是目前的對話紀錄：
+      let promptText = '';
+      if (currentRoleplayData.isExam) {
+        promptText = `你是一位嚴格且專業的日文考試評分老師。本次考題的中文題目是："${currentRoleplayItem.userGoal || currentRoleplayItem.question}"（情境說明：${currentRoleplayItem.scenario}）。
+使用者提交的日文翻譯是："${userText}"。
+請評估其日文翻譯的文法正確性、用詞精準度與自然度，回傳純 JSON 格式：
+{
+  "score": 95,
+  "correction": "若有錯誤或可更優化的日文句子，請提供標準正確的日文範例；若完全正確則填 null",
+  "explanation": "詳細的文法解析、用詞建議或錯誤糾正說明（中文）",
+  "next_ai_line": null,
+  "is_finished": true
+}`;
+      } else {
+        promptText = `你是一位親切且專業的日文會話教練。以下是目前的對話紀錄：
 ${JSON.stringify(currentRoleplayData.history)}
 
 使用者剛剛的回覆是："${userText}"。
@@ -1264,6 +1306,7 @@ ${JSON.stringify(currentRoleplayData.history)}
   "next_ai_line": "AI 接下來的對話回應（日文），若對話已圓滿達成課本練習目標則填 null",
   "is_finished": false
 }`;
+      }
 
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
@@ -1282,16 +1325,16 @@ ${JSON.stringify(currentRoleplayData.history)}
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
 
-        let evalHtml = `<strong>📊 口語評分：${parsed.score} 分</strong><br>`;
+        let evalHtml = `<strong>📊 評分結果：${parsed.score} 分</strong><br>`;
         if (parsed.correction) {
-          evalHtml += `✨ <strong>建議優化句型：</strong> <span style="color:#1a73e8; font-weight:bold;">${escapeHtml(parsed.correction)}</span><br>`;
+          evalHtml += `✨ <strong>建議正確日文範例：</strong> <span style="color:#1a73e8; font-weight:bold;">${escapeHtml(parsed.correction)}</span><br>`;
         }
         if (parsed.explanation) {
           evalHtml += `💡 <strong>老師解析：</strong> ${escapeHtml(parsed.explanation)}`;
         }
         evalArea.innerHTML = evalHtml;
 
-        // 記錄成績至文法項目與統計
+        // 記錄成績與統計數據
         const isSuccess = (parsed.score >= 75);
         if (currentRoleplayItem) {
           const targetDeck = grammarDecks.find(g => String(g.id) === String(currentRoleplayItem.grammarDeckId));
@@ -1312,7 +1355,7 @@ ${JSON.stringify(currentRoleplayData.history)}
           speakText(parsed.next_ai_line, 'ja-JP');
         } else {
           currentRoleplayData.isFinished = true;
-          evalArea.innerHTML += `<br><br>🎉 <strong>對話圓滿達成！</strong>`;
+          evalArea.innerHTML += `<br><br>🎉 <strong>本題測驗完成！</strong>`;
           document.getElementById('roleplay-input-area').style.display = 'none';
           document.getElementById('btn-next-roleplay').classList.remove('hidden');
         }
@@ -1329,7 +1372,7 @@ ${JSON.stringify(currentRoleplayData.history)}
     function resetRoleplaySession() {
       document.getElementById('roleplay-session-area').classList.add('hidden');
       document.getElementById('roleplay-eval-area').classList.add('hidden');
-      currentRoleplayData = { scenario: '', aiRole: 'AI', history: [], isFinished: false };
+      currentRoleplayData = { scenario: '', aiRole: 'AI', history: [], isFinished: false, isExam: false };
     }
 
     function startVoiceRecognition() {
@@ -1431,7 +1474,6 @@ ${JSON.stringify(currentRoleplayData.history)}
       const maxCols = Math.max(...rawParsedRows.map(r => r.length));
       let html = '';
       for (let i = 0; i < maxCols; i++) {
-        const samples = rawParsedRows.slice(0, 3).map(r => r[i] || '').filter(Boolean);
         html += `
           <div style="border: 1px solid var(--input-border); background: var(--card-bg); padding: 10px; border-radius: 8px; min-width: 140px; flex: 1;">
             <div style="font-weight: bold; font-size: 13px; color: #1a73e8; margin-bottom: 6px;">第 ${i + 1} 欄</div>
