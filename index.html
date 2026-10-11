@@ -103,13 +103,13 @@
 </head>
 <body>
 
-  <!-- 狀態列含版本號 -->
+  <!-- 狀態列含版本號[cite: 13] -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9]</span>
+    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9, 13]</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
-  <!-- 分頁導覽 -->
+  <!-- 分頁導覽[cite: 13] -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 拼寫測驗</button>
@@ -121,7 +121,7 @@
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
-  <!-- 1. 單字庫管理頁面 -->
+  <!-- 1. 單字庫管理頁面[cite: 13] -->
   <div id="page-list" class="card">
     <h2>📁 選擇單字庫</h2>
     <div class="deck-header">
@@ -182,7 +182,7 @@
     <div id="word-list"></div>
   </div>
 
-  <!-- 2. 測驗頁面 -->
+  <!-- 2. 測驗頁面[cite: 13] -->
   <div id="page-quiz" class="card hidden">
     <h2>✍️ 拼寫測驗</h2>
     <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
@@ -198,7 +198,7 @@
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
+  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊[cite: 13] -->
   <div id="page-roleplay" class="card hidden">
     <h2>💬 AI 角色扮演與口語練功坊</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫與練習模式，可進行情境對話或結合現有單字庫與文法題型的「中翻日考試」！</p>
@@ -234,7 +234,7 @@
       ⏳ AI 正在結合文法題型與您的單字庫出題，請稍候...
     </div>
 
-    <!-- 練功對話主介面 -->
+    <!-- 練功對話主介面[cite: 13] -->
     <div id="roleplay-session-area" class="hidden">
       <div id="roleplay-scenario-info" class="hint-box" style="font-weight: bold; color: #1a73e8;"></div>
       
@@ -252,7 +252,7 @@
     </div>
   </div>
 
-  <!-- 4. 統計頁面 -->
+  <!-- 4. 統計頁面[cite: 13] -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
@@ -278,7 +278,7 @@
     <div id="stats-word-list"></div>
   </div>
 
-  <!-- 5. AI 拍照辨識頁面 -->
+  <!-- 5. AI 拍照辨識頁面[cite: 13] -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
@@ -321,7 +321,7 @@
     </div>
   </div>
 
-  <!-- 6. 社群單字庫分享頁面 -->
+  <!-- 6. 社群單字庫分享頁面[cite: 13] -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
@@ -336,7 +336,7 @@
     <div id="shared-deck-list"></div>
   </div>
 
-  <!-- 7. ListModels 模型清單頁面 -->
+  <!-- 7. ListModels 模型清單頁面[cite: 13] -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：</p>
@@ -344,7 +344,7 @@
     <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
 
-  <!-- 8. 設定頁面 -->
+  <!-- 8. 設定頁面[cite: 13] -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
     <div class="setting-group">
@@ -703,6 +703,14 @@
 
       if (pool.length === 0) return alert('所選文法庫中沒有任何句型，請先新增或拍照匯入！');
 
+      // 若為考試模式，先檢查是否有單字庫內容
+      if (currentPracticeMode === 'exam') {
+        let allVocabWords = decks.flatMap(d => d.words);
+        if (allVocabWords.length === 0) {
+          return alert('請先在「單字庫」新增至少一個單字，才能開始中翻日考試測驗！');
+        }
+      }
+
       roleplayTargetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
       roleplayQueue = pool.sort(() => Math.random() - 0.5).slice(0, roleplayTargetLimit);
       roleplaySessionResults = [];
@@ -725,7 +733,11 @@
 
       if (currentPracticeMode === 'exam') {
         let allVocabWords = decks.flatMap(d => d.words);
-        let randomVocab = allVocabWords.length > 0 ? allVocabWords[Math.floor(Math.random() * allVocabWords.length)] : { question: '食べる', ans1: '吃' };
+        if (allVocabWords.length === 0) {
+          alert('單字庫目前沒有單字！');
+          return;
+        }
+        let randomVocab = allVocabWords[Math.floor(Math.random() * allVocabWords.length)];
 
         const grammarTopic = currentRoleplayItem.question;
         const grammarScenario = currentRoleplayItem.scenario || currentRoleplayItem.userGoal || '';
@@ -735,8 +747,12 @@
 - 句型主題：${grammarTopic}
 - 情境說明：${grammarScenario}
 
-並且【必須強制使用】以下從使用者「現有單字庫」挑選的指定單字來出題：
+並且【絕對必須強制使用】以下從使用者「現有單字庫」挑選的指定單字來出題：
 - 指定單字：${randomVocab.question} （中文意思：${randomVocab.ans1}）
+
+【極重要限制】：
+1. 題目句子及標準日文解答中，核心實詞（動詞、形容詞、主要名詞）必須使用該指定單字。
+2. **嚴禁**使用使用者單字庫以外的艱澀生難單字或無關複雜詞彙。若需搭配其他詞彙，請僅使用最基礎、最常見的日常核心詞彙。
 
 請出一道實用的「中翻日」考試題目（給出一個包含該指定單字並符合該文法句型的自然中文句子，要求使用者翻譯成日文）。
 請嚴格回傳純 JSON 格式：
@@ -821,7 +837,6 @@
     }
 
     async function sendRoleplayReply() {
-      // 確保發送時若仍在錄音，先關閉錄音
       stopVoiceRecognition();
 
       const inputElem = document.getElementById('roleplay-user-input');
