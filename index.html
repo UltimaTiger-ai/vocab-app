@@ -93,23 +93,17 @@
     .chat-ai { background: var(--card-bg); align-self: flex-start; border: 1px solid var(--border-color); color: var(--text-color); }
     .chat-user { background: #1a73e8; color: white; align-self: flex-end; }
     .eval-box { background: var(--hint-bg); border: 1px solid var(--hint-border); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; }
-
-    /* AI 記憶建議表格樣式 */
-    .ai-tip-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-    .ai-tip-table th, .ai-tip-table td { border: 1px solid var(--border-color); padding: 10px; text-align: left; }
-    .ai-tip-table th { background: var(--hint-bg); color: #1a73e8; }
-    body.dark-mode .ai-tip-table th { background: #1a2634; color: #66b2ff; }
   </style>
 </head>
 <body>
 
-  <!-- 狀態列含版本號[cite: 13] -->
+  <!-- 狀態列含版本號[cite: 12] -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9, 13]</span>
+    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9, 12]</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
-  <!-- 分頁導覽[cite: 13] -->
+  <!-- 分頁導覽[cite: 12] -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 拼寫測驗</button>
@@ -121,7 +115,7 @@
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
-  <!-- 1. 單字庫管理頁面[cite: 13] -->
+  <!-- 1. 單字庫管理頁面[cite: 12] -->
   <div id="page-list" class="card">
     <h2>📁 選擇單字庫</h2>
     <div class="deck-header">
@@ -182,7 +176,7 @@
     <div id="word-list"></div>
   </div>
 
-  <!-- 2. 測驗頁面[cite: 13] -->
+  <!-- 2. 測驗頁面[cite: 12] -->
   <div id="page-quiz" class="card hidden">
     <h2>✍️ 拼寫測驗</h2>
     <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
@@ -198,7 +192,7 @@
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊[cite: 13] -->
+  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊[cite: 12] -->
   <div id="page-roleplay" class="card hidden">
     <h2>💬 AI 角色扮演與口語練功坊</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫與練習模式，可進行情境對話或結合現有單字庫與文法題型的「中翻日考試」！</p>
@@ -227,14 +221,21 @@
         <label style="font-size:13px; font-weight:bold; color:#1a73e8;">📸 拍照匯入至當前文法庫：</label>
         <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
       </div>
-      <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 10px;">🚀 開始練功與測驗</button>
+
+      <!-- 需求 (2)：檢視選定文法庫句型並支援刪除[cite: 12] -->
+      <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--subtext-color);">📖 當前文法庫句型清單 (<span id="grammar-item-count">0</span>)</h4>
+        <div id="grammar-item-list" style="max-height: 180px; overflow-y: auto;"></div>
+      </div>
+
+      <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 15px;">🚀 開始練功與測驗</button>
     </div>
 
     <div id="roleplay-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
       ⏳ AI 正在結合文法題型與您的單字庫出題，請稍候...
     </div>
 
-    <!-- 練功對話主介面[cite: 13] -->
+    <!-- 練功對話主介面[cite: 12] -->
     <div id="roleplay-session-area" class="hidden">
       <div id="roleplay-scenario-info" class="hint-box" style="font-weight: bold; color: #1a73e8;"></div>
       
@@ -252,7 +253,7 @@
     </div>
   </div>
 
-  <!-- 4. 統計頁面[cite: 13] -->
+  <!-- 4. 統計頁面[cite: 12] -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
@@ -262,23 +263,18 @@
         <option value="recent">排序：依最近錯誤率 (高到低)</option>
         <option value="total">排序：依歷史總計錯誤率 (高到低)</option>
       </select>
-      <select id="stats-window-select" style="margin-bottom: 0; flex: 1;" onchange="changeRecentWindow(this.value)">
-        <option value="3">近 3 次</option>
-        <option value="5">近 5 次</option>
-        <option value="10" selected>近 10 次</option>
-      </select>
     </div>
     
     <div class="stats-box">
       <p>📈 歷史通過率 <span id="stat-all-time">--</span></p>
-      <p>📅 近一個月通過率 <span id="stat-month">--</span></p>
+      <p>📅 近期通過率 <span id="stat-month">--</span></p>
     </div>
 
     <h3>⚠️ 單字錯誤率排行 (由高到低)</h3>
     <div id="stats-word-list"></div>
   </div>
 
-  <!-- 5. AI 拍照辨識頁面[cite: 13] -->
+  <!-- 5. AI 拍照辨識頁面[cite: 12] -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
@@ -321,7 +317,7 @@
     </div>
   </div>
 
-  <!-- 6. 社群單字庫分享頁面[cite: 13] -->
+  <!-- 6. 社群單字庫分享頁面[cite: 12] -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
@@ -336,7 +332,7 @@
     <div id="shared-deck-list"></div>
   </div>
 
-  <!-- 7. ListModels 模型清單頁面[cite: 13] -->
+  <!-- 7. ListModels 模型清單頁面[cite: 12] -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：</p>
@@ -344,7 +340,7 @@
     <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
 
-  <!-- 8. 設定頁面[cite: 13] -->
+  <!-- 8. 設定頁面[cite: 12] -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
     <div class="setting-group">
@@ -429,10 +425,6 @@
       return saved ? JSON.parse(saved) : DEFAULT_MODELS;
     }
 
-    function getRecentWindowSize() {
-      return parseInt(localStorage.getItem('vocab_recent_window') || '10');
-    }
-
     window.onload = function() {
       updateAppVersion();
       loadLanguagePreferences();
@@ -467,14 +459,9 @@
       applyTheme(savedTheme);
     }
 
+    // 需求 (3)：版號固定為 GitHub 上傳檔案的時間戳記，不使用系統即時時間[cite: 12]
     function updateAppVersion() {
-      const lastMod = new Date();
-      const yyyy = lastMod.getFullYear();
-      const mm = String(lastMod.getMonth() + 1).padStart(2, '0');
-      const dd = String(lastMod.getDate()).padStart(2, '0');
-      const hh = String(lastMod.getHours()).padStart(2, '0');
-      const min = String(lastMod.getMinutes()).padStart(2, '0');
-      const verStr = `Ver: ${yyyy}.${mm}.${dd}-${hh}${min}`;
+      const verStr = "Ver: 2026.10.11-2230";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -556,10 +543,48 @@
       saveGrammarData();
     }
 
+    // 需求 (2)：渲染文法庫下拉選單並顯示所選文法庫的句型列表，支援刪除[cite: 12]
     function renderGrammarDecksUI() {
       const selectElem = document.getElementById('grammar-deck-select');
       if (!selectElem) return;
       selectElem.innerHTML = `<option value="all">🌟 全部文法庫綜合</option>` + grammarDecks.map(g => `<option value="${g.id}" ${g.id === currentGrammarDeckId ? 'selected' : ''}>${g.name} (${g.items.length}句型)</option>`).join('');
+
+      const countElem = document.getElementById('grammar-item-count');
+      const listElem = document.getElementById('grammar-item-list');
+      if (countElem && listElem) {
+        if (currentGrammarDeckId === 'all') {
+          countElem.innerText = grammarDecks.reduce((sum, g) => sum + g.items.length, 0);
+          let allItemsHtml = '';
+          grammarDecks.forEach(g => {
+            g.items.forEach((item, idx) => {
+              allItemsHtml += `
+                <div class="word-item" style="padding: 6px 0;">
+                  <div><strong>[${escapeHtml(g.name)}] ${escapeHtml(item.question)}</strong><div style="font-size:11px; color:var(--subtext-color);">${escapeHtml(item.scenario)}</div></div>
+                  <button class="btn-danger" style="width:auto; padding:4px 8px; margin:0; font-size:11px;" onclick="deleteGrammarItem('${g.id}', ${idx})">刪除</button>
+                </div>
+              `;
+            });
+          });
+          listElem.innerHTML = allItemsHtml || '<p style="color:var(--subtext-color); font-size:13px;">所有文法庫皆無句型。</p>';
+        } else {
+          const currentGDeck = getCurrentGrammarDeck();
+          countElem.innerText = currentGDeck.items.length;
+          listElem.innerHTML = currentGDeck.items.length === 0 ? '<p style="color:var(--subtext-color); font-size:13px;">此文法庫尚無句型。</p>' : currentGDeck.items.map((item, idx) => `
+            <div class="word-item" style="padding: 6px 0;">
+              <div><strong>${escapeHtml(item.question)}</strong><div style="font-size:11px; color:var(--subtext-color);">${escapeHtml(item.scenario)}</div></div>
+              <button class="btn-danger" style="width:auto; padding:4px 8px; margin:0; font-size:11px;" onclick="deleteGrammarItem('${currentGDeck.id}', ${idx})">刪除</button>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    function deleteGrammarItem(deckId, index) {
+      const target = grammarDecks.find(g => String(g.id) === String(deckId));
+      if (target) {
+        target.items.splice(index, 1);
+        saveGrammarData();
+      }
     }
 
     function addWord() {
@@ -680,9 +705,7 @@
       }
     }
 
-    // ==========================================
-    // 📸 拍照匯入文法庫功能 (新補上)
-    // ==========================================
+    // 📸 拍照匯入文法庫功能[cite: 12]
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -775,9 +798,7 @@
       }
     }
 
-    // ==========================================
-    // 💬 練功坊與考試測驗邏輯
-    // ==========================================
+    // 💬 練功坊與考試測驗邏輯[cite: 12]
     function initRoleplaySession() {
       currentPracticeMode = document.getElementById('practice-mode-select').value;
       const selectedId = document.getElementById('grammar-deck-select').value;
@@ -798,7 +819,6 @@
 
       if (pool.length === 0) return alert('所選文法庫中沒有任何句型，請先新增或拍照匯入！');
 
-      // 若為考試模式，檢查是否有單字庫內容
       if (currentPracticeMode === 'exam') {
         let allVocabWords = decks.flatMap(d => d.words);
         if (allVocabWords.length === 0) {
@@ -1158,7 +1178,19 @@
 
     function nextQuizQuestion() {
       if (quizQueue.length === 0) {
-        document.getElementById('quiz-prompt').innerText = `🎉 測驗完成！答對 ${sessionResults.filter(r => r.correct).length} / ${totalAnswered} 題`;
+        const correctCount = sessionResults.filter(r => r.correct).length;
+        const totalCount = sessionResults.length;
+        
+        // 需求 (1)：記錄測驗歷史紀錄至當前選取的單字庫[cite: 12]
+        const selectedDeckId = document.getElementById('quiz-deck-select').value;
+        let targetDeck = (selectedDeckId && selectedDeckId !== 'all') ? decks.find(d => String(d.id) === String(selectedDeckId)) : getCurrentDeck();
+        if (targetDeck) {
+          if (!targetDeck.history) targetDeck.history = [];
+          targetDeck.history.push({ date: new Date().toLocaleDateString(), total: totalCount, correct: correctCount });
+          saveData();
+        }
+
+        document.getElementById('quiz-prompt').innerText = `🎉 測驗完成！答對 ${correctCount} / ${totalAnswered} 題`;
         document.getElementById('quiz-answer').style.display = 'none';
         document.getElementById('btn-submit-ans').style.display = 'none';
         document.getElementById('btn-next-ans').classList.add('hidden');
@@ -1185,6 +1217,18 @@
       const isCorrect = (userAns === ans1);
 
       sessionResults.push({ correct: isCorrect });
+
+      // 需求 (1)：更新個別單字的測驗次數與錯誤次數，供統計排行使用[cite: 12]
+      if (currentQuizItem.deckId && currentQuizItem.wordIndex !== undefined) {
+        const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+        if (targetDeck && targetDeck.words[currentQuizItem.wordIndex]) {
+          const w = targetDeck.words[currentQuizItem.wordIndex];
+          w.attempts = (w.attempts || 0) + 1;
+          if (!isCorrect) w.errors = (w.errors || 0) + 1;
+          saveData();
+        }
+      }
+
       document.getElementById('quiz-answer').disabled = true;
       document.getElementById('btn-submit-ans').style.display = 'none';
       document.getElementById('btn-next-ans').classList.remove('hidden');
@@ -1207,10 +1251,57 @@
       }
     }
 
+    // 需求 (1)：渲染統計與歷史錯誤紀錄排行[cite: 12]
     function renderStats() {
+      const statsDeckId = document.getElementById('stats-deck-select').value;
+      const targetDecks = statsDeckId === 'all' ? decks : decks.filter(d => String(d.id) === String(statsDeckId));
+      
       let allTotal = 0, allCorrect = 0;
-      decks.forEach(d => (d.history || []).forEach(h => { allTotal += h.total; allCorrect += h.correct; }));
-      document.getElementById('stat-all-time').innerHTML = allTotal > 0 ? `${Math.round((allCorrect/allTotal)*100)}%` : '尚無紀錄';
+      targetDecks.forEach(d => {
+        (d.history || []).forEach(h => {
+          allTotal += h.total;
+          allCorrect += h.correct;
+        });
+      });
+
+      document.getElementById('stat-all-time').innerHTML = allTotal > 0 ? `${Math.round((allCorrect/allTotal)*100)}% (${allCorrect}/${allTotal})` : '尚無紀錄';
+      document.getElementById('stat-month').innerHTML = allTotal > 0 ? `${Math.round((allCorrect/allTotal)*100)}% (${allCorrect}/${allTotal})` : '尚無紀錄';
+
+      let allWords = [];
+      targetDecks.forEach(d => {
+        (d.words || []).forEach((w) => {
+          allWords.push({ ...w, deckName: d.name });
+        });
+      });
+
+      allWords.sort((a, b) => {
+        const errA = (a.attempts || 0) > 0 ? ((a.errors || 0) / a.attempts) : 0;
+        const errB = (b.attempts || 0) > 0 ? ((b.errors || 0) / b.attempts) : 0;
+        return errB - errA;
+      });
+
+      const wordListElem = document.getElementById('stats-word-list');
+      if (allWords.length === 0) {
+        wordListElem.innerHTML = '<p style="color:var(--subtext-color);">尚無單字測驗紀錄。</p>';
+        return;
+      }
+
+      wordListElem.innerHTML = allWords.map(w => {
+        const attempts = w.attempts || 0;
+        const errors = w.errors || 0;
+        const rate = attempts > 0 ? Math.round((errors / attempts) * 100) : 0;
+        return `
+          <div class="word-item">
+            <div>
+              <strong>${escapeHtml(w.question)}</strong> (${escapeHtml(w.ans1)})
+              <div style="font-size: 12px; color: var(--subtext-color);">[${escapeHtml(w.deckName)}] 測驗 ${attempts} 次 / 錯誤 ${errors} 次</div>
+            </div>
+            <div style="font-weight: bold; color: ${rate > 50 ? '#dc3545' : (rate > 0 ? '#ffc107' : '#28a745')};">
+              錯誤率 ${rate}%
+            </div>
+          </div>
+        `;
+      }).join('');
     }
   </script>
 </body>
