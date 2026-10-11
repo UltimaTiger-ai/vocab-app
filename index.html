@@ -244,7 +244,7 @@
 
       <div style="display: flex; gap: 8px;" id="roleplay-input-area">
         <input type="text" id="roleplay-user-input" placeholder="請輸入日文回答..." autocomplete="off" onkeydown="handleRoleplayKey(event)" style="margin-top:0;">
-        <button type="button" class="btn-secondary" style="width: auto; margin-top:0; padding: 0 12px; white-space: nowrap;" onclick="startVoiceRecognition()" title="語音輸入">🎙️ 說日文</button>
+        <button type="button" id="btn-voice-rec" class="btn-secondary" style="width: auto; margin-top:0; padding: 0 12px; white-space: nowrap;" onclick="toggleVoiceRecognition()" title="語音輸入">🎙️ 說日文</button>
         <button onclick="sendRoleplayReply()" class="btn-success" style="width: auto; margin-top:0; white-space: nowrap;">發送 ➔</button>
       </div>
       <button id="btn-next-roleplay" onclick="nextRoleplayScenario()" class="btn-success hidden" style="margin-top: 10px;">下一題 ➔</button>
@@ -724,7 +724,6 @@
       roleplayTotalAnswered++;
 
       if (currentPracticeMode === 'exam') {
-        // 從現有單字庫中隨機抽一個單字
         let allVocabWords = decks.flatMap(d => d.words);
         let randomVocab = allVocabWords.length > 0 ? allVocabWords[Math.floor(Math.random() * allVocabWords.length)] : { question: '食べる', ans1: '吃' };
 
@@ -822,6 +821,9 @@
     }
 
     async function sendRoleplayReply() {
+      // 確保發送時若仍在錄音，先關閉錄音
+      stopVoiceRecognition();
+
       const inputElem = document.getElementById('roleplay-user-input');
       const userText = inputElem.value.trim();
       if (!userText || currentRoleplayData.isFinished) return;
@@ -913,26 +915,75 @@
     }
 
     function resetRoleplaySession() {
+      stopVoiceRecognition();
       document.getElementById('roleplay-session-area').classList.add('hidden');
       document.getElementById('roleplay-eval-area').classList.add('hidden');
       currentRoleplayData = { scenario: '', aiRole: 'AI', history: [], isFinished: false, isExam: false };
     }
 
-    function startVoiceRecognition() {
+    let activeRecognition = null;
+
+    function toggleVoiceRecognition() {
+      if (activeRecognition) {
+        stopVoiceRecognition();
+        return;
+      }
+
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return alert('您的瀏覽器不支援語音辨識功能。');
+
       const recognition = new SpeechRecognition();
+      activeRecognition = recognition;
       recognition.lang = 'ja-JP';
-      recognition.interimResults = false;
+      recognition.interimResults = true;
       recognition.maxAlternatives = 1;
 
+      const btn = document.getElementById('btn-voice-rec');
       const inputElem = document.getElementById('roleplay-user-input');
-      inputElem.placeholder = '🎙️ 請說日文...';
+
+      btn.innerHTML = '⏹️ 停止錄音';
+      btn.style.backgroundColor = '#dc3545';
+      inputElem.placeholder = '🎙️ 正在聆聽您的日文發音...';
+
       recognition.onresult = function(event) {
-        inputElem.value = event.results[0][0].transcript;
-        inputElem.placeholder = '請輸入日文回答...';
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        inputElem.value = transcript;
       };
-      recognition.start();
+
+      recognition.onerror = function() {
+        stopVoiceRecognition();
+      };
+
+      recognition.onend = function() {
+        stopVoiceRecognition();
+      };
+
+      try {
+        recognition.start();
+      } catch (e) {
+        stopVoiceRecognition();
+      }
+    }
+
+    function stopVoiceRecognition() {
+      if (activeRecognition) {
+        try {
+          activeRecognition.stop();
+        } catch (e) {}
+        activeRecognition = null;
+      }
+      const btn = document.getElementById('btn-voice-rec');
+      const inputElem = document.getElementById('roleplay-user-input');
+      if (btn) {
+        btn.innerHTML = '🎙️ 說日文';
+        btn.style.backgroundColor = '';
+      }
+      if (inputElem) {
+        inputElem.placeholder = '請輸入日文回答...';
+      }
     }
 
     function escapeHtml(str) {
