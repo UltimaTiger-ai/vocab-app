@@ -329,7 +329,7 @@
       <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
       <div class="setting-group"><label>選擇要分享的單字庫</label><select id="share-deck-select"></select></div>
       <div class="setting-group"><label>創作者暱稱</label><input type="text" id="share-author-input" placeholder="例如：User" style="margin-top:4px;"></div>
-      <div class="setting-group"><label>單字庫簡介與說明</label><input type="text" id="share-desc-input" placeholder="例如：包含 N3 必考高頻動詞" style="margin-top:4px;"></div>
+      <div class="setting-group"><label>單字庫簡介與說明</label><input type="text" id="share-desc-input" placeholder="例如：N3 必考高頻動詞" style="margin-top:4px;"></div>
       <button onclick="publishDeck()" class="btn-success">🚀 發布至社群市集</button>
     </div>
     <h3>🔥 熱門社群單字庫</h3>
@@ -681,6 +681,101 @@
     }
 
     // ==========================================
+    // 📸 拍照匯入文法庫功能 (新補上)
+    // ==========================================
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const base64String = reader.result.split(',')[1];
+          resolve(base64String);
+        };
+        reader.onerror = error => reject(error);
+      });
+    }
+
+    async function importGrammarFromImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      if (!apiKey) {
+        alert('請先在設定頁面填寫 Gemini API Key！');
+        event.target.value = '';
+        return;
+      }
+
+      const loadingElem = document.getElementById('roleplay-loading');
+      if (loadingElem) {
+        loadingElem.innerText = '⏳ AI 正在辨識圖片中的文法句型與情境，請稍候...';
+        loadingElem.classList.remove('hidden');
+      }
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        
+        const promptText = `你是一位專業的日文教學助理。請分析這張圖片，提取其中的日文文法句型、練習情境、AI角色設定以及初始對話，整理成一個 JSON 陣列格式。
+每個物件格式如下：
+{
+  "question": "文法句型名稱或題目 (例如: 〜て形、〜てもいいです)",
+  "scenario": "情境說明或練習目標 (中文)",
+  "aiRole": "AI扮演的角色 (例如: 店員、朋友、老師)",
+  "initialAiLine": "AI的第一句日文開場白"
+}
+請只回傳符合此格式的純 JSON 陣列：[ { ... }, { ... } ]`;
+
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                { inlineData: { mimeType: file.type, data: base64Data } }
+              ]
+            }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+
+        const data = await resp.json();
+        if (loadingElem) loadingElem.classList.add('hidden');
+        if (data.error) throw new Error(data.error.message);
+
+        const text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        const parsedItems = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+
+        if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
+          throw new Error('無法從圖片中解析出有效的文法句型資料。');
+        }
+
+        const currentDeck = getCurrentGrammarDeck();
+        parsedItems.forEach(item => {
+          currentDeck.items.push({
+            question: item.question || '未命名句型',
+            scenario: item.scenario || '',
+            aiRole: item.aiRole || 'AI',
+            initialAiLine: item.initialAiLine || 'こんにちは！',
+            attempts: 0,
+            errors: 0
+          });
+        });
+
+        saveGrammarData();
+        alert(`✅ 成功從圖片匯入 ${parsedItems.length} 個文法句型至「${currentDeck.name}」！`);
+      } catch (e) {
+        if (loadingElem) loadingElem.classList.add('hidden');
+        alert('❌ 圖片辨識失敗：' + e.message);
+      } finally {
+        event.target.value = '';
+      }
+    }
+
+    // ==========================================
     // 💬 練功坊與考試測驗邏輯
     // ==========================================
     function initRoleplaySession() {
@@ -703,7 +798,7 @@
 
       if (pool.length === 0) return alert('所選文法庫中沒有任何句型，請先新增或拍照匯入！');
 
-      // 若為考試模式，先檢查是否有單字庫內容
+      // 若為考試模式，檢查是否有單字庫內容
       if (currentPracticeMode === 'exam') {
         let allVocabWords = decks.flatMap(d => d.words);
         if (allVocabWords.length === 0) {
