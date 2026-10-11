@@ -1431,7 +1431,7 @@
       saveData();
     }
 
-    // 進階統計排行渲染
+    // 進階統計排行渲染（包含最近 N 次詳細錯誤數與正確率對照）
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
       const recentWindow = getRecentWindowSize();
@@ -1463,7 +1463,14 @@
               recentErrors = recentSlice.filter(r => !r).length;
               recentErrRate = recentErrors / recentTotal;
             }
-            wordsStats.push({ ...w, deckName: d.name, errorRate: errRate, recentErrorRate: recentErrRate, recentErrors, recentTotal });
+            wordsStats.push({ 
+              ...w, 
+              deckName: d.name, 
+              errorRate: errRate, 
+              recentErrorRate: recentErrRate, 
+              recentErrors, 
+              recentTotal 
+            });
           }
         });
       });
@@ -1485,17 +1492,28 @@
         return;
       }
 
-      wordListElem.innerHTML = wordsStats.map(w => `
-        <div class="word-item">
-          <div>
-            <strong>${escapeHtml(w.question)}</strong> (${escapeHtml(w.ans1)})
-            <div style="font-size: 12px; color: var(--subtext-color);">[${escapeHtml(w.deckName)}] 總測驗 ${w.attempts} 次 / 錯誤 ${w.errors} 次</div>
+      wordListElem.innerHTML = wordsStats.map(w => {
+        const displayRate = sortOption === 'recent' ? w.recentErrorRate : w.errorRate;
+        return `
+          <div class="word-item" style="display:flex; justify-content:space-between;">
+            <div>
+              <strong>${escapeHtml(w.question)}</strong> (${escapeHtml(w.ans1)})
+              <div style="font-size: 12px; color: var(--subtext-color);">[${escapeHtml(w.deckName)}]</div>
+            </div>
+            <div style="text-align: right;">
+              <span class="${displayRate > 0.5 ? 'text-red' : (displayRate === 0 ? 'text-green' : '')}" style="font-weight:bold; font-size:18px;">
+                ${Math.round(displayRate * 100)}%
+              </span><br>
+              <span style="font-size: 12px; color: var(--subtext-color);">
+                近 ${recentWindow} 次: ${Math.round(w.recentErrorRate * 100)}% (錯 ${w.recentErrors} / 考 ${w.recentTotal})
+              </span><br>
+              <span style="font-size: 11px; color: var(--subtext-color);">
+                歷史總計: ${Math.round(w.errorRate * 100)}% (錯 ${w.errors} / 考 ${w.attempts})
+              </span>
+            </div>
           </div>
-          <div style="text-align: right; font-weight: bold; color: ${w.errorRate > 0.5 ? '#dc3545' : '#28a745'};">
-            ${Math.round((sortOption === 'recent' ? w.recentErrorRate : w.errorRate) * 100)}%
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
   </script>
 </body>
