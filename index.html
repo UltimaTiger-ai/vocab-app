@@ -93,17 +93,23 @@
     .chat-ai { background: var(--card-bg); align-self: flex-start; border: 1px solid var(--border-color); color: var(--text-color); }
     .chat-user { background: #1a73e8; color: white; align-self: flex-end; }
     .eval-box { background: var(--hint-bg); border: 1px solid var(--hint-border); padding: 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; line-height: 1.6; }
+
+    /* AI 記憶建議表格樣式 */
+    .ai-tip-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    .ai-tip-table th, .ai-tip-table td { border: 1px solid var(--border-color); padding: 10px; text-align: left; }
+    .ai-tip-table th { background: var(--hint-bg); color: #1a73e8; }
+    body.dark-mode .ai-tip-table th { background: #1a2634; color: #66b2ff; }
   </style>
 </head>
 <body>
 
-  <!-- 狀態列含版本號[cite: 12] -->
+  <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9, 12]</span>
+    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9, 13]</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
-  <!-- 分頁導覽[cite: 12] -->
+  <!-- 分頁導覽 -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 拼寫測驗</button>
@@ -115,7 +121,7 @@
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
-  <!-- 1. 單字庫管理頁面[cite: 12] -->
+  <!-- 1. 單字庫管理頁面 -->
   <div id="page-list" class="card">
     <h2>📁 選擇單字庫</h2>
     <div class="deck-header">
@@ -176,7 +182,7 @@
     <div id="word-list"></div>
   </div>
 
-  <!-- 2. 測驗頁面[cite: 12] -->
+  <!-- 2. 測驗頁面 -->
   <div id="page-quiz" class="card hidden">
     <h2>✍️ 拼寫測驗</h2>
     <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
@@ -189,10 +195,31 @@
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
+
+      <!-- 請求 AI 建議按鈕與表格 -->
+      <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
+      
+      <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
+        <table class="ai-tip-table">
+          <thead>
+            <tr><th>💡 AI 記憶建議</th></tr>
+          </thead>
+          <tbody>
+            <tr><td id="ai-tip-content">載入中...[cite: 9, 13]</td></tr>
+            <tr id="ai-tip-feedback-row">
+              <td style="text-align: center;">
+                <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
+                <button class="btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(true)">👍 實用，記下來</button>
+                <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(false)">👎 不好，請改進重想</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊[cite: 12] -->
+  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
   <div id="page-roleplay" class="card hidden">
     <h2>💬 AI 角色扮演與口語練功坊</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫與練習模式，可進行情境對話或結合現有單字庫與文法題型的「中翻日考試」！</p>
@@ -222,7 +249,6 @@
         <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
       </div>
 
-      <!-- 需求 (2)：檢視選定文法庫句型並支援刪除[cite: 12] -->
       <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 12px;">
         <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--subtext-color);">📖 當前文法庫句型清單 (<span id="grammar-item-count">0</span>)</h4>
         <div id="grammar-item-list" style="max-height: 180px; overflow-y: auto;"></div>
@@ -235,7 +261,7 @@
       ⏳ AI 正在結合文法題型與您的單字庫出題，請稍候...
     </div>
 
-    <!-- 練功對話主介面[cite: 12] -->
+    <!-- 練功對話主介面 -->
     <div id="roleplay-session-area" class="hidden">
       <div id="roleplay-scenario-info" class="hint-box" style="font-weight: bold; color: #1a73e8;"></div>
       
@@ -253,15 +279,21 @@
     </div>
   </div>
 
-  <!-- 4. 統計頁面[cite: 12] -->
+  <!-- 4. 統計頁面 -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
     
+    <!-- 排序與最近次數切換選單 -->
     <div style="display: flex; gap: 8px; margin-bottom: 15px;">
       <select id="stats-sort-select" style="margin-bottom: 0; flex: 2;" onchange="renderStats()">
         <option value="recent">排序：依最近錯誤率 (高到低)</option>
         <option value="total">排序：依歷史總計錯誤率 (高到低)</option>
+      </select>
+      <select id="stats-window-select" style="margin-bottom: 0; flex: 1;" onchange="changeRecentWindow(this.value)">
+        <option value="3">近 3 次</option>
+        <option value="5">近 5 次</option>
+        <option value="10" selected>近 10 次</option>
       </select>
     </div>
     
@@ -274,7 +306,7 @@
     <div id="stats-word-list"></div>
   </div>
 
-  <!-- 5. AI 拍照辨識頁面[cite: 12] -->
+  <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
@@ -317,7 +349,7 @@
     </div>
   </div>
 
-  <!-- 6. 社群單字庫分享頁面[cite: 12] -->
+  <!-- 6. 社群單字庫分享頁面 -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
@@ -332,7 +364,7 @@
     <div id="shared-deck-list"></div>
   </div>
 
-  <!-- 7. ListModels 模型清單頁面[cite: 12] -->
+  <!-- 7. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：</p>
@@ -340,7 +372,7 @@
     <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
 
-  <!-- 8. 設定頁面[cite: 12] -->
+  <!-- 8. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
     <div class="setting-group">
@@ -374,6 +406,83 @@
         <option value="30">30 題</option>
         <option value="0">全部單字集</option>
       </select>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+
+    <h3>🎯 測驗選題與題型分配</h3>
+
+    <div class="setting-group">
+      <label>🔢 最近錯誤率採計次數</label>
+      <select id="setting-recent-window" onchange="saveSettings(); renderStats();">
+        <option value="3">最近 3 次</option>
+        <option value="5">最近 5 次</option>
+        <option value="10" selected>最近 10 次 (預設)</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label>📊 挑題錯誤率計算基準</label>
+      <select id="setting-quiz-error-basis" onchange="saveSettings()">
+        <option value="recent" selected>最近測驗紀錄 (以最近錯誤率為主)</option>
+        <option value="overall">整體歷史紀錄 (以累計總錯誤率為主)</option>
+      </select>
+    </div>
+
+    <div class="setting-group">
+      <label>⚖️ 測驗題型抽題比例</label>
+      <div style="font-size: 13px; color: var(--subtext-color); margin-bottom: 8px;">
+        調整每次測驗中，不同學習狀態單字的抽取配額百分比：
+      </div>
+      <div class="row-group" style="margin-bottom: 8px;">
+        <div>
+          <label class="sub-label">🔴 錯題/加強單字比例</label>
+          <select id="setting-error-quota" onchange="saveSettings()">
+            <option value="0">0%</option>
+            <option value="20">20%</option>
+            <option value="30">30%</option>
+            <option value="40">40%</option>
+            <option value="50" selected>50% (預設)</option>
+            <option value="60">60%</option>
+            <option value="70">70%</option>
+            <option value="80">80%</option>
+            <option value="100">100%</option>
+          </select>
+        </div>
+        <div>
+          <label class="sub-label">🆕 未測驗新詞比例</label>
+          <select id="setting-new-quota" onchange="saveSettings()">
+            <option value="0">0%</option>
+            <option value="10">10%</option>
+            <option value="20">20%</option>
+            <option value="30" selected>30% (預設)</option>
+            <option value="40">40%</option>
+            <option value="50">50%</option>
+            <option value="60">60%</option>
+          </select>
+        </div>
+        <div>
+          <label class="sub-label">✅ 熟練單字複習比例</label>
+          <select id="setting-familiar-quota" onchange="saveSettings()">
+            <option value="0">0%</option>
+            <option value="10">10%</option>
+            <option value="20" selected>20% (預設)</option>
+            <option value="30">30%</option>
+            <option value="40">40%</option>
+            <option value="50">50%</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+
+    <h3>💾 資料備份與還原 (JSON 匯入/匯出)</h3>
+    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。</p>
+    <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
+      <button type="button" class="btn-success" onclick="exportDataToJson()">📤 匯出全部單字庫</button>
+      <button type="button" class="btn-warning" onclick="document.getElementById('import-json-input').click()">📥 匯入單字庫</button>
+      <input type="file" id="import-json-input" accept=".json" style="display: none;" onchange="importDataFromJson(event)">
     </div>
   </div>
 
@@ -425,6 +534,17 @@
       return saved ? JSON.parse(saved) : DEFAULT_MODELS;
     }
 
+    function getRecentWindowSize() {
+      return parseInt(localStorage.getItem('vocab_recent_window') || '10');
+    }
+
+    function changeRecentWindow(val) {
+      localStorage.setItem('vocab_recent_window', val);
+      const settingElem = document.getElementById('setting-recent-window');
+      if (settingElem) settingElem.value = val;
+      renderStats();
+    }
+
     window.onload = function() {
       updateAppVersion();
       loadLanguagePreferences();
@@ -459,7 +579,6 @@
       applyTheme(savedTheme);
     }
 
-    // 需求 (3)：版號固定為 GitHub 上傳檔案的時間戳記，不使用系統即時時間[cite: 12]
     function updateAppVersion() {
       const verStr = "Ver: 2026.10.11-2230";
       const verElem = document.getElementById('app-version');
@@ -486,6 +605,62 @@
       if (modelSelect && modelSelect.value) {
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
+
+      const recentWindow = document.getElementById('setting-recent-window').value;
+      const errorBasis = document.getElementById('setting-quiz-error-basis').value;
+      const errorQuotaPct = document.getElementById('setting-error-quota').value;
+      const newQuotaPct = document.getElementById('setting-new-quota').value;
+      const familiarQuotaPct = document.getElementById('setting-familiar-quota').value;
+
+      localStorage.setItem('vocab_recent_window', recentWindow);
+      localStorage.setItem('vocab_quiz_error_basis', errorBasis);
+      localStorage.setItem('vocab_error_quota_pct', errorQuotaPct);
+      localStorage.setItem('vocab_new_quota_pct', newQuotaPct);
+      localStorage.setItem('vocab_familiar_quota_pct', familiarQuotaPct);
+    }
+
+    function exportDataToJson() {
+      if (decks.length === 0) return alert('目前沒有單字庫可以匯出！');
+      const dataStr = JSON.stringify(decks, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.download = `vocab_backup_${dateStr}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importDataFromJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (!Array.isArray(importedData)) throw new Error("無效的檔案格式");
+          const confirmReplace = confirm("您想要【取代】現有單字庫嗎？\n\n確定：清空現有資料\n取消：附加到現有列表後");
+          if (confirmReplace) {
+            decks = importedData;
+          } else {
+            importedData.forEach(d => {
+              d.id = d.id + '_import_' + Date.now();
+              decks.push(d);
+            });
+          }
+          currentDeckId = decks.length > 0 ? decks[0].id : 'default_1';
+          saveData();
+          alert("✅ 匯入成功！");
+          event.target.value = '';
+          switchTab('list');
+        } catch (error) {
+          alert("❌ 匯入失敗：" + error.message);
+        }
+      };
+      reader.readAsText(file);
     }
 
     function updateModelDropdown() {
@@ -543,7 +718,6 @@
       saveGrammarData();
     }
 
-    // 需求 (2)：渲染文法庫下拉選單並顯示所選文法庫的句型列表，支援刪除[cite: 12]
     function renderGrammarDecksUI() {
       const selectElem = document.getElementById('grammar-deck-select');
       if (!selectElem) return;
@@ -705,15 +879,11 @@
       }
     }
 
-    // 📸 拍照匯入文法庫功能[cite: 12]
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => {
-          const base64String = reader.result.split(',')[1];
-          resolve(base64String);
-        };
+        reader.onload = () => resolve(reader.result.split(',')[1]);
         reader.onerror = error => reject(error);
       });
     }
@@ -798,7 +968,6 @@
       }
     }
 
-    // 💬 練功坊與考試測驗邏輯[cite: 12]
     function initRoleplaySession() {
       currentPracticeMode = document.getElementById('practice-mode-select').value;
       const selectedId = document.getElementById('grammar-deck-select').value;
@@ -848,33 +1017,12 @@
 
       if (currentPracticeMode === 'exam') {
         let allVocabWords = decks.flatMap(d => d.words);
-        if (allVocabWords.length === 0) {
-          alert('單字庫目前沒有單字！');
-          return;
-        }
         let randomVocab = allVocabWords[Math.floor(Math.random() * allVocabWords.length)];
 
         const grammarTopic = currentRoleplayItem.question;
-        const grammarScenario = currentRoleplayItem.scenario || currentRoleplayItem.userGoal || '';
+        const grammarScenario = currentRoleplayItem.scenario || '';
         
-        const promptText = `你是一位專業的日文考試出題老師。
-請根據以下指定的「文法庫句型/主題」：
-- 句型主題：${grammarTopic}
-- 情境說明：${grammarScenario}
-
-並且【絕對必須強制使用】以下從使用者「現有單字庫」挑選的指定單字來出題：
-- 指定單字：${randomVocab.question} （中文意思：${randomVocab.ans1}）
-
-【極重要限制】：
-1. 題目句子及標準日文解答中，核心實詞（動詞、形容詞、主要名詞）必須使用該指定單字。
-2. **嚴禁**使用使用者單字庫以外的艱澀生難單字或無關複雜詞彙。若需搭配其他詞彙，請僅使用最基礎、最常見的日常核心詞彙。
-
-請出一道實用的「中翻日」考試題目（給出一個包含該指定單字並符合該文法句型的自然中文句子，要求使用者翻譯成日文）。
-請嚴格回傳純 JSON 格式：
-{
-  "chinese_question": "出題的中文句子",
-  "expected_japanese": "標準正確的日文解答"
-}`;
+        const promptText = `你是一位專業的日文考試出題老師。請根據「${grammarTopic}」(${grammarScenario}) 且【絕對必須強制使用】單字「${randomVocab.question}」(中文:${randomVocab.ans1}) 出一道中翻日考試題目。嚴禁使用單字庫以外的艱澀詞彙。回傳純 JSON: {"chinese_question": "...", "expected_japanese": "..."}`;
         fetchExamQuestion(promptText, randomVocab);
       } else {
         currentRoleplayData = {
@@ -904,10 +1052,7 @@
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptHint }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: promptHint }] }], generationConfig: { responseMimeType: "application/json" } })
         });
         const data = await resp.json();
         document.getElementById('roleplay-loading').classList.add('hidden');
@@ -953,7 +1098,6 @@
 
     async function sendRoleplayReply() {
       stopVoiceRecognition();
-
       const inputElem = document.getElementById('roleplay-user-input');
       const userText = inputElem.value.trim();
       if (!userText || currentRoleplayData.isFinished) return;
@@ -968,50 +1112,21 @@
       evalArea.classList.remove('hidden');
       evalArea.innerHTML = '⏳ AI 正在評估您的翻譯與文法...';
 
-      let promptText = '';
-      if (currentRoleplayData.isExam) {
-        const currentAiQuestion = currentRoleplayData.history.find(h => h.sender === 'ai')?.text || '';
-        promptText = `你是一位嚴格且專業的日文考試評分老師。
-剛剛出的中文題目是："${currentAiQuestion}"。
-文法句型要求："${currentRoleplayItem.question}"。
-使用者提交的日文翻譯是："${userText}"。
-請評估其日文翻譯是否正確運用了指定句型與單字、文法正確性及自然度，回傳純 JSON 格式：
-{
-  "score": 95,
-  "correction": "若有錯誤或可更優化的日文句子，請提供標準正確的日文範例；若完全正確則填 null",
-  "explanation": "詳細的文法解析、用詞建議或錯誤糾正說明（中文）",
-  "next_ai_line": null,
-  "is_finished": true
-}`;
-      } else {
-        promptText = `你是一位親切且專業的日文會話教練。對話紀錄：${JSON.stringify(currentRoleplayData.history)}。使用者回覆："${userText}"。回傳純 JSON: {"score": 90, "correction": null, "explanation": "說明", "next_ai_line": "AI回應", "is_finished": false}`;
-      }
+      let promptText = currentRoleplayData.isExam 
+        ? `評分日文翻譯。回傳純 JSON: {"score": 95, "correction": "...", "explanation": "...", "next_ai_line": null, "is_finished": true}`
+        : `日文會話教練。回傳純 JSON: {"score": 90, "correction": null, "explanation": "...", "next_ai_line": "...", "is_finished": false}`;
 
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: promptText }] }],
-            generationConfig: { responseMimeType: "application/json" }
-          })
+          body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }], generationConfig: { responseMimeType: "application/json" } })
         });
         const data = await resp.json();
-        if (data.error) throw new Error(data.error.message);
+        const parsed = JSON.parse(data.candidates[0].content.parts[0].text.match(/\{[\s\S]*\}/)[0]);
 
-        const text = data.candidates[0].content.parts[0].text;
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-
-        let evalHtml = `<strong>📊 評分結果：${parsed.score} 分</strong><br>`;
-        if (parsed.correction) {
-          evalHtml += `✨ <strong>建議正確日文範例：</strong> <span style="color:#1a73e8; font-weight:bold;">${escapeHtml(parsed.correction)}</span><br>`;
-        }
-        if (parsed.explanation) {
-          evalHtml += `💡 <strong>老師解析：</strong> ${escapeHtml(parsed.explanation)}`;
-        }
-        evalArea.innerHTML = evalHtml;
+        evalArea.innerHTML = `<strong>📊 評分結果：${parsed.score} 分</strong><br>${parsed.correction ? '✨ 範例：' + escapeHtml(parsed.correction) + '<br>' : ''}💡 解析：${escapeHtml(parsed.explanation)}`;
 
         const isSuccess = (parsed.score >= 75);
         if (currentRoleplayItem) {
@@ -1034,16 +1149,12 @@
           document.getElementById('roleplay-input-area').style.display = 'none';
           document.getElementById('btn-next-roleplay').classList.remove('hidden');
         }
-
       } catch (e) {
         evalArea.innerHTML = `<span style="color:red;">❌ 評估失敗：${e.message}</span>`;
       }
     }
 
-    function handleRoleplayKey(event) {
-      if (event.key === 'Enter') sendRoleplayReply();
-    }
-
+    function handleRoleplayKey(event) { if (event.key === 'Enter') sendRoleplayReply(); }
     function resetRoleplaySession() {
       stopVoiceRecognition();
       document.getElementById('roleplay-session-area').classList.add('hidden');
@@ -1052,73 +1163,22 @@
     }
 
     let activeRecognition = null;
-
     function toggleVoiceRecognition() {
-      if (activeRecognition) {
-        stopVoiceRecognition();
-        return;
-      }
-
+      if (activeRecognition) { stopVoiceRecognition(); return; }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) return alert('您的瀏覽器不支援語音辨識功能。');
-
+      if (!SpeechRecognition) return alert('不支援語音辨識');
       const recognition = new SpeechRecognition();
       activeRecognition = recognition;
       recognition.lang = 'ja-JP';
-      recognition.interimResults = true;
-      recognition.maxAlternatives = 1;
-
-      const btn = document.getElementById('btn-voice-rec');
-      const inputElem = document.getElementById('roleplay-user-input');
-
-      btn.innerHTML = '⏹️ 停止錄音';
-      btn.style.backgroundColor = '#dc3545';
-      inputElem.placeholder = '🎙️ 正在聆聽您的日文發音...';
-
-      recognition.onresult = function(event) {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        inputElem.value = transcript;
-      };
-
-      recognition.onerror = function() {
-        stopVoiceRecognition();
-      };
-
-      recognition.onend = function() {
-        stopVoiceRecognition();
-      };
-
-      try {
-        recognition.start();
-      } catch (e) {
-        stopVoiceRecognition();
-      }
+      recognition.onresult = e => document.getElementById('roleplay-user-input').value = e.results[0][0].transcript;
+      recognition.onend = () => stopVoiceRecognition();
+      recognition.start();
     }
-
     function stopVoiceRecognition() {
-      if (activeRecognition) {
-        try {
-          activeRecognition.stop();
-        } catch (e) {}
-        activeRecognition = null;
-      }
-      const btn = document.getElementById('btn-voice-rec');
-      const inputElem = document.getElementById('roleplay-user-input');
-      if (btn) {
-        btn.innerHTML = '🎙️ 說日文';
-        btn.style.backgroundColor = '';
-      }
-      if (inputElem) {
-        inputElem.placeholder = '請輸入日文回答...';
-      }
+      if (activeRecognition) { try { activeRecognition.stop(); } catch(e){} activeRecognition = null; }
     }
 
-    function escapeHtml(str) {
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+    function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
     function renderUI() {
       const deckSelect = document.getElementById('deck-select');
@@ -1163,43 +1223,87 @@
     }
 
     let quizAutoNextTimeout = null;
+
+    // 進階錯誤率挑題與配額機制
     function initQuizSession() {
       if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
       const selected = document.getElementById('quiz-deck-select').value;
-      let pool = selected === 'all' ? decks.flatMap(d => d.words.map((w, index) => ({...w, deckId: String(d.id), wordIndex: index}))) : (decks.find(d => String(d.id) === String(selected))?.words.map((w, index) => ({...w, deckId: String(selected), wordIndex: index})) || []);
+      let pool = [];
+
+      if (selected === 'all') {
+        pool = decks.flatMap(d => d.words.map((w, index) => ({...w, deckId: String(d.id), wordIndex: index})));
+      } else {
+        const target = decks.find(d => String(d.id) === String(selected));
+        if (target) pool = target.words.map((w, index) => ({...w, deckId: String(target.id), wordIndex: index}));
+      }
 
       if (pool.length === 0) return alert('無單字可測驗！');
       targetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-      quizQueue = pool.sort(() => Math.random() - 0.5).slice(0, targetLimit);
+
+      const errorBasis = localStorage.getItem('vocab_quiz_error_basis') || 'recent';
+      const recentWindowSize = getRecentWindowSize();
+
+      const getScore = (item) => {
+        if (errorBasis === 'overall') {
+          const attempts = item.attempts || 0;
+          return attempts === 0 ? 0 : (item.errors || 0) / attempts;
+        } else {
+          if (item.recentResults && item.recentResults.length > 0) {
+            const recentSlice = item.recentResults.slice(-recentWindowSize);
+            return recentSlice.filter(r => !r).length / recentSlice.length;
+          }
+          const attempts = item.attempts || 0;
+          return attempts === 0 ? 0 : (item.errors || 0) / attempts;
+        }
+      };
+
+      let unattemptedWords = pool.filter(w => (w.attempts || 0) === 0);
+      unattemptedWords.sort(() => Math.random() - 0.5);
+
+      let errorWords = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) > 0);
+      errorWords.sort((a, b) => getScore(b) - getScore(a));
+
+      let familiarWords = pool.filter(w => (w.attempts || 0) > 0 && getScore(w) === 0);
+      familiarWords.sort(() => Math.random() - 0.5);
+
+      const errorQuotaPct = parseInt(localStorage.getItem('vocab_error_quota_pct') || '50') / 100;
+      const newQuotaPct = parseInt(localStorage.getItem('vocab_new_quota_pct') || '30') / 100;
+      const familiarQuotaPct = parseInt(localStorage.getItem('vocab_familiar_quota_pct') || '20') / 100;
+
+      let errorQuota = Math.floor(targetLimit * errorQuotaPct);
+      let newQuota = Math.floor(targetLimit * newQuotaPct);
+      let familiarQuota = Math.floor(targetLimit * familiarQuotaPct);
+
+      let selectedWords = [];
+      selectedWords.push(...errorWords.splice(0, errorQuota));
+      selectedWords.push(...unattemptedWords.splice(0, newQuota));
+      selectedWords.push(...familiarWords.splice(0, familiarQuota));
+
+      let remainingSlots = targetLimit - selectedWords.length;
+      if (remainingSlots > 0) {
+        let remainingPool = [...errorWords, ...unattemptedWords, ...familiarWords];
+        remainingPool.sort(() => Math.random() - 0.5);
+        selectedWords.push(...remainingPool.slice(0, remainingSlots));
+      }
+
+      selectedWords.sort(() => Math.random() - 0.5);
+      quizQueue = selectedWords;
       sessionResults = [];
       totalAnswered = 0;
       nextQuizQuestion();
     }
 
     function nextQuizQuestion() {
+      if (quizAutoNextTimeout) { clearTimeout(quizAutoNextTimeout); quizAutoNextTimeout = null; }
       if (quizQueue.length === 0) {
-        const correctCount = sessionResults.filter(r => r.correct).length;
-        const totalCount = sessionResults.length;
-        
-        // 需求 (1)：記錄測驗歷史紀錄至當前選取的單字庫[cite: 12]
-        const selectedDeckId = document.getElementById('quiz-deck-select').value;
-        let targetDeck = (selectedDeckId && selectedDeckId !== 'all') ? decks.find(d => String(d.id) === String(selectedDeckId)) : getCurrentDeck();
-        if (targetDeck) {
-          if (!targetDeck.history) targetDeck.history = [];
-          targetDeck.history.push({ date: new Date().toLocaleDateString(), total: totalCount, correct: correctCount });
-          saveData();
-        }
-
-        document.getElementById('quiz-prompt').innerText = `🎉 測驗完成！答對 ${correctCount} / ${totalAnswered} 題`;
-        document.getElementById('quiz-answer').style.display = 'none';
-        document.getElementById('btn-submit-ans').style.display = 'none';
-        document.getElementById('btn-next-ans').classList.add('hidden');
+        endQuizSession();
         return;
       }
       currentQuizItem = quizQueue.shift();
       totalAnswered++;
       document.getElementById('quiz-progress').innerText = `進度：${totalAnswered} / ${targetLimit}`;
       document.getElementById('quiz-prompt').innerText = currentQuizItem.question;
+      
       const inputElem = document.getElementById('quiz-answer');
       inputElem.style.display = 'block';
       inputElem.disabled = false;
@@ -1207,29 +1311,39 @@
       document.getElementById('quiz-result').innerText = '';
       document.getElementById('btn-submit-ans').style.display = 'block';
       document.getElementById('btn-next-ans').classList.add('hidden');
+      document.getElementById('btn-get-ai-tip').classList.add('hidden');
+      document.getElementById('ai-tip-box').classList.add('hidden');
+
       setTimeout(() => inputElem.focus(), 50);
     }
 
     function checkAnswer() {
       if (!currentQuizItem) return;
-      const userAns = document.getElementById('quiz-answer').value.trim().toLowerCase();
+      const inputElem = document.getElementById('quiz-answer');
+      const userAns = inputElem.value.trim().toLowerCase();
       const ans1 = cleanAnswerText(currentQuizItem.ans1).toLowerCase();
-      const isCorrect = (userAns === ans1);
+      const ans2 = cleanAnswerText(currentQuizItem.ans2 || '').toLowerCase();
+      const isCorrect = (userAns === ans1 || (ans2 !== '' && userAns === ans2));
 
       sessionResults.push({ correct: isCorrect });
 
-      // 需求 (1)：更新個別單字的測驗次數與錯誤次數，供統計排行使用[cite: 12]
-      if (currentQuizItem.deckId && currentQuizItem.wordIndex !== undefined) {
-        const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
-        if (targetDeck && targetDeck.words[currentQuizItem.wordIndex]) {
-          const w = targetDeck.words[currentQuizItem.wordIndex];
-          w.attempts = (w.attempts || 0) + 1;
-          if (!isCorrect) w.errors = (w.errors || 0) + 1;
-          saveData();
-        }
+      let originalWord = null;
+      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+      if (targetDeck && targetDeck.words[currentQuizItem.wordIndex]) {
+        originalWord = targetDeck.words[currentQuizItem.wordIndex];
+        originalWord.attempts = (originalWord.attempts || 0) + 1;
+        if (!isCorrect) originalWord.errors = (originalWord.errors || 0) + 1;
+        
+        if (!originalWord.recentResults) originalWord.recentResults = [];
+        originalWord.recentResults.push(isCorrect);
+        if (originalWord.recentResults.length > 10) originalWord.recentResults.shift();
+
+        if (!targetDeck.history) targetDeck.history = [];
+        targetDeck.history.push({ timestamp: Date.now(), total: 1, correct: isCorrect ? 1 : 0 });
+        saveData();
       }
 
-      document.getElementById('quiz-answer').disabled = true;
+      inputElem.disabled = true;
       document.getElementById('btn-submit-ans').style.display = 'none';
       document.getElementById('btn-next-ans').classList.remove('hidden');
 
@@ -1241,6 +1355,14 @@
       } else {
         resElem.style.color = '#dc3545';
         resElem.innerText = `❌ 答錯了！正確答案：${currentQuizItem.ans1}`;
+        if (originalWord && originalWord.aiTip) {
+          document.getElementById('ai-tip-box').classList.remove('hidden');
+          document.getElementById('ai-tip-content').innerText = originalWord.aiTip;
+          document.getElementById('ai-tip-feedback-row').classList.add('hidden');
+        } else {
+          document.getElementById('ai-tip-box').classList.add('hidden');
+          document.getElementById('btn-get-ai-tip').classList.remove('hidden');
+        }
       }
     }
 
@@ -1251,57 +1373,129 @@
       }
     }
 
-    // 需求 (1)：渲染統計與歷史錯誤紀錄排行[cite: 12]
+    function endQuizSession() {
+      const correctCount = sessionResults.filter(r => r.correct).length;
+      document.getElementById('quiz-prompt').innerText = `🎉 測驗完成！答對 ${correctCount} / ${totalAnswered} 題`;
+      document.getElementById('quiz-answer').style.display = 'none';
+      document.getElementById('btn-submit-ans').style.display = 'none';
+      document.getElementById('btn-next-ans').classList.add('hidden');
+    }
+
+    let currentAiTip = "";
+    async function fetchAiTip() {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      if (!apiKey) return alert('請先設定 API Key！');
+
+      const btn = document.getElementById('btn-get-ai-tip');
+      btn.innerText = '⏳ AI 思考中...';
+      btn.disabled = true;
+
+      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+      const originalWord = targetDeck.words[currentQuizItem.wordIndex];
+      let badTipsContext = (originalWord && originalWord.badTips) ? `\n避開以下方向：\n${originalWord.badTips.join('\n')}\n` : '';
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: `請針對單字 "${currentQuizItem.question}" (答案: ${currentQuizItem.ans1}) 提供記憶法。${badTipsContext}` }] }] })
+        });
+        const data = await resp.json();
+        currentAiTip = data.candidates[0].content.parts[0].text.trim();
+        document.getElementById('btn-get-ai-tip').classList.add('hidden');
+        document.getElementById('ai-tip-box').classList.remove('hidden');
+        document.getElementById('ai-tip-content').innerText = currentAiTip;
+        document.getElementById('ai-tip-feedback-row').classList.remove('hidden');
+      } catch (e) {
+        alert('取得失敗: ' + e.message);
+      } finally {
+        btn.innerText = '🤖 請 AI 提供記憶建議';
+        btn.disabled = false;
+      }
+    }
+
+    function submitAiTipFeedback(isGood) {
+      const targetDeck = decks.find(d => String(d.id) === String(currentQuizItem.deckId));
+      const originalWord = targetDeck.words[currentQuizItem.wordIndex];
+      if (isGood) {
+        originalWord.aiTip = currentAiTip;
+        document.getElementById('ai-tip-feedback-row').classList.add('hidden');
+        alert("✅ 已記錄此記憶法！");
+      } else {
+        if (!originalWord.badTips) originalWord.badTips = [];
+        originalWord.badTips.push(currentAiTip);
+        fetchAiTip();
+      }
+      saveData();
+    }
+
+    // 進階統計排行渲染
     function renderStats() {
-      const statsDeckId = document.getElementById('stats-deck-select').value;
-      const targetDecks = statsDeckId === 'all' ? decks : decks.filter(d => String(d.id) === String(statsDeckId));
+      const selected = document.getElementById('stats-deck-select').value;
+      const recentWindow = getRecentWindowSize();
+      const sortSelect = document.getElementById('stats-sort-select');
+
+      const targetDecks = selected === 'all' ? decks : decks.filter(d => String(d.id) === String(selected));
       
-      let allTotal = 0, allCorrect = 0;
+      let allTotal = 0, allCorrect = 0, monthTotal = 0, monthCorrect = 0;
+      const now = Date.now(), oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+      let wordsStats = [];
+
       targetDecks.forEach(d => {
         (d.history || []).forEach(h => {
-          allTotal += h.total;
-          allCorrect += h.correct;
+          allTotal += (h.total || 0);
+          allCorrect += (h.correct || 0);
+          if (now - (h.timestamp || Date.now()) <= oneMonthMs) {
+            monthTotal += (h.total || 0);
+            monthCorrect += (h.correct || 0);
+          }
+        });
+        (d.words || []).forEach(w => {
+          if ((w.attempts || 0) > 0) {
+            const errRate = w.errors / w.attempts;
+            let recentErrRate = errRate;
+            let recentErrors = 0, recentTotal = 0;
+            if (w.recentResults && w.recentResults.length > 0) {
+              const recentSlice = w.recentResults.slice(-recentWindow);
+              recentTotal = recentSlice.length;
+              recentErrors = recentSlice.filter(r => !r).length;
+              recentErrRate = recentErrors / recentTotal;
+            }
+            wordsStats.push({ ...w, deckName: d.name, errorRate: errRate, recentErrorRate: recentErrRate, recentErrors, recentTotal });
+          }
         });
       });
 
-      document.getElementById('stat-all-time').innerHTML = allTotal > 0 ? `${Math.round((allCorrect/allTotal)*100)}% (${allCorrect}/${allTotal})` : '尚無紀錄';
-      document.getElementById('stat-month').innerHTML = allTotal > 0 ? `${Math.round((allCorrect/allTotal)*100)}% (${allCorrect}/${allTotal})` : '尚無紀錄';
+      const calcRate = (c, t) => t > 0 ? `${Math.round((c/t)*100)}% (${c}/${t})` : '尚無紀錄';
+      document.getElementById('stat-all-time').innerText = calcRate(allCorrect, allTotal);
+      document.getElementById('stat-month').innerText = calcRate(monthCorrect, monthTotal);
 
-      let allWords = [];
-      targetDecks.forEach(d => {
-        (d.words || []).forEach((w) => {
-          allWords.push({ ...w, deckName: d.name });
-        });
-      });
-
-      allWords.sort((a, b) => {
-        const errA = (a.attempts || 0) > 0 ? ((a.errors || 0) / a.attempts) : 0;
-        const errB = (b.attempts || 0) > 0 ? ((b.errors || 0) / b.attempts) : 0;
-        return errB - errA;
-      });
+      const sortOption = sortSelect ? sortSelect.value : 'recent';
+      if (sortOption === 'recent') {
+        wordsStats.sort((a, b) => b.recentErrorRate - a.recentErrorRate);
+      } else {
+        wordsStats.sort((a, b) => b.errorRate - a.errorRate);
+      }
 
       const wordListElem = document.getElementById('stats-word-list');
-      if (allWords.length === 0) {
+      if (wordsStats.length === 0) {
         wordListElem.innerHTML = '<p style="color:var(--subtext-color);">尚無單字測驗紀錄。</p>';
         return;
       }
 
-      wordListElem.innerHTML = allWords.map(w => {
-        const attempts = w.attempts || 0;
-        const errors = w.errors || 0;
-        const rate = attempts > 0 ? Math.round((errors / attempts) * 100) : 0;
-        return `
-          <div class="word-item">
-            <div>
-              <strong>${escapeHtml(w.question)}</strong> (${escapeHtml(w.ans1)})
-              <div style="font-size: 12px; color: var(--subtext-color);">[${escapeHtml(w.deckName)}] 測驗 ${attempts} 次 / 錯誤 ${errors} 次</div>
-            </div>
-            <div style="font-weight: bold; color: ${rate > 50 ? '#dc3545' : (rate > 0 ? '#ffc107' : '#28a745')};">
-              錯誤率 ${rate}%
-            </div>
+      wordListElem.innerHTML = wordsStats.map(w => `
+        <div class="word-item">
+          <div>
+            <strong>${escapeHtml(w.question)}</strong> (${escapeHtml(w.ans1)})
+            <div style="font-size: 12px; color: var(--subtext-color);">[${escapeHtml(w.deckName)}] 總測驗 ${w.attempts} 次 / 錯誤 ${w.errors} 次</div>
           </div>
-        `;
-      }).join('');
+          <div style="text-align: right; font-weight: bold; color: ${w.errorRate > 0.5 ? '#dc3545' : '#28a745'};">
+            ${Math.round((sortOption === 'recent' ? w.recentErrorRate : w.errorRate) * 100)}%
+          </div>
+        </div>
+      `).join('');
     }
   </script>
 </body>
