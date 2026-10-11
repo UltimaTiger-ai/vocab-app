@@ -1164,18 +1164,63 @@
 
     let activeRecognition = null;
     function toggleVoiceRecognition() {
-      if (activeRecognition) { stopVoiceRecognition(); return; }
+      const btn = document.getElementById('btn-voice-rec');
+      if (activeRecognition) { 
+        stopVoiceRecognition(); 
+        return; 
+      }
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return alert('不支援語音辨識');
+      
       const recognition = new SpeechRecognition();
       activeRecognition = recognition;
       recognition.lang = 'ja-JP';
-      recognition.onresult = e => document.getElementById('roleplay-user-input').value = e.results[0][0].transcript;
-      recognition.onend = () => stopVoiceRecognition();
-      recognition.start();
+      recognition.interimResults = false;
+
+      recognition.onstart = () => {
+        if (btn) {
+          btn.innerText = '🔴 停止錄音';
+          btn.classList.remove('btn-secondary');
+          btn.classList.add('btn-danger');
+        }
+      };
+
+      recognition.onresult = e => {
+        document.getElementById('roleplay-user-input').value = e.results[0][0].transcript;
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        stopVoiceRecognition();
+      };
+
+      recognition.onend = () => {
+        const inputVal = document.getElementById('roleplay-user-input').value.trim();
+        stopVoiceRecognition();
+        if (inputVal) {
+          sendRoleplayReply();
+        }
+      };
+
+      try {
+        recognition.start();
+      } catch (err) {
+        console.error(err);
+        stopVoiceRecognition();
+      }
     }
+
     function stopVoiceRecognition() {
-      if (activeRecognition) { try { activeRecognition.stop(); } catch(e){} activeRecognition = null; }
+      if (activeRecognition) { 
+        try { activeRecognition.stop(); } catch(e){} 
+        activeRecognition = null; 
+      }
+      const btn = document.getElementById('btn-voice-rec');
+      if (btn) {
+        btn.innerText = '🎙️ 說日文';
+        btn.classList.remove('btn-danger');
+        btn.classList.add('btn-secondary');
+      }
     }
 
     function escapeHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
