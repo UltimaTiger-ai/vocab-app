@@ -195,15 +195,34 @@
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
+	  
+      <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
+      
+      <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
+        <table class="ai-tip-table">
+          <thead>
+            <tr><th>💡 AI 記憶建議</th></tr>
+          </thead>
+          <tbody>
+            <tr><td id="ai-tip-content">載入中...[cite: 9]</td></tr>
+            <tr id="ai-tip-feedback-row">
+              <td style="text-align: center;">
+                <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
+                <button class="btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(true)">👍 實用，記下來</button>
+                <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(false)">👎 不好，請改進重想</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
   <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
   <div id="page-roleplay" class="card hidden">
-    <h2>💬 AI 角色扮演與中翻日考試練功坊</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">可選擇「AI 情境對話模式」（練習課本句型）或「中翻日考試測驗模式」（直接從您的單字庫中出題測驗）！</p>
+    <h2>💬 AI 角色扮演與口語練功坊</h2>
+    <p style="font-size: 14px; color: var(--subtext-color);">可選擇「AI 情境對話模式」（使用文法庫）或「中翻日考試測驗模式」（直接從您的單字庫中出題測驗）！</p>
     
-    <!-- 設定區 -->
     <div style="background: var(--stats-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
       <h3 style="margin-top:0; font-size:15px;">📚 練習模式與題庫設定</h3>
       
@@ -233,14 +252,14 @@
       <div id="exam-deck-section" class="setting-group hidden" style="margin-bottom: 10px;">
         <label>選擇測驗單字庫</label>
         <select id="exam-vocab-deck-select"></select>
-        <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">考試模式將直接從您建立的單字庫中挑選已學過的單字，由 AI 自動出具體的中文翻譯題！</p>
+        <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">考試模式將根據您選擇的單字庫挑選單字，由 AI 自動生成對應的中文翻譯考題！</p>
       </div>
 
       <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 10px;">🚀 開始練功與測驗</button>
     </div>
 
     <div id="roleplay-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在準備題目，請稍候...
+      ⏳ AI 正在準備考題與情境，請稍候...
     </div>
 
     <!-- 練功對話主介面 -->
@@ -290,7 +309,7 @@
   <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字[cite: 9]！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
 
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
@@ -301,7 +320,7 @@
     <button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
     
     <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候[cite: 9]...
+      ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
     </div>
 
     <div id="ai-error-area" class="hidden" style="background: #f8d7da; color: #721c24; padding: 12px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
@@ -388,31 +407,6 @@
         <option value="0">全部單字集</option>
       </select>
     </div>
-    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
-    <h3>💾 資料備份與還原 (JSON)</h3>
-    <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
-      <button type="button" class="btn-success" onclick="exportDataToJson()">📤 匯出全部單字庫</button>
-      <button type="button" class="btn-warning" onclick="document.getElementById('import-json-input').click()">📥 匯入單字庫</button>
-      <input type="file" id="import-json-input" accept=".json" style="display: none;" onchange="importDataFromJson(event)">
-    </div>
-  </div>
-
-  <!-- 編輯單字彈窗 -->
-  <div id="edit-modal" class="card hidden" style="border: 2px solid #1a73e8; position: fixed; top: 10%; left: 5%; right: 5%; z-index: 999; background: var(--modal-bg);">
-    <h2>✏️ 編輯單字</h2>
-    <input type="hidden" id="edit-index">
-    <label>題目語言 / 題目</label>
-    <div class="row-group">
-      <select id="edit-q-lang"><option value="en-US">英文</option><option value="ja-JP">日文</option><option value="zh-TW">中文</option><option value="ko-KR">韓文</option></select>
-      <input type="text" id="edit-question" style="margin-top:0;">
-    </div>
-    <label style="margin-top:10px; display:block;">答案一 / 答案二</label>
-    <input type="text" id="edit-ans1" placeholder="答案一">
-    <input type="text" id="edit-ans2" placeholder="答案二">
-    <div style="display:flex; gap:10px; margin-top:15px;">
-      <button onclick="saveEditedWord()" class="btn-success">儲存修改</button>
-      <button onclick="closeEditModal()" class="btn-secondary">取消</button>
-    </div>
   </div>
 
   <script>
@@ -427,45 +421,10 @@
     let currentDeckId = localStorage.getItem('vocab_current_deck') || decks[0].id;
     let quizLimit = parseInt(localStorage.getItem('vocab_quiz_limit') || '10');
 
-    // 文法庫資料結構初始化
     let grammarDecks = JSON.parse(localStorage.getItem('vocab_grammar_decks') || JSON.stringify([
       { id: 'g_deck_1', name: '預設文法句型庫', items: [] }
     ]));
     let currentGrammarDeckId = localStorage.getItem('vocab_current_grammar_deck') || grammarDecks[0].id;
-
-    let sharedDecks = JSON.parse(localStorage.getItem('vocab_shared_decks') || 'null');
-    if (!sharedDecks) {
-      sharedDecks = [
-        {
-          id: 'share_demo_1',
-          name: 'TOEIC 職場必備高頻單字',
-          author: 'UltimaTiger',
-          description: '整理自多益常考商務與職場英語高頻詞彙[cite: 9]。',
-          downloads: 42,
-          likes: 18,
-          createdAt: '2026-03-20',
-          words: [
-            { question: 'negotiation', ans1: '談判', ans2: '協商', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 },
-            { question: 'agenda', ans1: '議程', ans2: '討論事項', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 },
-            { question: 'proposal', ans1: '提案', ans2: '建議書', qLang: 'en-US', aLang: 'zh-TW', attempts: 0, errors: 0 }
-          ]
-        },
-        {
-          id: 'share_demo_2',
-          name: 'JLPT N3 常用動詞精選',
-          author: '櫻花貓貓',
-          description: '日檢 N3 必考高頻動詞與漢字[cite: 9]。',
-          downloads: 29,
-          likes: 15,
-          createdAt: '2026-03-21',
-          words: [
-            { question: '調べる', ans1: 'しらべる', ans2: '調查/查閱', qLang: 'ja-JP', aLang: 'zh-TW', attempts: 0, errors: 0 },
-            { question: '手伝う', ans1: 'てつだう', ans2: '幫忙', qLang: 'ja-JP', aLang: 'zh-TW', attempts: 0, errors: 0 }
-          ]
-        }
-      ];
-      localStorage.setItem('vocab_shared_decks', JSON.stringify(sharedDecks));
-    }
 
     let quizQueue = [], currentQuizItem = null;
     let sessionResults = [], totalAnswered = 0, targetLimit = 10;
@@ -473,8 +432,7 @@
     let rawParsedRows = []; 
     let lastCapturedFile = null;
 
-    // AI 口語對話與考試模式變數
-    let currentPracticeMode = 'roleplay'; // 'roleplay' 或 'exam'
+    let currentPracticeMode = 'roleplay';
     let roleplayQueue = [];
     let currentRoleplayItem = null;
     let roleplaySessionResults = [];
@@ -513,13 +471,6 @@
       renderUI();
       renderGrammarDecksUI();
       renderExamVocabDecksUI();
-
-      if (window.matchMedia) {
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-          const savedTheme = localStorage.getItem('vocab_theme') || 'light';
-          if (savedTheme === 'auto') applyTheme('auto');
-        });
-      }
     };
 
     function applyTheme(theme) {
@@ -580,42 +531,6 @@
       if (modelSelect && modelSelect.value) {
         localStorage.setItem('gemini_selected_model', modelSelect.value);
       }
-    }
-
-    function exportDataToJson() {
-      if (decks.length === 0) return alert('目前沒有單字庫可以匯出！');
-      const dataStr = JSON.stringify(decks, null, 2);
-      const blob = new Blob([dataStr], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      a.download = `vocab_backup_${dateStr}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }
-
-    function importDataFromJson(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const importedData = JSON.parse(e.target.result);
-          if (!Array.isArray(importedData)) throw new Error("無效的檔案格式。");
-          decks = importedData;
-          currentDeckId = decks.length > 0 ? decks[0].id : 'default_1';
-          saveData();
-          alert("✅ 匯入成功！");
-          event.target.value = ''; 
-          switchTab('list'); 
-        } catch (error) {
-          alert("❌ 匯入失敗：" + error.message);
-        }
-      };
-      reader.readAsText(file);
     }
 
     function updateModelDropdown() {
@@ -730,16 +645,6 @@
 
       currentUtterance = new SpeechSynthesisUtterance(speakContent);
       currentUtterance.lang = targetLang;
-
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        let matchedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-') === targetLang);
-        if (!matchedVoice) {
-          const mainLang = targetLang.split('-')[0];
-          matchedVoice = voices.find(v => v.lang.toLowerCase().startsWith(mainLang));
-        }
-        if (matchedVoice) currentUtterance.voice = matchedVoice;
-      }
       window.speechSynthesis.speak(currentUtterance);
     }
 
@@ -751,60 +656,28 @@
       if (!textToSpeak) return;
       textToSpeak = cleanAnswerText(textToSpeak);
       if (!textToSpeak) return;
-
-      let aLang = item.aLang || 'zh-TW';
-      const hasKana = /[\u3040-\u309F\u30A0-\u30FF]/.test((item.ans1 || '') + (item.ans2 || ''));
-      if ((item.qLang === 'ja-JP' || hasKana) && aLang.startsWith('zh')) aLang = 'ja-JP';
-      speakText(textToSpeak, aLang);
+      speakText(textToSpeak, item.aLang || 'zh-TW');
     }
 
     async function fetchAvailableModels() {
       const apiKey = localStorage.getItem('gemini_api_key') || document.getElementById('input-api-key').value.trim();
       const container = document.getElementById('models-list-container');
-      if (!apiKey) {
-        alert('請先在設定頁面輸入 API Key！');
-        if (container) container.innerHTML = '<p style="color:red;">❌ 未輸入 API Key。</p>';
-        return;
-      }
-      if (container) container.innerHTML = '<p style="color:#1a73e8; font-weight:bold;">⏳ 正在查詢模型清單...</p>';
+      if (!apiKey) return alert('請先輸入 API Key！');
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
         const resp = await fetch(url);
         const data = await resp.json();
-        if (data.error) {
-          if (container) container.innerHTML = `<p style="color:red;">❌ 查詢失敗：${data.error.message}</p>`;
-          return;
-        }
-        const rawModels = data.models || [];
-        const currentModel = getGeminiModel();
-        const generateContentModelNames = rawModels
+        if (data.error) return alert('查詢失敗: ' + data.error.message);
+        const generateContentModelNames = (data.models || [])
           .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
           .map(m => m.name.replace('models/', ''));
-
         if (generateContentModelNames.length > 0) {
           localStorage.setItem('gemini_cached_models', JSON.stringify(generateContentModelNames));
-          if (!generateContentModelNames.includes(currentModel)) {
-            localStorage.setItem('gemini_selected_model', generateContentModelNames[0]);
-          }
         }
         updateModelDropdown();
-        if (container) {
-          container.innerHTML = rawModels.map(m => {
-            const cleanName = m.name.replace('models/', '');
-            const isCurrent = (cleanName === getGeminiModel());
-            return `
-              <div style="border: 1px solid ${isCurrent ? '#1a73e8' : 'var(--input-border)'}; padding: 12px; margin-bottom: 10px; border-radius: 8px; background: ${isCurrent ? 'var(--hint-bg)' : 'var(--card-bg)'};">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                  <strong style="color: #1a73e8; font-size: 15px;">${cleanName}</strong>
-                  ${isCurrent ? '<span style="background:#1a73e8; color:white; padding:2px 8px; border-radius:12px; font-size:12px;">使用中</span>' : ''}
-                </div>
-              </div>
-            `;
-          }).join('');
-        }
-        alert(`✅ 查詢成功！`);
+        alert('✅ 查詢成功！');
       } catch (e) {
-        if (container) container.innerHTML = `<p style="color:red;">❌ 錯誤：${e.message}</p>`;
+        alert('❌ 錯誤：' + e.message);
       }
     }
 
@@ -812,13 +685,7 @@
       const apiKey = localStorage.getItem('gemini_api_key');
       const resElem = document.getElementById('test-result');
       const currentModel = getGeminiModel();
-      if (!apiKey) {
-        resElem.style.color = 'red';
-        resElem.innerText = '❌ 請先輸入 API Key！';
-        return;
-      }
-      resElem.style.color = '#1a73e8';
-      resElem.innerText = `⏳ 正在測試連線...`;
+      if (!apiKey) return resElem.innerText = '❌ 請先輸入 API Key！';
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
@@ -827,15 +694,9 @@
           body: JSON.stringify({ contents: [{ parts: [{ text: '請回覆「OK」' }] }] })
         });
         const data = await resp.json();
-        if (data.error) {
-          resElem.style.color = 'red';
-          resElem.innerText = `❌ 失敗：${data.error.message}`;
-        } else {
-          resElem.style.color = 'green';
-          resElem.innerText = `✅ 連線成功！`;
-        }
+        if (data.error) resElem.innerText = `❌ 失敗：${data.error.message}`;
+        else resElem.innerText = `✅ 連線成功！`;
       } catch (e) {
-        resElem.style.color = 'red';
         resElem.innerText = `❌ 異常：${e.message}`;
       }
     }
@@ -844,27 +705,25 @@
       const apiKey = localStorage.getItem('gemini_api_key');
       const q = document.getElementById('input-question').value.trim();
       const currentModel = getGeminiModel();
-      if (!apiKey) return alert('請先設定 API Key！');
-      if (!q) return alert('請先輸入題目！');
-
+      if (!apiKey || !q) return alert('請先填寫 API Key 與題目！');
+      
       const btn = document.getElementById('btn-ai-suggest');
       btn.innerText = '⏳ AI 思考中...';
       btn.disabled = true;
 
-      const promptText = `請針對日文題目 "${q}" 提供答案。ans1為純假名，ans2為漢字寫法。回傳純 JSON: {"ans1": "", "ans2": ""}`;
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }], generationConfig: { responseMimeType: "application/json" } })
+          body: JSON.stringify({ contents: [{ parts: [{ text: `請針對 "${q}" 提供答案。ans1純假名，ans2漢字。純 JSON: {"ans1": "", "ans2": ""}` }] }], generationConfig: { responseMimeType: "application/json" } })
         });
         const data = await resp.json();
         const parsed = JSON.parse(data.candidates[0].content.parts[0].text);
         if (parsed.ans1) document.getElementById('input-ans1').value = parsed.ans1;
         if (parsed.ans2) document.getElementById('input-ans2').value = parsed.ans2;
       } catch (e) {
-        alert('AI 建議失敗: ' + e.message);
+        alert('失敗: ' + e.message);
       } finally {
         btn.innerText = '✨ AI 智慧建議答案';
         btn.disabled = false;
@@ -872,13 +731,12 @@
     }
 
     // ==========================================
-    // 💬 練功坊與考試測驗初始化與邏輯
+    // 💬 練功坊與考試測驗邏輯
     // ==========================================
     function initRoleplaySession() {
       currentPracticeMode = document.getElementById('practice-mode-select').value;
 
       if (currentPracticeMode === 'exam') {
-        // 從單字庫出題
         const selectedId = document.getElementById('exam-vocab-deck-select').value;
         let pool = [];
         if (selectedId === 'all') {
@@ -943,12 +801,11 @@
       roleplayTotalAnswered++;
 
       if (currentPracticeMode === 'exam') {
-        // 考試模式：從單字庫單字出題
         const vocabWord = currentRoleplayItem.question;
         const vocabMeaning = currentRoleplayItem.ans1;
         const promptText = `你是一位專業的日文老師。請使用已學過的單字：「${vocabWord}」（中文意思：${vocabMeaning}），出一道實用的「中翻日」考試題目。
 要求：
-1. 給出一句包含這個單字的自然日常中文句子（例如若單字是食べる，可以出中文：「我每天早上吃麵包。」）。
+1. 給出一句包含這個單字的自然日常中文句子。
 2. 同時提供這句中文對應的標準日文解答。
 請嚴格回傳純 JSON 格式：
 {
@@ -957,7 +814,6 @@
 }`;
         fetchExamQuestion(promptText, currentRoleplayItem);
       } else {
-        // 對話模式
         currentRoleplayData = {
           scenario: currentRoleplayItem.scenario,
           aiRole: currentRoleplayItem.aiRole || 'AI',
@@ -1151,8 +1007,6 @@
         inputElem.value = event.results[0][0].transcript;
         inputElem.placeholder = '請輸入日文回答...';
       };
-      recognition.onerror = function() { inputElem.placeholder = '請輸入日文回答...'; };
-      recognition.onend = function() { inputElem.placeholder = '請輸入日文回答...'; };
       recognition.start();
     }
 
@@ -1160,9 +1014,6 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // ==========================================
-    // 📚 拼寫測驗與 UI 基礎函數
-    // ==========================================
     function renderUI() {
       const deckSelect = document.getElementById('deck-select');
       const quizDeckSelect = document.getElementById('quiz-deck-select');
