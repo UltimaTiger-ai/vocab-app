@@ -195,71 +195,43 @@
       <button id="btn-submit-ans" onclick="checkAnswer()">提交答案</button>
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
-	  
-      <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
-      
-      <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
-        <table class="ai-tip-table">
-          <thead>
-            <tr><th>💡 AI 記憶建議</th></tr>
-          </thead>
-          <tbody>
-            <tr><td id="ai-tip-content">載入中...[cite: 9]</td></tr>
-            <tr id="ai-tip-feedback-row">
-              <td style="text-align: center;">
-                <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
-                <button class="btn-success" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(true)">👍 實用，記下來</button>
-                <button class="btn-danger" style="width: auto; padding: 5px 10px; font-size: 12px; margin: 2px;" onclick="submitAiTipFeedback(false)">👎 不好，請改進重想</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   </div>
 
   <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
   <div id="page-roleplay" class="card hidden">
     <h2>💬 AI 角色扮演與口語練功坊</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">可選擇「AI 情境對話模式」（使用文法庫）或「中翻日考試測驗模式」（直接從您的單字庫中出題測驗）！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫與練習模式，可進行情境對話或結合現有單字庫與文法題型的「中翻日考試」！</p>
     
     <div style="background: var(--stats-bg); padding: 12px; border-radius: 8px; margin-bottom: 15px;">
-      <h3 style="margin-top:0; font-size:15px;">📚 練習模式與題庫設定</h3>
+      <h3 style="margin-top:0; font-size:15px;">📚 練習模式與文法庫設定</h3>
       
       <div class="setting-group" style="margin-bottom: 10px;">
         <label>選擇練習模式</label>
-        <select id="practice-mode-select" onchange="onPracticeModeChange()">
-          <option value="roleplay">💬 AI 情境對話模式 (使用文法庫)</option>
-          <option value="exam">✍️ 中翻日考試測驗模式 (從您的單字庫出題)</option>
+        <select id="practice-mode-select">
+          <option value="roleplay">💬 AI 情境對話模式</option>
+          <option value="exam">✍️ 中翻日考試測驗模式 (依文法題型 + 現有單字庫出題)</option>
         </select>
       </div>
 
-      <!-- 對話模式：文法庫選單 -->
-      <div id="grammar-deck-section" class="setting-group" style="margin-bottom: 10px;">
+      <div class="setting-group" style="margin-bottom: 10px;">
         <label>選擇練習文法庫</label>
         <select id="grammar-deck-select" onchange="changeCurrentGrammarDeck()"></select>
-        <div style="display: flex; gap: 8px; margin-top: 8px;">
-          <input type="text" id="new-grammar-deck-name" placeholder="新文法庫名稱 (例如: 第3課 句型練習)" style="margin-top:0;">
-          <button onclick="createGrammarDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增文法庫</button>
-        </div>
-        <div class="hint-box" style="margin-top:10px;">
-          <label style="font-size:13px; font-weight:bold; color:#1a73e8;">📸 拍照匯入至當前文法庫：</label>
-          <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
-        </div>
       </div>
-
-      <!-- 考試模式：單字庫選單 -->
-      <div id="exam-deck-section" class="setting-group hidden" style="margin-bottom: 10px;">
-        <label>選擇測驗單字庫</label>
-        <select id="exam-vocab-deck-select"></select>
-        <p style="font-size: 12px; color: var(--subtext-color); margin-top: 4px;">考試模式將根據您選擇的單字庫挑選單字，由 AI 自動生成對應的中文翻譯考題！</p>
+      <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <input type="text" id="new-grammar-deck-name" placeholder="新文法庫名稱 (例如: 第3課 句型練習)" style="margin-top:0;">
+        <button onclick="createGrammarDeck()" style="width: auto; margin-top:0; white-space: nowrap;">新增文法庫</button>
       </div>
-
+      
+      <div class="hint-box" style="margin-top:10px;">
+        <label style="font-size:13px; font-weight:bold; color:#1a73e8;">📸 拍照匯入至當前文法庫：</label>
+        <input type="file" id="grammar-camera-input" accept="image/*" style="margin-top: 5px;" onchange="importGrammarFromImage(event)">
+      </div>
       <button onclick="initRoleplaySession()" class="btn-success" style="margin-top: 10px;">🚀 開始練功與測驗</button>
     </div>
 
     <div id="roleplay-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
-      ⏳ AI 正在準備考題與情境，請稍候...
+      ⏳ AI 正在結合文法題型與您的單字庫出題，請稍候...
     </div>
 
     <!-- 練功對話主介面 -->
@@ -443,9 +415,7 @@
       aiRole: 'AI',
       history: [],
       isFinished: false,
-      isExam: false,
-      expectedJapanese: '',
-      vocabItem: null
+      isExam: false
     };
 
     const DEFAULT_MODELS = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
@@ -470,7 +440,6 @@
       updateModelDropdown();
       renderUI();
       renderGrammarDecksUI();
-      renderExamVocabDecksUI();
     };
 
     function applyTheme(theme) {
@@ -514,7 +483,6 @@
       localStorage.setItem('vocab_decks', JSON.stringify(decks));
       localStorage.setItem('vocab_current_deck', currentDeckId);
       renderUI();
-      renderExamVocabDecksUI();
     }
 
     function saveGrammarData() {
@@ -592,24 +560,6 @@
       const selectElem = document.getElementById('grammar-deck-select');
       if (!selectElem) return;
       selectElem.innerHTML = `<option value="all">🌟 全部文法庫綜合</option>` + grammarDecks.map(g => `<option value="${g.id}" ${g.id === currentGrammarDeckId ? 'selected' : ''}>${g.name} (${g.items.length}句型)</option>`).join('');
-    }
-
-    function renderExamVocabDecksUI() {
-      const selectElem = document.getElementById('exam-vocab-deck-select');
-      if (!selectElem) return;
-      selectElem.innerHTML = `<option value="all">🌟 全部單字庫綜合</option>` + decks.map(d => `<option value="${d.id}">${d.name} (${d.words.length}字)</option>`).join('');
-    }
-
-    function onPracticeModeChange() {
-      const mode = document.getElementById('practice-mode-select').value;
-      currentPracticeMode = mode;
-      if (mode === 'exam') {
-        document.getElementById('grammar-deck-section').classList.add('hidden');
-        document.getElementById('exam-deck-section').classList.remove('hidden');
-      } else {
-        document.getElementById('grammar-deck-section').classList.remove('hidden');
-        document.getElementById('exam-deck-section').classList.add('hidden');
-      }
     }
 
     function addWord() {
@@ -735,36 +685,9 @@
     // ==========================================
     function initRoleplaySession() {
       currentPracticeMode = document.getElementById('practice-mode-select').value;
-
-      if (currentPracticeMode === 'exam') {
-        const selectedId = document.getElementById('exam-vocab-deck-select').value;
-        let pool = [];
-        if (selectedId === 'all') {
-          decks.forEach(d => {
-            d.words.forEach((w, idx) => {
-              pool.push({ ...w, deckId: d.id, wordIndex: idx });
-            });
-          });
-        } else {
-          const target = decks.find(d => String(d.id) === String(selectedId));
-          if (target) {
-            pool = target.words.map((w, idx) => ({ ...w, deckId: target.id, wordIndex: idx }));
-          }
-        }
-
-        if (pool.length === 0) return alert('所選單字庫中沒有任何單字！請先至「單字庫」新增單字。');
-
-        roleplayTargetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
-        roleplayQueue = pool.sort(() => Math.random() - 0.5).slice(0, roleplayTargetLimit);
-        roleplaySessionResults = [];
-        roleplayTotalAnswered = 0;
-        nextRoleplayScenario();
-        return;
-      }
-
-      // 對話模式 (文法庫)
       const selectedId = document.getElementById('grammar-deck-select').value;
       let pool = [];
+
       if (selectedId === 'all') {
         grammarDecks.forEach(g => {
           g.items.forEach((item, idx) => {
@@ -778,7 +701,7 @@
         }
       }
 
-      if (pool.length === 0) return alert('所選文法庫中沒有任何句型！');
+      if (pool.length === 0) return alert('所選文法庫中沒有任何句型，請先新增或拍照匯入！');
 
       roleplayTargetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
       roleplayQueue = pool.sort(() => Math.random() - 0.5).slice(0, roleplayTargetLimit);
@@ -801,27 +724,35 @@
       roleplayTotalAnswered++;
 
       if (currentPracticeMode === 'exam') {
-        const vocabWord = currentRoleplayItem.question;
-        const vocabMeaning = currentRoleplayItem.ans1;
-        const promptText = `你是一位專業的日文老師。請使用已學過的單字：「${vocabWord}」（中文意思：${vocabMeaning}），出一道實用的「中翻日」考試題目。
-要求：
-1. 給出一句包含這個單字的自然日常中文句子。
-2. 同時提供這句中文對應的標準日文解答。
+        // 從現有單字庫中隨機抽一個單字
+        let allVocabWords = decks.flatMap(d => d.words);
+        let randomVocab = allVocabWords.length > 0 ? allVocabWords[Math.floor(Math.random() * allVocabWords.length)] : { question: '食べる', ans1: '吃' };
+
+        const grammarTopic = currentRoleplayItem.question;
+        const grammarScenario = currentRoleplayItem.scenario || currentRoleplayItem.userGoal || '';
+        
+        const promptText = `你是一位專業的日文考試出題老師。
+請根據以下指定的「文法庫句型/主題」：
+- 句型主題：${grammarTopic}
+- 情境說明：${grammarScenario}
+
+並且【必須強制使用】以下從使用者「現有單字庫」挑選的指定單字來出題：
+- 指定單字：${randomVocab.question} （中文意思：${randomVocab.ans1}）
+
+請出一道實用的「中翻日」考試題目（給出一個包含該指定單字並符合該文法句型的自然中文句子，要求使用者翻譯成日文）。
 請嚴格回傳純 JSON 格式：
 {
   "chinese_question": "出題的中文句子",
   "expected_japanese": "標準正確的日文解答"
 }`;
-        fetchExamQuestion(promptText, currentRoleplayItem);
+        fetchExamQuestion(promptText, randomVocab);
       } else {
         currentRoleplayData = {
           scenario: currentRoleplayItem.scenario,
           aiRole: currentRoleplayItem.aiRole || 'AI',
           history: [{ sender: 'ai', text: currentRoleplayItem.initialAiLine }],
           isFinished: false,
-          isExam: false,
-          expectedJapanese: '',
-          vocabItem: null
+          isExam: false
         };
         document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>進度 (${roleplayTotalAnswered}/${roleplayTargetLimit}) - 句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>📝 <strong>情境：</strong>${escapeHtml(currentRoleplayItem.scenario)}`;
         renderRoleplayChat();
@@ -855,20 +786,17 @@
         const text = data.candidates[0].content.parts[0].text;
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
-        const qText = parsed.chinese_question || `請將「${vocabItem.ans1} (${vocabItem.question})」翻成日文`;
-        const expectedJa = parsed.expected_japanese || vocabItem.question;
+        const qText = parsed.chinese_question || `請將包含「${vocabItem.question}」的句子翻譯成日文`;
 
         currentRoleplayData = {
-          scenario: `目標單字：${vocabItem.question} (${vocabItem.ans1})`,
+          scenario: `文法句型：${currentRoleplayItem.question} | 指定單字：${vocabItem.question} (${vocabItem.ans1})`,
           aiRole: '考官',
           history: [{ sender: 'ai', text: qText }],
-          expectedJapanese: expectedJa,
-          vocabItem: vocabItem,
           isFinished: false,
           isExam: true
         };
 
-        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日單字測驗 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>🎯 <strong>本題目標單字：</strong><span style="color:#1a73e8; font-size:16px;">${escapeHtml(vocabItem.question)} (${escapeHtml(vocabItem.ans1)})</span>`;
+        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日考試測驗 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>🎯 <strong>文法句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>🔑 <strong>指定單字：</strong><span style="color:#1a73e8; font-weight:bold;">${escapeHtml(vocabItem.question)} (${escapeHtml(vocabItem.ans1)})</span>`;
         renderRoleplayChat();
         document.getElementById('roleplay-session-area').classList.remove('hidden');
         document.getElementById('roleplay-eval-area').classList.add('hidden');
@@ -911,14 +839,11 @@
       let promptText = '';
       if (currentRoleplayData.isExam) {
         const currentAiQuestion = currentRoleplayData.history.find(h => h.sender === 'ai')?.text || '';
-        const targetVocab = currentRoleplayData.vocabItem ? currentRoleplayData.vocabItem.question : '';
-        const expectedJa = currentRoleplayData.expectedJapanese || '';
         promptText = `你是一位嚴格且專業的日文考試評分老師。
 剛剛出的中文題目是："${currentAiQuestion}"。
-測驗要求的目標單字是："${targetVocab}"。
-標準參考日文解答是："${expectedJa}"。
+文法句型要求："${currentRoleplayItem.question}"。
 使用者提交的日文翻譯是："${userText}"。
-請評估其日文翻譯是否正確運用了目標單字、文法正確性及自然度，回傳純 JSON 格式：
+請評估其日文翻譯是否正確運用了指定句型與單字、文法正確性及自然度，回傳純 JSON 格式：
 {
   "score": 95,
   "correction": "若有錯誤或可更優化的日文句子，請提供標準正確的日文範例；若完全正確則填 null",
@@ -957,13 +882,13 @@
         evalArea.innerHTML = evalHtml;
 
         const isSuccess = (parsed.score >= 75);
-        if (currentPracticeMode === 'exam' && currentRoleplayData.vocabItem) {
-          const targetDeck = decks.find(d => String(d.id) === String(currentRoleplayData.vocabItem.deckId));
-          if (targetDeck && targetDeck.words[currentRoleplayData.vocabItem.wordIndex]) {
-            const wordObj = targetDeck.words[currentRoleplayData.vocabItem.wordIndex];
-            wordObj.attempts = (wordObj.attempts || 0) + 1;
-            if (!isSuccess) wordObj.errors = (wordObj.errors || 0) + 1;
-            saveData();
+        if (currentRoleplayItem) {
+          const targetDeck = grammarDecks.find(g => String(g.id) === String(currentRoleplayItem.grammarDeckId));
+          if (targetDeck && targetDeck.items[currentRoleplayItem.itemIndex]) {
+            const itemObj = targetDeck.items[currentRoleplayItem.itemIndex];
+            itemObj.attempts = (itemObj.attempts || 0) + 1;
+            if (!isSuccess) itemObj.errors = (itemObj.errors || 0) + 1;
+            saveGrammarData();
           }
         }
 
