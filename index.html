@@ -1224,20 +1224,11 @@
       roleplayTotalAnswered++;
 
       if (currentPracticeMode === 'exam') {
-        const examPromptText = `請將以下中文翻譯成日文：\n「${currentRoleplayItem.userGoal || currentRoleplayItem.question}」`;
-        currentRoleplayData = {
-          scenario: currentRoleplayItem.scenario,
-          aiRole: '考官',
-          history: [{ sender: 'ai', text: examPromptText }],
-          isFinished: false,
-          isExam: true
-        };
-        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日考試 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>📝 <strong>題型：</strong>${escapeHtml(currentRoleplayItem.question)}`;
-        renderRoleplayChat();
-        document.getElementById('roleplay-session-area').classList.remove('hidden');
-        document.getElementById('roleplay-input-area').style.display = 'flex';
-        document.getElementById('btn-next-roleplay').classList.add('hidden');
-        speakText(examPromptText, 'zh-TW');
+        const themeOrGoal = currentRoleplayItem.userGoal || currentRoleplayItem.question || currentRoleplayItem.scenario || '請將下列中文翻譯成日文';
+        const examPromptText = `請根據以下文法主題/情境「${themeOrGradeName = currentRoleplayItem.question}」（情境說明：${currentRoleplayItem.scenario || themeOrGoal}），出一道自然的中文翻譯成日文的考題（例如：「木村是公司職員。」或類似的實用句子）。請直接給出中文題目，不要包含多餘的對話前綴。`;
+        
+        // 為了讓 AI 直接給出題目，我們帶入非同步請求
+        fetchExamQuestion(examPromptText);
       } else {
         currentRoleplayData = {
           scenario: currentRoleplayItem.scenario,
@@ -1252,6 +1243,53 @@
         document.getElementById('roleplay-input-area').style.display = 'flex';
         document.getElementById('btn-next-roleplay').classList.add('hidden');
         speakText(currentRoleplayItem.initialAiLine, 'ja-JP');
+      }
+    }
+
+    async function fetchExamQuestion(promptHint) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      document.getElementById('roleplay-loading').classList.remove('hidden');
+      document.getElementById('roleplay-session-area').classList.add('hidden');
+
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: promptHint + ' 回傳純 JSON格式: {"chinese_question": "出題的中文句子"}' }] }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+        const data = await resp.json();
+        document.getElementById('roleplay-loading').classList.add('hidden');
+        if (data.error) throw new Error(data.error.message);
+
+        const text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+        const qText = parsed.chinese_question || currentRoleplayItem.userGoal || '木村是公司職員。';
+
+        currentRoleplayData = {
+          scenario: currentRoleplayItem.scenario,
+          aiRole: '考官',
+          history: [{ sender: 'ai', text: qText }],
+          isFinished: false,
+          isExam: true
+        };
+
+        document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日考試 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>📝 <strong>考點/句型：</strong>${escapeHtml(currentRoleplayItem.question)}`;
+        renderRoleplayChat();
+        document.getElementById('roleplay-session-area').classList.remove('hidden');
+        document.getElementById('roleplay-eval-area').classList.add('hidden');
+        document.getElementById('roleplay-input-area').style.display = 'flex';
+        document.getElementById('btn-next-roleplay').classList.add('hidden');
+        speakText(qText, 'zh-TW');
+
+      } catch (e) {
+        document.getElementById('roleplay-loading').classList.add('hidden');
+        alert('取得考試題目失敗：' + e.message);
       }
     }
 
@@ -1283,7 +1321,8 @@
 
       let promptText = '';
       if (currentRoleplayData.isExam) {
-        promptText = `你是一位嚴格且專業的日文考試評分老師。本次考題的中文題目是："${currentRoleplayItem.userGoal || currentRoleplayItem.question}"（情境說明：${currentRoleplayItem.scenario}）。
+        const currentAiQuestion = currentRoleplayData.history.find(h => h.sender === 'ai')?.text || '';
+        promptText = `你是一位嚴格且專業的日文考試評分老師。剛剛出的中文題目是："${currentAiQuestion}"。
 使用者提交的日文翻譯是："${userText}"。
 請評估其日文翻譯的文法正確性、用詞精準度與自然度，回傳純 JSON 格式：
 {
@@ -1355,7 +1394,7 @@ ${JSON.stringify(currentRoleplayData.history)}
           speakText(parsed.next_ai_line, 'ja-JP');
         } else {
           currentRoleplayData.isFinished = true;
-          evalArea.innerHTML += `<br><br>🎉 <strong>本題測驗完成！</strong>`;
+          evalArea.innerHTML += `<br><br>🎉 <strong>本題評分完成！</strong>`;
           document.getElementById('roleplay-input-area').style.display = 'none';
           document.getElementById('btn-next-roleplay').classList.remove('hidden');
         }
