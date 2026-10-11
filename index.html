@@ -105,7 +105,7 @@
 
   <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機[cite: 9, 13]</span>
+    <span>✅ App 已就緒！資料 100% 存於本機[cite: 18]</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
@@ -205,7 +205,7 @@
             <tr><th>💡 AI 記憶建議</th></tr>
           </thead>
           <tbody>
-            <tr><td id="ai-tip-content">載入中...[cite: 9, 13]</td></tr>
+            <tr><td id="ai-tip-content">載入中...[cite: 18]</td></tr>
             <tr id="ai-tip-feedback-row">
               <td style="text-align: center;">
                 <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
@@ -309,7 +309,7 @@
   <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！[cite: 18]</p>
 
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
@@ -352,7 +352,7 @@
   <!-- 6. 社群單字庫分享頁面 -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！[cite: 18]</p>
     <div style="background: var(--stats-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
       <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
       <div class="setting-group"><label>選擇要分享的單字庫</label><select id="share-deck-select"></select></div>
@@ -367,7 +367,7 @@
   <!-- 7. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：[cite: 18]</p>
     <button onclick="fetchAvailableModels()" class="btn-success" style="margin-bottom: 15px;">📡 查詢支援的模型 (ListModels)</button>
     <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
@@ -432,7 +432,7 @@
     <div class="setting-group">
       <label>⚖️ 測驗題型抽題比例</label>
       <div style="font-size: 13px; color: var(--subtext-color); margin-bottom: 8px;">
-        調整每次測驗中，不同學習狀態單字的抽取配額百分比：
+        調整每次測驗中，不同學習狀態單字的抽取配額百分比：[cite: 18]
       </div>
       <div class="row-group" style="margin-bottom: 8px;">
         <div>
@@ -478,7 +478,7 @@
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
     <h3>💾 資料備份與還原 (JSON 匯入/匯出)</h3>
-    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。</p>
+    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。[cite: 18]</p>
     <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
       <button type="button" class="btn-success" onclick="exportDataToJson()">📤 匯出全部單字庫</button>
       <button type="button" class="btn-warning" onclick="document.getElementById('import-json-input').click()">📥 匯入單字庫</button>
@@ -1163,6 +1163,8 @@
     }
 
     let activeRecognition = null;
+    let finalTranscript = '';
+
     function toggleVoiceRecognition() {
       const btn = document.getElementById('btn-voice-rec');
       if (activeRecognition) { 
@@ -1175,9 +1177,11 @@
       const recognition = new SpeechRecognition();
       activeRecognition = recognition;
       recognition.lang = 'ja-JP';
-      recognition.interimResults = false;
+      recognition.interimResults = true; // 開啟即時中間結果，達成「邊說邊印」
+      recognition.continuous = true;
 
       recognition.onstart = () => {
+        finalTranscript = '';
         if (btn) {
           btn.innerText = '🔴 停止錄音';
           btn.classList.remove('btn-secondary');
@@ -1186,7 +1190,15 @@
       };
 
       recognition.onresult = e => {
-        document.getElementById('roleplay-user-input').value = e.results[0][0].transcript;
+        let interimTranscript = '';
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          if (e.results[i].isFinal) {
+            finalTranscript += e.results[i][0].transcript;
+          } else {
+            interimTranscript += e.results[i][0].transcript;
+          }
+        }
+        document.getElementById('roleplay-user-input').value = finalTranscript + interimTranscript;
       };
 
       recognition.onerror = (event) => {
