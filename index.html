@@ -103,13 +103,13 @@
 </head>
 <body>
 
-  <!-- 狀態列含版本號 -->
+  <!-- 狀態列含版本號[cite: 18] -->
   <div id="sw-status" class="status-bar">
     <span>✅ App 已就緒！資料 100% 存於本機[cite: 18]</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
-  <!-- 分頁導覽 -->
+  <!-- 分頁導覽[cite: 18] -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 拼寫測驗</button>
@@ -121,7 +121,7 @@
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
-  <!-- 1. 單字庫管理頁面 -->
+  <!-- 1. 單字庫管理頁面[cite: 18] -->
   <div id="page-list" class="card">
     <h2>📁 選擇單字庫</h2>
     <div class="deck-header">
@@ -182,7 +182,7 @@
     <div id="word-list"></div>
   </div>
 
-  <!-- 2. 測驗頁面 -->
+  <!-- 2. 測驗頁面[cite: 18] -->
   <div id="page-quiz" class="card hidden">
     <h2>✍️ 拼寫測驗</h2>
     <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
@@ -196,7 +196,7 @@
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
 
-      <!-- 請求 AI 建議按鈕與表格 -->
+      <!-- 請求 AI 建議按鈕與表格[cite: 18] -->
       <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
       
       <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
@@ -219,7 +219,7 @@
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
+  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊[cite: 18] -->
   <div id="page-roleplay" class="card hidden">
     <h2>💬 AI 角色扮演與口語練功坊</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫與練習模式，可進行情境對話或結合現有單字庫與文法題型的「中翻日考試」！</p>
@@ -261,7 +261,7 @@
       ⏳ AI 正在結合文法題型與您的單字庫出題，請稍候...
     </div>
 
-    <!-- 練功對話主介面 -->
+    <!-- 練功對話主介面[cite: 18] -->
     <div id="roleplay-session-area" class="hidden">
       <div id="roleplay-scenario-info" class="hint-box" style="font-weight: bold; color: #1a73e8;"></div>
       
@@ -279,12 +279,12 @@
     </div>
   </div>
 
-  <!-- 4. 統計頁面 -->
+  <!-- 4. 統計頁面[cite: 18] -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
     
-    <!-- 排序與最近次數切換選單 -->
+    <!-- 排序與最近次數切換選單[cite: 18] -->
     <div style="display: flex; gap: 8px; margin-bottom: 15px;">
       <select id="stats-sort-select" style="margin-bottom: 0; flex: 2;" onchange="renderStats()">
         <option value="recent">排序：依最近錯誤率 (高到低)</option>
@@ -306,7 +306,7 @@
     <div id="stats-word-list"></div>
   </div>
 
-  <!-- 5. AI 拍照辨識頁面 -->
+  <!-- 5. AI 拍照辨識頁面[cite: 18] -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！[cite: 18]</p>
@@ -349,7 +349,7 @@
     </div>
   </div>
 
-  <!-- 6. 社群單字庫分享頁面 -->
+  <!-- 6. 社群單字庫分享頁面[cite: 18] -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！[cite: 18]</p>
@@ -364,7 +364,7 @@
     <div id="shared-deck-list"></div>
   </div>
 
-  <!-- 7. ListModels 模型清單頁面 -->
+  <!-- 7. ListModels 模型清單頁面[cite: 18] -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：[cite: 18]</p>
@@ -372,7 +372,7 @@
     <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
 
-  <!-- 8. 設定頁面 -->
+  <!-- 8. 設定頁面[cite: 18] -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
     <div class="setting-group">
@@ -1112,9 +1112,41 @@
       evalArea.classList.remove('hidden');
       evalArea.innerHTML = '⏳ AI 正在評估您的翻譯與文法...';
 
+      const lastAiMsg = currentRoleplayData.history.filter(h => h.sender === 'ai').slice(-1)[0]?.text || '';
+
       let promptText = currentRoleplayData.isExam 
-        ? `評分日文翻譯。回傳純 JSON: {"score": 95, "correction": "...", "explanation": "...", "next_ai_line": null, "is_finished": true}`
-        : `日文會話教練。回傳純 JSON: {"score": 90, "correction": null, "explanation": "...", "next_ai_line": "...", "is_finished": false}`;
+        ? `你是一位嚴格且專業的日文考試評分老師。
+【考試情境與要求】：${currentRoleplayData.scenario}
+【考題/中文題目】：${lastAiMsg}
+【學生的日文回答】：${userText}
+
+請根據學生的日文回答與題目、文法正確性、指定單字/句型是否正確使用進行客觀、精準的評分（0至100分，切勿盲目給100分，若有文法錯誤、拼字錯誤或漏用指定單字請務必確實扣分並給予真實評分）。
+所有解析與說明（correction、explanation）必須使用【繁體中文】回覆。
+回傳純 JSON 格式：
+{
+  "score": 實際評分數字 (0-100),
+  "correction": "正確或更自然的日文範例（若完美則填null）",
+  "explanation": "詳細的繁體中文文法解析與扣分原因說明",
+  "next_ai_line": null,
+  "is_finished": true
+}`
+        : `你是一位專業且嚴謹的日文會話教練。
+【目前情境】：${currentRoleplayData.scenario}
+【對話記錄】：
+${currentRoleplayData.history.map(h => `${h.sender === 'ai' ? 'AI' : '學生'}：${h.text}`).join('\n')}
+【學生的最新回覆】：${userText}
+
+請根據學生的日文回覆是否符合對話邏輯、語境與日文文法進行客觀評分（0至100分，請根據表現真實評分，切勿給予固定或盲目的100分）。
+並給予下一句 AI 的日文對話回應（next_ai_line）。
+所有評語、解釋與修正說明必須使用【繁體中文】回覆。
+回傳純 JSON 格式：
+{
+  "score": 實際評分數字 (0-100),
+  "correction": "修正建議或更道地的日文說法（選填，若無則填null）",
+  "explanation": "繁體中文的評語、文法解析與建議",
+  "next_ai_line": "AI的下一句日文對話回應",
+  "is_finished": false
+}`;
 
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
@@ -1124,9 +1156,13 @@
           body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }], generationConfig: { responseMimeType: "application/json" } })
         });
         const data = await resp.json();
-        const parsed = JSON.parse(data.candidates[0].content.parts[0].text.match(/\{[\s\S]*\}/)[0]);
+        if (data.error) throw new Error(data.error.message);
 
-        evalArea.innerHTML = `<strong>📊 評分結果：${parsed.score} 分</strong><br>${parsed.correction ? '✨ 範例：' + escapeHtml(parsed.correction) + '<br>' : ''}💡 解析：${escapeHtml(parsed.explanation)}`;
+        const textMatch = data.candidates[0].content.parts[0].text.match(/\{[\s\S]*\}/);
+        if (!textMatch) throw new Error('解析 AI 回應失敗');
+        const parsed = JSON.parse(textMatch[0]);
+
+        evalArea.innerHTML = `<strong>📊 評分結果：${parsed.score} 分</strong><br>${parsed.correction ? '✨ 建議範例：' + escapeHtml(parsed.correction) + '<br>' : ''}💡 解析：${escapeHtml(parsed.explanation)}`;
 
         const isSuccess = (parsed.score >= 75);
         if (currentRoleplayItem) {
@@ -1177,7 +1213,7 @@
       const recognition = new SpeechRecognition();
       activeRecognition = recognition;
       recognition.lang = 'ja-JP';
-      recognition.interimResults = true; // 開啟即時中間結果，達成「邊說邊印」
+      recognition.interimResults = true; // 開啟即時中間結果，達成「邊說邊印」[cite: 18]
       recognition.continuous = true;
 
       recognition.onstart = () => {
@@ -1281,7 +1317,7 @@
 
     let quizAutoNextTimeout = null;
 
-    // 進階錯誤率挑題與配額機制
+    // 進階錯誤率挑題與配額機制[cite: 18]
     function initQuizSession() {
       if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
       const selected = document.getElementById('quiz-deck-select').value;
@@ -1488,7 +1524,7 @@
       saveData();
     }
 
-    // 進階統計排行渲染（包含最近 N 次詳細錯誤數與正確率對照）
+    // 進階統計排行渲染（包含最近 N 次詳細錯誤數與正確率對照）[cite: 18]
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
       const recentWindow = getRecentWindowSize();
