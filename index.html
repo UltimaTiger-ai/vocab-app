@@ -515,6 +515,8 @@
     let roleplaySessionResults = [];
     let roleplayTotalAnswered = 0;
     let roleplayTargetLimit = 10;
+    let sessionVocabPool = []; // 每次考試專用的隨機洗牌單字池，確保單字不重複
+
     let currentRoleplayData = {
       scenario: '',
       aiRole: 'AI',
@@ -580,7 +582,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.17-2130";
+      const verStr = "Ver: 2026.10.17-2200";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -993,6 +995,8 @@
         if (allVocabWords.length === 0) {
           return alert('請先在「單字庫」新增至少一個單字，才能開始中翻日考試測驗！');
         }
+        // 將單字庫隨機洗牌，作為本次考試專用的單字輪流池，確保每次抽到的單字不重複
+        sessionVocabPool = [...allVocabWords].sort(() => Math.random() - 0.5);
       }
 
       roleplayTargetLimit = quizLimit === 0 ? pool.length : Math.min(quizLimit, pool.length);
@@ -1016,27 +1020,25 @@
       roleplayTotalAnswered++;
 
       if (currentPracticeMode === 'exam') {
-        let allVocabWords = decks.flatMap(d => d.words);
-        let vocabPoolFull = allVocabWords.map(w => `${w.question}(中文:${w.ans1})`).join(', ');
+        // 從洗牌後的專用單字池中依序取用單字（若超過總數則循環使用），確保不重複且完整涵蓋單字庫
+        const targetVocab = sessionVocabPool[(roleplayTotalAnswered - 1) % sessionVocabPool.length];
 
         const grammarTopic = currentRoleplayItem.question;
         const grammarScenario = currentRoleplayItem.scenario || '';
         
-        // 修正後的 Prompt：讓 AI 從單字庫中【智慧挑選】最合適的詞彙，並嚴格強制符合日常邏輯與常識
+        // 修正後的 Prompt：改由 JS 端指定目標單字，杜絕 AI 隨機挑選造成重複「公司職員」的問題
         const promptText = `你是一位專業且嚴謹的日文考試出題老師。請設計一道「中翻日」翻譯考試題目。
 【要求規範】：
 1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
-2. 【詞彙與生活常識邏輯限制（極為重要）】：
-   - 請從下方的「完整可用單字庫清單」中，**自行智慧挑選一個與該文法句型語境最相符、搭配起來最自然合理的單字**作為核心考點。
-   - **絕對必須符合日常生活邏輯與常識**！絕對禁止出現不合常理、荒謬或硬湊的句子（例如：「電話號碼是八萬」、「蘋果跑得比車快」等不合理的搭配絕對不准出現）。
+2. 【指定核心考點單字】：
+   - 題目中**必須包含並以單字「${targetVocab.question}」（中文意思：${targetVocab.ans1}）作為核心考點**。
+   - **絕對必須符合日常生活邏輯與常識**！絕對禁止出現不合常理、荒謬或硬湊的句子。
    - 句子的情境必須自然、道地，如同真實日常會話或檢定考試題。
-   【完整可用單字庫清單】：
-   [${vocabPoolFull}]
 3. 題目必須是【單一、簡短且符合日常生活邏輯】的中文句子。
 
 請回傳純 JSON 格式：
 {
-  "tested_vocab": "您從單字庫中挑選並作為考點的單字",
+  "tested_vocab": "${targetVocab.question}",
   "chinese_question": "單一、簡短且合乎真實生活邏輯的中文題目句子",
   "expected_japanese": "對應的標準日文解答"
 }`;
