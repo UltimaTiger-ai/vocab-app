@@ -582,7 +582,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.17-2147";
+      const verStr = "Ver: 2026.10.17-2155";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -1032,13 +1032,15 @@
 1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
 2. 【核心考點單字】：
    - 題目中必須包含並以單字「${targetVocab.question}」（中文意思：${targetVocab.ans1}）作為核心考點。
-   - **嚴格禁令**：除了該指定單字、必要數量詞（如「一個」、「一杯」等）與文法助詞外，**絕對禁止出現任何單字庫或指定單字以外的外界生字**（例如不可出現單字庫沒有的「啤酒」、「倒」、「飛機」等無關詞彙）。整句中文題目的語意必須完全圍繞在該指定單字所屬的語境或日常情境。
-3. 題目必須是【單一、簡短且符合日常口語】的中文句子。
+   - **嚴格禁令**：除了該指定單字、必要數量詞（如「一個」、「歲」等）與文法助詞外，絕對禁止出現任何單字庫或指定單字以外的外界生字。
+3. 【最重要：語句自然度要求】：
+   - 題目必須是【語意完整、合乎日常邏輯的完整中文句子】（例如：若單字是數字，必須明確指出是指年齡、房間號碼或數量，如「是19歲嗎？」或「這是19號嗎？」）。
+   - **絕對禁止**出像「19是嗎？」這種沒頭沒腦、不合中文文法或缺乏情境的破碎短句。
 
 請回傳純 JSON 格式：
 {
   "tested_vocab": "${targetVocab.question}",
-  "chinese_question": "單一、簡短且合乎日常口語與指定單字的中文題目句子",
+  "chinese_question": "語意完整、合乎日常口語與指定單字的中文題目句子",
   "expected_japanese": "對應的標準日文解答"
 }`;
         fetchExamQuestion(promptText);
