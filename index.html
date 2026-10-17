@@ -580,7 +580,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.17-2035";
+      const verStr = "Ver: 2026.10.17-2100";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -1018,7 +1018,9 @@
       if (currentPracticeMode === 'exam') {
         let allVocabWords = decks.flatMap(d => d.words);
         let randomVocab = allVocabWords[Math.floor(Math.random() * allVocabWords.length)];
-        let vocabPoolSample = allVocabWords.sort(() => Math.random() - 0.5).slice(0, 30).map(w => `${w.question}(中文:${w.ans1})`).join(', ');
+        
+        // 傳遞【完整單字庫清單】而不是抽樣 30 個，確保 AI 知道所有可用字彙
+        let vocabPoolFull = allVocabWords.map(w => `${w.question}(中文:${w.ans1})`).join(', ');
 
         const grammarTopic = currentRoleplayItem.question;
         const grammarScenario = currentRoleplayItem.scenario || '';
@@ -1026,10 +1028,13 @@
         const promptText = `你是一位專業的日文考試出題老師。請設計一道「中翻日」翻譯考試題目。
 【要求規範】：
 1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
-2. 題目中涉及的核心名詞與動詞，必須從下列「可用單字庫清單」中選取，絕對不可使用超出範圍或不合邏輯的艱澀詞彙：
-   [${vocabPoolSample}]
-   其中【強制必須包含】並考查的單字是：「${randomVocab.question}」（中文：${randomVocab.ans1}）。
-3. 題目必須是【單一、簡短且符合日常生活邏輯】的中文句子（嚴禁出現語意不通或不合常理的奇特句子，例如年齡與生日錯置等）。
+2. 【絕對詞彙限制（非常重要）】：
+   - 題目中涉及的所有實質名詞、動詞、形容詞，**必須 100% 來自下方提供的「完整可用單字庫清單」**。
+   - **絕對禁止**使用任何未列在清單中的生字（例如「午餐」、「晚餐」、「辦公室」等若不在清單內，絕對不准出現）。
+   - 其中【強制必須包含】並作為考查核心的單字是：「${randomVocab.question}」（中文：${randomVocab.ans1}）。
+   【完整可用單字庫清單】：
+   [${vocabPoolFull}]
+3. 題目必須是【單一、簡短且符合日常生活邏輯】的中文句子（必須能用上述文法句型與單字庫的詞彙完美兜出來）。
 4. 該中文句子必須能夠完美運用上述文法句型與指定單字翻譯成日文。
 
 請回傳純 JSON 格式：
