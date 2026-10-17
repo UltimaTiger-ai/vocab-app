@@ -103,13 +103,13 @@
 </head>
 <body>
 
-  <!-- 狀態列含版本號[cite: 18] -->
+  <!-- 狀態列含版本號 -->
   <div id="sw-status" class="status-bar">
-    <span>✅ App 已就緒！資料 100% 存於本機[cite: 18]</span>
+    <span>✅ App 已就緒！資料 100% 存於本機</span>
     <span id="app-version" class="version-tag">Ver: 載入中...</span>
   </div>
 
-  <!-- 分頁導覽[cite: 18] -->
+  <!-- 分頁導覽 -->
   <div class="nav">
     <button id="tab-list" class="active" onclick="switchTab('list')">📚 單字庫</button>
     <button id="tab-quiz" onclick="switchTab('quiz')">✍️ 拼寫測驗</button>
@@ -121,7 +121,7 @@
     <button id="tab-settings" onclick="switchTab('settings')">⚙️ 設定</button>
   </div>
 
-  <!-- 1. 單字庫管理頁面[cite: 18] -->
+  <!-- 1. 單字庫管理頁面 -->
   <div id="page-list" class="card">
     <h2>📁 選擇單字庫</h2>
     <div class="deck-header">
@@ -182,7 +182,7 @@
     <div id="word-list"></div>
   </div>
 
-  <!-- 2. 測驗頁面[cite: 18] -->
+  <!-- 2. 測驗頁面 -->
   <div id="page-quiz" class="card hidden">
     <h2>✍️ 拼寫測驗</h2>
     <select id="quiz-deck-select" style="margin-bottom: 10px;"></select>
@@ -196,7 +196,7 @@
       <button id="btn-next-ans" onclick="nextQuizQuestion()" class="btn-success hidden">下一題 ➔</button>
       <p id="quiz-result" style="font-weight: bold; margin-top: 10px;"></p>
 
-      <!-- 請求 AI 建議按鈕與表格[cite: 18] -->
+      <!-- 請求 AI 建議按鈕與表格 -->
       <button id="btn-get-ai-tip" class="btn-warning hidden" onclick="fetchAiTip()" style="margin-top: 10px;">🤖 請 AI 提供記憶建議</button>
       
       <div id="ai-tip-box" class="hidden" style="margin-top: 15px;">
@@ -205,7 +205,7 @@
             <tr><th>💡 AI 記憶建議</th></tr>
           </thead>
           <tbody>
-            <tr><td id="ai-tip-content">載入中...[cite: 18]</td></tr>
+            <tr><td id="ai-tip-content">載入中...</td></tr>
             <tr id="ai-tip-feedback-row">
               <td style="text-align: center;">
                 <span style="font-size: 13px; color: var(--subtext-color); margin-bottom: 5px; display: block;">這個建議對你有幫助嗎？</span>
@@ -219,7 +219,7 @@
     </div>
   </div>
 
-  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊[cite: 18] -->
+  <!-- 3. AI 口語對話角色扮演與中翻日考試練功坊 -->
   <div id="page-roleplay" class="card hidden">
     <h2>💬 AI 角色扮演與口語練功坊</h2>
     <p style="font-size: 14px; color: var(--subtext-color);">選擇文法庫與練習模式，可進行情境對話或結合現有單字庫與文法題型的「中翻日考試」！</p>
@@ -261,7 +261,7 @@
       ⏳ AI 正在結合文法題型與您的單字庫出題，請稍候...
     </div>
 
-    <!-- 練功對話主介面[cite: 18] -->
+    <!-- 練功對話主介面 -->
     <div id="roleplay-session-area" class="hidden">
       <div id="roleplay-scenario-info" class="hint-box" style="font-weight: bold; color: #1a73e8;"></div>
       
@@ -279,12 +279,12 @@
     </div>
   </div>
 
-  <!-- 4. 統計頁面[cite: 18] -->
+  <!-- 4. 統計頁面 -->
   <div id="page-stats" class="card hidden">
     <h2>📊 學習數據分析</h2>
     <select id="stats-deck-select" style="margin-bottom: 10px;" onchange="renderStats()"></select>
     
-    <!-- 排序與最近次數切換選單[cite: 18] -->
+    <!-- 排序與最近次數切換選單 -->
     <div style="display: flex; gap: 8px; margin-bottom: 15px;">
       <select id="stats-sort-select" style="margin-bottom: 0; flex: 2;" onchange="renderStats()">
         <option value="recent">排序：依最近錯誤率 (高到低)</option>
@@ -306,10 +306,10 @@
     <div id="stats-word-list"></div>
   </div>
 
-  <!-- 5. AI 拍照辨識頁面[cite: 18] -->
+  <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！[cite: 18]</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
 
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
@@ -349,10 +349,10 @@
     </div>
   </div>
 
-  <!-- 6. 社群單字庫分享頁面[cite: 18] -->
+  <!-- 6. 社群單字庫分享頁面 -->
   <div id="page-share" class="card hidden">
     <h2>🌐 社群單字庫分享市集</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！[cite: 18]</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">在這裡您可以分享自己的單字庫給其他人，也可以下載熱門單字庫！</p>
     <div style="background: var(--stats-bg); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
       <h3 style="margin-top:0;">📤 發布我的單字庫</h3>
       <div class="setting-group"><label>選擇要分享的單字庫</label><select id="share-deck-select"></select></div>
@@ -364,15 +364,15 @@
     <div id="shared-deck-list"></div>
   </div>
 
-  <!-- 7. ListModels 模型清單頁面[cite: 18] -->
+  <!-- 7. ListModels 模型清單頁面 -->
   <div id="page-models" class="card hidden">
     <h2>🔍 帳號模型查詢 (ListModels)</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：[cite: 18]</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">查詢您的 API Key 目前可用的完整模型清單：</p>
     <button onclick="fetchAvailableModels()" class="btn-success" style="margin-bottom: 15px;">📡 查詢支援的模型 (ListModels)</button>
     <div id="models-list-container"><p style="color:var(--subtext-color);">尚未查詢。</p></div>
   </div>
 
-  <!-- 8. 設定頁面[cite: 18] -->
+  <!-- 8. 設定頁面 -->
   <div id="page-settings" class="card hidden">
     <h2>⚙️ 偏好與 API 設定</h2>
     <div class="setting-group">
@@ -432,7 +432,7 @@
     <div class="setting-group">
       <label>⚖️ 測驗題型抽題比例</label>
       <div style="font-size: 13px; color: var(--subtext-color); margin-bottom: 8px;">
-        調整每次測驗中，不同學習狀態單字的抽取配額百分比：[cite: 18]
+        調整每次測驗中，不同學習狀態單字的抽取配額百分比：
       </div>
       <div class="row-group" style="margin-bottom: 8px;">
         <div>
@@ -478,7 +478,7 @@
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
 
     <h3>💾 資料備份與還原 (JSON 匯入/匯出)</h3>
-    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。[cite: 18]</p>
+    <p style="font-size: 13px; color: var(--subtext-color);">您可以將所有單字庫匯出為 JSON 備份檔案，或將其匯入還原至 App 中。</p>
     <div class="setting-group" style="display: flex; gap: 10px; margin-top: 10px;">
       <button type="button" class="btn-success" onclick="exportDataToJson()">📤 匯出全部單字庫</button>
       <button type="button" class="btn-warning" onclick="document.getElementById('import-json-input').click()">📥 匯入單字庫</button>
@@ -1018,11 +1018,25 @@
       if (currentPracticeMode === 'exam') {
         let allVocabWords = decks.flatMap(d => d.words);
         let randomVocab = allVocabWords[Math.floor(Math.random() * allVocabWords.length)];
+        let vocabPoolSample = allVocabWords.sort(() => Math.random() - 0.5).slice(0, 30).map(w => `${w.question}(中文:${w.ans1})`).join(', ');
 
         const grammarTopic = currentRoleplayItem.question;
         const grammarScenario = currentRoleplayItem.scenario || '';
         
-        const promptText = `你是一位專業的日文考試出題老師。請根據「${grammarTopic}」(${grammarScenario}) 且【絕對必須強制使用】單字「${randomVocab.question}」(中文:${randomVocab.ans1}) 出一道中翻日考試題目。嚴禁使用單字庫以外的艱澀詞彙。回傳純 JSON: {"chinese_question": "...", "expected_japanese": "..."}`;
+        const promptText = `你是一位專業的日文考試出題老師。請設計一道「中翻日」翻譯考試題目。
+【要求規範】：
+1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
+2. 題目中涉及的核心名詞與動詞，必須從下列「可用單字庫清單」中選取，絕對不可使用超出範圍或不合邏輯的艱澀詞彙：
+   [${vocabPoolSample}]
+   其中【強制必須包含】並考查的單字是：「${randomVocab.question}」（中文：${randomVocab.ans1}）。
+3. 題目必須是【單一、簡短且符合日常生活邏輯】的中文句子（嚴禁出現語意不通或不合常理的奇特句子，例如年齡與生日錯置等）。
+4. 該中文句子必須能夠完美運用上述文法句型與指定單字翻譯成日文。
+
+請回傳純 JSON 格式：
+{
+  "chinese_question": "單一、簡短且合乎邏輯的中文題目句子",
+  "expected_japanese": "對應的標準日文解答"
+}`;
         fetchExamQuestion(promptText, randomVocab);
       } else {
         currentRoleplayData = {
@@ -1213,7 +1227,7 @@ ${currentRoleplayData.history.map(h => `${h.sender === 'ai' ? 'AI' : '學生'}�
       const recognition = new SpeechRecognition();
       activeRecognition = recognition;
       recognition.lang = 'ja-JP';
-      recognition.interimResults = true; // 開啟即時中間結果，達成「邊說邊印」[cite: 18]
+      recognition.interimResults = true; // 開啟即時中間結果，達成「邊說邊印」
       recognition.continuous = true;
 
       recognition.onstart = () => {
@@ -1317,7 +1331,7 @@ ${currentRoleplayData.history.map(h => `${h.sender === 'ai' ? 'AI' : '學生'}�
 
     let quizAutoNextTimeout = null;
 
-    // 進階錯誤率挑題與配額機制[cite: 18]
+    // 進階錯誤率挑題與配額機制
     function initQuizSession() {
       if (quizAutoNextTimeout) clearTimeout(quizAutoNextTimeout);
       const selected = document.getElementById('quiz-deck-select').value;
@@ -1524,7 +1538,7 @@ ${currentRoleplayData.history.map(h => `${h.sender === 'ai' ? 'AI' : '學生'}�
       saveData();
     }
 
-    // 進階統計排行渲染（包含最近 N 次詳細錯誤數與正確率對照）[cite: 18]
+    // 進階統計排行渲染（包含最近 N 次詳細錯誤數與正確率對照）
     function renderStats() {
       const selected = document.getElementById('stats-deck-select').value;
       const recentWindow = getRecentWindowSize();
