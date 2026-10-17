@@ -582,7 +582,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.17-2200";
+      const verStr = "Ver: 2026.10.17-2147";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -1026,20 +1026,19 @@
         const grammarTopic = currentRoleplayItem.question;
         const grammarScenario = currentRoleplayItem.scenario || '';
         
-        // 修正後的 Prompt：改由 JS 端指定目標單字，杜絕 AI 隨機挑選造成重複「公司職員」的問題
+        // 嚴格限制：題目的實質詞彙（名詞/動詞）必須以指定單字為核心，絕對禁止引入未在單字庫中的生字（如「啤酒」、「倒」等）
         const promptText = `你是一位專業且嚴謹的日文考試出題老師。請設計一道「中翻日」翻譯考試題目。
-【要求規範】：
+【核心出題規則與限制】：
 1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
-2. 【指定核心考點單字】：
-   - 題目中**必須包含並以單字「${targetVocab.question}」（中文意思：${targetVocab.ans1}）作為核心考點**。
-   - **絕對必須符合日常生活邏輯與常識**！絕對禁止出現不合常理、荒謬或硬湊的句子。
-   - 句子的情境必須自然、道地，如同真實日常會話或檢定考試題。
-3. 題目必須是【單一、簡短且符合日常生活邏輯】的中文句子。
+2. 【核心考點單字】：
+   - 題目中必須包含並以單字「${targetVocab.question}」（中文意思：${targetVocab.ans1}）作為核心考點。
+   - **嚴格禁令**：除了該指定單字、必要數量詞（如「一個」、「一杯」等）與文法助詞外，**絕對禁止出現任何單字庫或指定單字以外的外界生字**（例如不可出現單字庫沒有的「啤酒」、「倒」、「飛機」等無關詞彙）。整句中文題目的語意必須完全圍繞在該指定單字所屬的語境或日常情境。
+3. 題目必須是【單一、簡短且符合日常口語】的中文句子。
 
 請回傳純 JSON 格式：
 {
   "tested_vocab": "${targetVocab.question}",
-  "chinese_question": "單一、簡短且合乎真實生活邏輯的中文題目句子",
+  "chinese_question": "單一、簡短且合乎日常口語與指定單字的中文題目句子",
   "expected_japanese": "對應的標準日文解答"
 }`;
         fetchExamQuestion(promptText);
