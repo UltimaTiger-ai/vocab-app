@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>背單字與 AI 口語練功坊 - 智慧考試版</title>
+  <title>背單字與 AI 口語練功坊 - 智慧考試升級版</title>
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -402,7 +402,16 @@
       <button type="button" class="btn-warning" onclick="testGeminiConnection()">🧪 測試連線狀態</button>
       <p id="test-result" style="font-size: 14px; margin-top: 8px; font-weight: bold;"></p>
     </div>
+
     <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+
+    <h3>🛠️ AI 出題防錯禁令記憶庫管理</h3>
+    <p style="font-size: 13px; color: var(--subtext-color);">以下是您歷次回報後 AI 自動累積的全域出題禁令。若內容過多或卡住，可點擊清單重置：</p>
+    <div id="setting-rules-container" style="background: var(--stats-bg); padding: 10px; border-radius: 8px; font-size: 13px; max-height: 150px; overflow-y: auto; margin-bottom: 10px;"></div>
+    <button type="button" class="btn-danger" style="width: auto; padding: 6px 12px; font-size: 13px;" onclick="clearAllAiRules()">🗑️ 清空所有防錯禁令</button>
+
+    <hr style="border:0; border-top:1px solid var(--border-color); margin: 15px 0;">
+    
     <div class="setting-group">
       <label>🎯 每次測驗題數</label>
       <select id="setting-quiz-limit" onchange="saveSettings()">
@@ -560,6 +569,7 @@
       updateModelDropdown();
       renderUI();
       renderGrammarDecksUI();
+      renderSettingsRules();
     };
 
     function applyTheme(theme) {
@@ -588,7 +598,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.18-2025";
+      const verStr = "Ver: 2026.10.18-2030";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -1031,13 +1041,20 @@
         const grammarScenario = currentRoleplayItem.scenario || '';
         const correctionRulesText = getAiCorrectionRules();
 
-        const promptText = `你是一位專業且嚴謹的日文考試出題老師。請設計一道「中翻日」翻譯考試題目。
+        // 升級版 Prompt：加入 Few-Shot 範例與嚴格品質控制
+        const promptText = `你是一位專業、嚴謹且經驗豐富的日語檢定出題教授。請設計一道高品質的「中翻日」翻譯考試題目。
 【核心出題規則與限制】：
 1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
 2. 【核心考點單字】：
    - 題目中必須包含並以單字「${targetVocab.question}」（中文意思：${targetVocab.ans1}）作為核心考點。
    - **嚴格禁令**：除了該指定單字、必要數量詞與文法助詞外，絕對禁止引入未在單字庫中的外界生字。
-3. 【最重要：歷史踩雷與品質禁令（請嚴格遵守以下用戶歷史回饋修正原則）】：
+3. 【高品質中文句型標準（極重要）】：
+   - 句子必須是**母語者在日常生活中真正會說的完整、語意流暢且合乎邏輯的中文句子**。
+   - **絕對禁止**：破碎短句、沒頭沒腦的數字問句（如「19是嗎？」）、為了硬塞副詞而導致邏輯不通的奇特句子。
+   - 【範例對照】：
+     * 正確 (Good)：『我昨天在超商買了一瓶烏龍茶。』
+     * 錯誤 (Bad)：『19是嗎？』或『剛好昨天烏龍茶。』
+4. 【歷史踩雷禁令庫（必須避開過去所有出過的怪異題型模式）】：
 ${correctionRulesText}
 
 請回傳純 JSON 格式：
@@ -1076,7 +1093,13 @@ ${correctionRulesText}
         const resp = await fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: promptHint }] }], generationConfig: { responseMimeType: "application/json" } })
+          body: JSON.stringify({ 
+            contents: [{ parts: [{ text: promptHint }] }], 
+            generationConfig: { 
+              responseMimeType: "application/json",
+              temperature: 0.3 // 降低隨機性，讓 AI 更穩定地產出高品質標準題目
+            } 
+          })
         });
         const data = await resp.json();
         document.getElementById('roleplay-loading').classList.add('hidden');
@@ -1098,7 +1121,6 @@ ${correctionRulesText}
 
         document.getElementById('roleplay-scenario-info').innerHTML = `📌 <strong>中翻日考試測驗 (${roleplayTotalAnswered}/${roleplayTargetLimit})</strong><br>🎯 <strong>文法句型：</strong>${escapeHtml(currentRoleplayItem.question)}<br>🔑 <strong>考點單字：</strong><span style="color:#1a73e8; font-weight:bold;">${escapeHtml(testedVocab)}</span>`;
         
-        // 顯示使用者回報按鈕區塊
         document.getElementById('question-feedback-box').classList.remove('hidden');
 
         renderRoleplayChat();
@@ -1106,8 +1128,6 @@ ${correctionRulesText}
         document.getElementById('roleplay-eval-area').classList.add('hidden');
         document.getElementById('roleplay-input-area').style.display = 'flex';
         document.getElementById('btn-next-roleplay').classList.add('hidden');
-        
-        // **註解：已移除自動朗讀，改由用戶需要時自行點擊朗讀按鈕**
 
       } catch (e) {
         document.getElementById('roleplay-loading').classList.add('hidden');
@@ -1115,7 +1135,6 @@ ${correctionRulesText}
       }
     }
 
-    // 用戶點擊回報不良題目
     function promptReportCurrentQuestion() {
       const lastAiMsg = currentRoleplayData.history.filter(h => h.sender === 'ai').slice(-1)[0]?.text || '';
       if (!lastAiMsg) return;
@@ -1139,9 +1158,29 @@ ${correctionRulesText}
     function reportWeirdQuestion(questionText, reason) {
       let rules = JSON.parse(localStorage.getItem('vocab_ai_correction_rules') || '[]');
       rules.push(`避免類似題目：「${questionText}」。原因：${reason}`);
-      if (rules.length > 20) rules.shift(); 
+      if (rules.length > 25) rules.shift(); 
       localStorage.setItem('vocab_ai_correction_rules', JSON.stringify(rules));
+      renderSettingsRules();
       alert('✅ 感謝回饋！AI 已將此修正原則加入全域記憶庫，下次出題將自動避開類似錯誤。');
+    }
+
+    function renderSettingsRules() {
+      const container = document.getElementById('setting-rules-container');
+      if (!container) return;
+      let rules = JSON.parse(localStorage.getItem('vocab_ai_correction_rules') || '[]');
+      if (rules.length === 0) {
+        container.innerHTML = '<span style="color:var(--subtext-color);">目前無自訂防錯禁令。</span>';
+        return;
+      }
+      container.innerHTML = rules.map((r, i) => `<div style="padding: 4px 0; border-bottom: 1px solid var(--border-color);">${i + 1}. ${escapeHtml(r)}</div>`).join('');
+    }
+
+    function clearAllAiRules() {
+      if (confirm('確定要清空所有累積的 AI 防錯禁令嗎？')) {
+        localStorage.removeItem('vocab_ai_correction_rules');
+        renderSettingsRules();
+        alert('✅ 已清空所有禁令！');
+      }
     }
 
     function renderRoleplayChat() {
@@ -1364,6 +1403,7 @@ ${currentRoleplayData.history.map(h => `${h.sender === 'ai' ? 'AI' : '學生'}�
       document.getElementById('setting-quiz-limit').value = quizLimit;
       if (localStorage.getItem('gemini_api_key')) document.getElementById('input-api-key').value = localStorage.getItem('gemini_api_key');
       updateModelDropdown();
+      renderSettingsRules();
     }
 
     function switchTab(tab) {
@@ -1374,6 +1414,7 @@ ${currentRoleplayData.history.map(h => `${h.sender === 'ai' ? 'AI' : '學生'}�
       document.getElementById(`page-${tab}`).classList.remove('hidden');
       document.getElementById(`tab-${tab}`).classList.add('active');
       if (tab === 'stats') renderStats();
+      if (tab === 'settings') renderSettingsRules();
     }
 
     let quizAutoNextTimeout = null;
