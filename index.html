@@ -598,7 +598,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.26-2109";
+      const verStr = "Ver: 2026.10.26-2111";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -1045,7 +1045,7 @@
         const promptText = `你是一位精通日語教學的出題教授。請設計一道高品質的「中翻日」翻譯考試題目。
 【本次出題指定元素】：
 1. 指定文法句型：「${grammarTopic}」（說明：${grammarScenario}）。
-2. 指定考點單字：「${targetVocap.question}」（中文意思：${targetVocap.ans1}）。
+2. 指定考點單字：「${targetVocab.question}」（中文意思：${targetVocab.ans1}）。
 
 【嚴格出題與邏輯規則】：
 1. **文法與詞性相容性檢查（極重要）**：
@@ -1059,7 +1059,7 @@ ${correctionRulesText}
 
 請回傳純 JSON 格式：
 {
-  "tested_vocab": "${targetVocap.question}",
+  "tested_vocab": "${targetVocab.question}",
   "chinese_question": "完全合乎日常邏輯、自然且高品質的中文題目",
   "expected_japanese": "對應的標準日文解答"
 }`;
