@@ -598,7 +598,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.18-2045";
+      const verStr = "Ver: 2026.10.26-2109";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -1041,25 +1041,25 @@
         const grammarScenario = currentRoleplayItem.scenario || '';
         const correctionRulesText = getAiCorrectionRules();
 
-        // 升級版 Prompt：加入 Few-Shot 範例與嚴格品質控制
-        const promptText = `你是一位專業、嚴謹且經驗豐富的日語檢定出題教授。請設計一道高品質的「中翻日」翻譯考試題目。
-【核心出題規則與限制】：
-1. 必須使用指定的文法句型：「${grammarTopic}」（情境/說明：${grammarScenario}）。
-2. 【核心考點單字】：
-   - 題目中必須包含並以單字「${targetVocab.question}」（中文意思：${targetVocab.ans1}）作為核心考點。
-   - **嚴格禁令**：除了該指定單字、必要數量詞與文法助詞外，絕對禁止引入未在單字庫中的外界生字。
-3. 【高品質中文句型標準（極重要）】：
-   - 句子必須是**母語者在日常生活中真正會說的完整、語意流暢且合乎邏輯的中文句子**。
-   - **絕對禁止**：破碎短句、沒頭沒腦的數字問句（如「19是嗎？」）、為了硬塞副詞而導致邏輯不通的奇特句子。
-   - 【範例對照】：
-     * 正確 (Good)：『我昨天在超商買了一瓶烏龍茶。』
-     * 錯誤 (Bad)：『19是嗎？』或『剛好昨天烏龍茶。』
-4. 【歷史踩雷禁令庫（必須避開過去所有出過的怪異題型模式）】：
+        // 升級版 Prompt：強制要求 AI 檢查單字詞性與文法的相容性
+        const promptText = `你是一位精通日語教學的出題教授。請設計一道高品質的「中翻日」翻譯考試題目。
+【本次出題指定元素】：
+1. 指定文法句型：「${grammarTopic}」（說明：${grammarScenario}）。
+2. 指定考點單字：「${targetVocap.question}」（中文意思：${targetVocap.ans1}）。
+
+【嚴格出題與邏輯規則】：
+1. **文法與詞性相容性檢查（極重要）**：
+   - 請先判斷「指定單字」的詞性（例如：動詞、一類動詞、二類動詞、形容詞、名詞等），確保它**完全能夠**搭配「指定文法句型」使用。
+   - 如果該單字無法直接搭配該文法（例如名詞無法直接接て形，或是語意不合），**請自動調整句型變化或選用合適的輔助詞（如 に、で、の 等）讓文法完全正確，絕對不可硬湊不合文法的句子**。
+2. **自然流暢的中文題目**：
+   - 題目必須是日常生活中母語者會說的自然中文句子。
+   - 絕對禁止：破碎短句、沒頭沒腦的數字問句（如「19是嗎？」）。
+3. 【歷史踩雷禁令庫】：
 ${correctionRulesText}
 
 請回傳純 JSON 格式：
 {
-  "tested_vocab": "${targetVocab.question}",
+  "tested_vocab": "${targetVocap.question}",
   "chinese_question": "完全合乎日常邏輯、自然且高品質的中文題目",
   "expected_japanese": "對應的標準日文解答"
 }`;
