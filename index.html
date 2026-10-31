@@ -313,15 +313,16 @@
   </div>
 
   <!-- 5. AI 拍照辨識頁面 -->
+  <!-- 5. AI 拍照辨識頁面 -->
   <div id="page-ai" class="card hidden">
     <h2>📸 Gemini 智慧相機 / 相簿辨識</h2>
-    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識內容並解析為單字！</p>
+    <p style="font-size: 14px; color: var(--subtext-color);">拍照或選擇相簿中的照片，AI 將自動辨識並解析單字。若辨識有誤，可在下方輸入補充或糾正提示後重新修正！</p>
 
     <div class="hint-box">
-      <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
-      <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px;">
+      <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充 / 糾正提示（選填）：</label>
+      <input type="text" id="ai-user-hint" placeholder="例：左右分欄，左邊是中文右邊是日文，請幫我對調" style="margin-top: 5px;">
       
-      <!-- 方案 B：常用提示快捷按鈕 -->
+      <!-- 常用提示快捷按鈕 -->
       <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px;">
         <button type="button" class="btn-secondary" style="font-size: 11px; padding: 4px 8px; width: auto; margin-top:0;" onclick="appendAiHint('這是左右分欄排版，左欄是題目，右欄是答案')">📌 左右分欄排版</button>
         <button type="button" class="btn-secondary" style="font-size: 11px; padding: 4px 8px; width: auto; margin-top:0;" onclick="appendAiHint('這是橫向條列排版，同一行依序為題目與答案')">📌 橫向條列排版</button>
@@ -331,7 +332,7 @@
     </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
-    <button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 使用當前照片重新分析</button>
+    <button id="btn-reanalyze" class="btn-warning hidden" style="margin-bottom: 15px;" onclick="retryAiCapture()">🔄 根據提示重新修正 (Re-parse)</button>
     
     <div id="ai-loading" class="hidden" style="text-align: center; color: #1a73e8; font-weight: bold; padding: 20px;">
       ⏳ AI 正在努力辨識圖片與整理單字中，請稍候...
@@ -342,17 +343,12 @@
       <button onclick="retryAiCapture()" class="btn-warning" style="width: auto; padding: 8px 16px;">🔄 點擊重試 (Retry)</button>
     </div>
 
-    <div id="ai-column-mapping-area" class="hidden" style="background:var(--mapping-bg); border:1px solid var(--mapping-border); padding:15px; border-radius:10px; margin-bottom:15px;">
-      <h3 style="margin-top:0; color:#1a73e8; font-size:16px;">📌 請為表格欄位選擇對應角色：</h3>
-      <div id="ai-col-mapping-container" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; margin-bottom:12px;"></div>
-      <button type="button" onclick="applyColumnMapping()" class="btn-success">✅ 確認對應並生成單字預覽</button>
-    </div>
-
+    <!-- AI 解析結果預覽區 -->
     <div id="ai-result-area" class="hidden">
       <h3>🔍 AI 解讀出的原始文字：</h3>
-      <textarea id="ai-raw-text" rows="4" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border);"></textarea>
+      <textarea id="ai-raw-text" rows="3" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--input-border);"></textarea>
 
-      <h3 style="margin-top:15px;">📋 解析出的單字預覽：</h3>
+      <h3 style="margin-top:15px;">📋 AI 自動配對的單字預覽：</h3>
       <div id="ai-parsed-preview" style="background:var(--stats-bg); padding:10px; border-radius:8px; margin-bottom:15px; max-height:250px; overflow-y:auto;"></div>
 
       <div style="margin-bottom: 15px;">
@@ -616,7 +612,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.31-1001";
+      const verStr = "Ver: 2026.10.31-1020";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
@@ -695,26 +691,30 @@
 
       document.getElementById('ai-loading').classList.remove('hidden');
       document.getElementById('ai-error-area').classList.add('hidden');
-      document.getElementById('ai-column-mapping-area').classList.add('hidden');
       document.getElementById('ai-result-area').classList.add('hidden');
 
       try {
         const base64Data = await fileToBase64(file);
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
 
-        const promptText = `你是一個專業的 OCR 與語言學習資料整理助理。請分析這張圖片中的表格或文字內容。
-使用者補充提示：${userHint || '無'}
+        // 全自動解析 Prompt，結合使用者的糾正提示 (userHint)
+        const promptText = `你是一個專業的 OCR 與語言學習資料結構化專家。請分析這張圖片中的單字、詞彙、句子或表格內容，直接解析並配對成標準的單字清單。
+【重要解析規則】：
+1. 自動識別圖片中的排版（無論是橫向條列、左右分欄、直向上下對應等）。
+2. 嚴格依照下列結構直接提取並配對：
+   - question: 題目、外語單字或句子
+   - ans1: 主要解答、純假名或中文翻譯
+   - ans2: 漢字寫法、補充說明或備用答案（若無則留空字串 ""）
+【使用者補充 / 糾正提示（若有指出錯誤或特殊排版要求，請嚴格遵守此提示進行修正）】：${userHint || '無'}
 
-請以 JSON 格式回傳辨識結果，格式如下：
+請以純 JSON 格式回傳（嚴禁包覆在 markdown code block 之外，直接輸出 JSON）：
 {
   "raw_text": "圖片中辨識出的原始文字內容摘要",
-  "columns": ["欄位1標題", "欄位2標題", "欄位3標題"...],
-  "rows": [
-    ["第1行欄位1值", "第1行欄位2值", ...],
-    ["第2行欄位1值", "第2行欄位2值", ...]
+  "words": [
+    { "question": "提取出的題目1", "ans1": "對應答案1", "ans2": "對應答案2" },
+    { "question": "提取出的題目2", "ans1": "對應答案2", "ans2": "" }
   ]
-}
-請確保只回傳純 JSON 格式。`;
+}`;
 
         const resp = await fetch(url, {
           method: 'POST',
@@ -739,33 +739,26 @@
         const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
 
         document.getElementById('ai-raw-text').value = parsed.raw_text || '';
-        rawParsedRows = parsed.rows || [];
-        const columns = parsed.columns || (rawParsedRows.length > 0 ? rawParsedRows[0].map((_, i) => `欄位 ${i+1}`) : []);
+        tempParsedAiWords = parsed.words || [];
 
-        if (columns.length === 0 || rawParsedRows.length === 0) {
-          throw new Error('未能從圖片中解析出有效的表格或單字資料。');
+        if (!tempParsedAiWords || tempParsedAiWords.length === 0) {
+          throw new Error('未能從圖片中解析出有效的單字資料。');
         }
 
-        // 渲染欄位對應介面
-        const colContainer = document.getElementById('ai-col-mapping-container');
-        colContainer.innerHTML = columns.map((colName, cIndex) => `
-          <div style="flex: 1; min-width: 120px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
-            <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #1a73e8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(colName)}">${escapeHtml(colName)}</div>
-            <select id="col-role-${cIndex}" style="margin-top:0; font-size: 13px; padding: 6px;">
-              <option value="ignore" ${cIndex === 0 ? '' : 'selected'}>-- 忽略此欄 --</option>
-              <option value="question" ${cIndex === 0 ? 'selected' : ''}>題目 (Question)</option>
-              <option value="ans1">答案一 (純假名/主要)</option>
-              <option value="ans2">答案二 (漢字/備用)</option>
-            </select>
+        // 直接渲染預覽清單
+        const previewElem = document.getElementById('ai-parsed-preview');
+        previewElem.innerHTML = tempParsedAiWords.map((w, idx) => `
+          <div style="padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 14px;">
+            <strong>${idx + 1}. 題目：</strong>${escapeHtml(w.question)} | <strong>答一：</strong>${escapeHtml(w.ans1)} ${w.ans2 ? '| <strong>答二：</strong>' + escapeHtml(w.ans2) : ''}
           </div>
         `).join('');
 
-        document.getElementById('ai-column-mapping-area').classList.remove('hidden');
+        document.getElementById('ai-result-area').classList.remove('hidden');
 
       } catch (e) {
         document.getElementById('ai-loading').classList.add('hidden');
         document.getElementById('ai-error-msg').innerText = '❌ 辨識失敗：' + e.message;
-        document.getElementById('ai-error-area').classList.remove('hidden');
+        document.getElementById('ai-error-area').classList.add('hidden');
       }
     }
 
