@@ -652,6 +652,155 @@
       URL.revokeObjectURL(url);
     }
 
+	async function handleImageCapture(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      lastCapturedFile = file;
+      document.getElementById('btn-reanalyze').classList.remove('hidden');
+      await processCapturedImage(file);
+    }
+
+    async function retryAiCapture() {
+      if (!lastCapturedFile) return alert('沒有可用的照片記錄！');
+      await processCapturedImage(lastCapturedFile);
+    }
+
+    async function processCapturedImage(file) {
+      const apiKey = localStorage.getItem('gemini_api_key');
+      const currentModel = getGeminiModel();
+      const userHint = document.getElementById('ai-user-hint').value.trim();
+
+      if (!apiKey) {
+        alert('請先在設定頁面填寫 Gemini API Key！');
+        return;
+      }
+
+      document.getElementById('ai-loading').classList.remove('hidden');
+      document.getElementById('ai-error-area').classList.add('hidden');
+      document.getElementById('ai-column-mapping-area').classList.add('hidden');
+      document.getElementById('ai-result-area').classList.add('hidden');
+
+      try {
+        const base64Data = await fileToBase64(file);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+
+        const promptText = `你是一個專業的 OCR 與語言學習資料整理助理。請分析這張圖片中的表格或文字內容。
+使用者補充提示：${userHint || '無'}
+
+請以 JSON 格式回傳辨識結果，格式如下：
+{
+  "raw_text": "圖片中辨識出的原始文字內容摘要",
+  "columns": ["欄位1標題", "欄位2標題", "欄位3標題"...],
+  "rows": [
+    ["第1行欄位1值", "第1行欄位2值", ...],
+    ["第2行欄位1值", "第2行欄位2值", ...]
+  ]
+}
+請確保只回傳純 JSON 格式。`;
+
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: promptText },
+                { inlineData: { mimeType: file.type, data: base64Data } }
+              ]
+            }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+
+        const data = await resp.json();
+        document.getElementById('ai-loading').classList.add('hidden');
+        if (data.error) throw new Error(data.error.message);
+
+        const text = data.candidates[0].content.parts[0].text;
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text);
+
+        document.getElementById('ai-raw-text').value = parsed.raw_text || '';
+        rawParsedRows = parsed.rows || [];
+        const columns = parsed.columns || (rawParsedRows.length > 0 ? rawParsedRows[0].map((_, i) => `欄位 ${i+1}`) : []);
+
+        if (columns.length === 0 || rawParsedRows.length === 0) {
+          throw new Error('未能從圖片中解析出有效的表格或單字資料。');
+        }
+
+        // 渲染欄位對應介面
+        const colContainer = document.getElementById('ai-col-mapping-container');
+        colContainer.innerHTML = columns.map((colName, cIndex) => `
+          <div style="flex: 1; min-width: 120px; background: var(--card-bg); padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+            <div style="font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #1a73e8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(colName)}">${escapeHtml(colName)}</div>
+            <select id="col-role-${cIndex}" style="margin-top:0; font-size: 13px; padding: 6px;">
+              <option value="ignore" ${cIndex === 0 ? '' : 'selected'}>-- 忽略此欄 --</option>
+              <option value="question" ${cIndex === 0 ? 'selected' : ''}>題目 (Question)</option>
+              <option value="ans1">答案一 (純假名/主要)</option>
+              <option value="ans2">答案二 (漢字/備用)</option>
+            </select>
+          </div>
+        `).join('');
+
+        document.getElementById('ai-column-mapping-area').classList.remove('hidden');
+
+      } catch (e) {
+        document.getElementById('ai-loading').classList.add('hidden');
+        document.getElementById('ai-error-msg').innerText = '❌ 辨識失敗：' + e.message;
+        document.getElementById('ai-error-area').classList.remove('hidden');
+      }
+    }
+
+    function applyColumnMapping() {
+      if (!rawParsedRows || rawParsedRows.length === 0) return alert('沒有可對應的資料！');
+      
+      const colRoles = [];
+      const colContainer = document.getElementById('ai-col-mapping-container');
+      const selects = colContainer.querySelectorAll('select');
+      selects.forEach((sel, idx) => {
+        colRoles.push({ index: idx, role: sel.value });
+      });
+
+      const qCol = colRoles.find(r => r.role === 'question');
+      const a1Col = colRoles.find(r => r.role === 'ans1');
+      const a2Col = colRoles.find(r => r.role === 'ans2');
+
+      if (!qCol) return alert('請至少指定一個欄位作為「題目 (Question)」！');
+
+      tempParsedAiWords = [];
+      rawParsedRows.forEach(row => {
+        const qVal = row[qCol.index] ? String(row[qCol.index]).trim() : '';
+        if (!qVal) return;
+        const a1Val = a1Col && row[a1Col.index] ? String(row[a1Col.index]).trim() : qVal;
+        const a2Val = a2Col && row[a2Col.index] ? String(row[a2Col.index]).trim() : '';
+        tempParsedAiWords.push({ question: qVal, ans1: a1Val, ans2: a2Val, attempts: 0, errors: 0 });
+      });
+
+      if (tempParsedAiWords.length === 0) return alert('根據目前的欄位對應，未能提取出任何有效單字！');
+
+      const previewElem = document.getElementById('ai-parsed-preview');
+      previewElem.innerHTML = tempParsedAiWords.map((w, idx) => `
+        <div style="padding: 6px 0; border-bottom: 1px solid var(--border-color); font-size: 14px;">
+          <strong>${idx + 1}. 題目：</strong>${escapeHtml(w.question)} | <strong>答一：</strong>${escapeHtml(w.ans1)} ${w.ans2 ? '| <strong>答二：</strong>' + escapeHtml(w.ans2) : ''}
+        </div>
+      `).join('');
+
+      document.getElementById('ai-result-area').classList.remove('hidden');
+      alert(`✅ 成功解析出 ${tempParsedAiWords.length} 個單字，請檢查預覽並確認匯入！`);
+    }
+
+    function confirmImportAiWords() {
+      if (!tempParsedAiWords || tempParsedAiWords.length === 0) return alert('沒有可匯入的單字！');
+      const targetDeckId = document.getElementById('ai-target-deck-select').value;
+      const targetDeck = decks.find(d => String(d.id) === String(targetDeckId));
+      if (!targetDeck) return alert('找不到指定的單字庫！');
+
+      tempParsedAiWords.forEach(w => targetDeck.words.push(w));
+      saveData();
+      alert(`🎉 成功將 ${tempParsedAiWords.length} 個單字匯入至「${targetDeck.name}」！`);
+      switchTab('list');
+    }
+
     function importDataFromJson(event) {
       const file = event.target.files[0];
       if (!file) return;
