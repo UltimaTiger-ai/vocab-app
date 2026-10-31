@@ -320,6 +320,14 @@
     <div class="hint-box">
       <label style="font-size:13px; font-weight:bold; color:#1a73e8;">💡 照片表格補充說明（選填）：</label>
       <input type="text" id="ai-user-hint" placeholder="例：表格共有4欄，請取第2欄英文為題目，第4欄中文為答案" style="margin-top: 5px;">
+      
+      <!-- 方案 B：常用提示快捷按鈕 -->
+      <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px;">
+        <button type="button" class="btn-secondary" style="font-size: 11px; padding: 4px 8px; width: auto; margin-top:0;" onclick="appendAiHint('這是左右分欄排版，左欄是題目，右欄是答案')">📌 左右分欄排版</button>
+        <button type="button" class="btn-secondary" style="font-size: 11px; padding: 4px 8px; width: auto; margin-top:0;" onclick="appendAiHint('這是橫向條列排版，同一行依序為題目與答案')">📌 橫向條列排版</button>
+        <button type="button" class="btn-secondary" style="font-size: 11px; padding: 4px 8px; width: auto; margin-top:0;" onclick="appendAiHint('請忽略頁首標題、頁碼與無關雜訊')">📌 忽略頁首雜訊</button>
+        <button type="button" class="btn-warning" style="font-size: 11px; padding: 4px 8px; width: auto; margin-top:0;" onclick="document.getElementById('ai-user-hint').value=''">🗑️ 清空提示</button>
+      </div>
     </div>
     
     <input type="file" id="camera-input" accept="image/*" style="margin-bottom: 15px;" onchange="handleImageCapture(event)">
@@ -502,6 +510,16 @@
   </div>
 
   <script>
+	function appendAiHint(text) {
+      const input = document.getElementById('ai-user-hint');
+      if (!input) return;
+      if (input.value.trim() !== '') {
+        input.value += '；' + text;
+      } else {
+        input.value = text;
+      }
+    }
+
     function cleanAnswerText(str) {
       if (!str) return '';
       return str.replace(/\[.*?\]|［.*?］|\(.*?\)|（.*?）|【.*?】/g, '').trim();
@@ -598,7 +616,7 @@
     }
 
     function updateAppVersion() {
-      const verStr = "Ver: 2026.10.31-0946";
+      const verStr = "Ver: 2026.10.31-1001";
       const verElem = document.getElementById('app-version');
       if (verElem) verElem.innerText = verStr;
     }
